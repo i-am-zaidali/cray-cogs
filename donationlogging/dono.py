@@ -462,7 +462,6 @@ class DonationLogging(commands.Cog):
         await self.open_account(user, ctx.guild)
 
         donos = await self.dono_Add(ctx, user, amount)
-        
         note = await self.add_note(user, ctx.message, flag if flag else {})
 
         role = await self.donoroles(ctx, user, donos)
