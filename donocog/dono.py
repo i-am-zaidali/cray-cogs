@@ -812,17 +812,20 @@ class DonationLogging(commands.Cog):
 
         confirmation = await ctx.send(embed=embed)
 
-        await confirmation.add_reaction("✅")
-        await confirmation.add_reaction("🇽")
+        pred = ReactionPredicate.yes_or_no(confirmation, ctx.author)
+        start_adding_reactions(confirmation, ReactionPredicate.YES_OR_NO_EMOJIS)
+        try:
+            await ctx.bot.wait_for("reaction_add", check=pred, timeout=30)
+        except:
+            return await ctx.send("You took too long. Request timed out.")
+        
+        if pred.result:
+            await ctx.send("alright done. Redo the command to setup roles again if there is any problem.")
 
-        well = await self.waitfor(ctx, confirmation, "Okey. Try again later.")
-
-        if well == False:
-            return
-
-        await ctx.send("alright done. Redo the command to setup roles again if there is any problem.")
-
-        await self.config.guild(ctx.guild).assignroles.set(ardict)
+            await self.config.guild(ctx.guild).assignroles.set(ardict)
+            
+        else:
+            await ctx.send("Aight try again later.")
         
     @donoset.command(name="managers")
     @commands.mod_or_permissions(administrator=True)
