@@ -133,7 +133,14 @@ class DonationLogging(commands.Cog):
                 continue
   
     async def to_cache(self):
-        self.cache = await self.config.all_members()
+        data = await self.config.all_members()
+        final = {}
+        for guild, memberdata in data.items():
+            final[guild] = {}
+            for k, v in memberdata.items():
+                final[guild][k] = v["donations"]
+            
+        self.cache = final
         
     async def to_config(self):
         for guild, memberdata in self.cache.items():
@@ -174,29 +181,29 @@ class DonationLogging(commands.Cog):
         return commands.check(predicate)
 
     async def open_account(self, user, guild):
-        data = self.cache.get(str(guild.id))
+        data = self.cache.get(guild.id)
         if data:
-            if str(user.id) in data:
+            if user.id in data:
                 return False
 
             else:
-                data[str(user.id)] = 0
+                data[user.id] = 0
                 return True
         else:
-            self.cache[str(guild.id)] = {}
-            self.cache[str(guild.id)][str(user.id)] = 0
+            self.cache[guild.id] = {}
+            self.cache[guild.id][user.id] = 0
             return True
 
     async def get_data(self, user, guild):
         await self.open_account(user, guild)
-        data = self.cache.get(str(guild.id))
+        data = self.cache.get(guild.id)
 
-        if donos:=data.get(str(user.id)):
+        if donos:=data.get(user.id):
             return donos
 
         else:
-            data[str(user.id)] = 0
-            donos = data[str(user.id)]
+            data[user.id] = 0
+            donos = data[user.id]
             return donos
 
     async def donoroles(self, ctx, user:Member, amount):
@@ -404,7 +411,7 @@ class DonationLogging(commands.Cog):
     async def dono_Add(self, ctx, user, amount):
         await self.open_account(user, ctx.guild)
         
-        self.cache[str(ctx.guild.id)][str(user.id)] += amount
+        self.cache[ctx.guild.id][user.id] += amount
         
         return await self.get_data(user, ctx.guild)
     
@@ -440,7 +447,7 @@ class DonationLogging(commands.Cog):
                     notes[1] = data
 
                 else:
-                    notes[len(notes)] = data
+                    notes[len(notes) + 1] = data
                             
             return data["content"]
         
@@ -453,7 +460,10 @@ class DonationLogging(commands.Cog):
         """
         Add an amount to someone's donation balance.
         
-        This requires either one of the donation manager roles or the bot mod role."""
+        This requires either one of the donation manager roles or the bot mod role.
+        [flag] parameter is a flag used for setting notes for a donation
+        For example:
+            `[p]dono add 1000 @Twentysix --note hes cute"""
         user = user or ctx.author
         
         if not amount:
@@ -471,7 +481,7 @@ class DonationLogging(commands.Cog):
     async def dono_Remove(self, ctx, user, amount):
         donation = await self.get_data(user, ctx.guild)
 
-        self.cache[str(ctx.guild.id)][str(user.id)] -= amount
+        self.cache[ctx.guild.id][user.id] -= amount
 
         return await self.get_data(user, ctx.guild)
     
@@ -514,7 +524,7 @@ class DonationLogging(commands.Cog):
 
         donation -= donation
 
-        self.cache[str(ctx.guild.id)][str(user.id)] = 0
+        self.cache[ctx.guild.id][user.id] = 0
         emoji = await self.config.guild(ctx.guild).currency()
 
         embed = discord.Embed(title="***__Reset!__***", description=f"Resetted {user.name}'s donation bal. Their current donation amount is {emoji} 0", color=await ctx.embed_color())
@@ -606,14 +616,14 @@ class DonationLogging(commands.Cog):
         await ctx.send(embed=embed)
 
     @dono.command(name="leaderboard", description="Parameters:\n\n<topnumber> The amount of people to show on the leaderboard. deafaults to 5.",
-    help="Shows a leaderboard containing the top doantors in the guild.", aliases=["lb", "topdonators"])
+    help="Shows a leaderboard containing the top donators in the guild.", aliases=["lb", "topdonators"])
     @commands.guild_only()
     async def leaderboard(self, ctx, topnumber=5):
         """
         See the top donators in the server.
         
         Use the <topnumber> parameter to see the top `x` donators. """
-        data = await self.config.guild(ctx.guild).donations()
+        data = self.cache[ctx.guild.id]
 
         data = await sortdict(data)
 
@@ -623,7 +633,7 @@ class DonationLogging(commands.Cog):
         index = 1
         for index, (key, value) in enumerate(data.items(), 1):
             if value != 0:
-                user = await self.bot.fetch_user(int(key))
+                user = await self.bot.get_or_fetch_user(int(key))
                 embed.add_field(name=f"{index}. **{user.name}**", value="{} {:,}".format(emoji, value), inline=False)
             
             if (index) == topnumber:
