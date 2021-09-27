@@ -184,7 +184,7 @@ class DonationLogging(commands.Cog):
                 return True
         else:
             self.cache[str(guild.id)] = {}
-            data[str(user.id)] = 0
+            self.cache[str(guild.id)][str(user.id)] = 0
             return True
 
     async def get_data(self, user, guild):
