@@ -338,7 +338,7 @@ class DonationLogging(commands.Cog):
         emb.add_field(name=f"Question: `{questions[1][0]}`", value="Answer: `{}`".format(f'#{channel.name}' if ch else "None"), inline=False)
 
         confirmation = await ctx.send(embed=emb)
-        start_adding_reactions(ReactionPredicate.YES_OR_NO_EMOJIS)
+        start_adding_reactions(confirmation, ReactionPredicate.YES_OR_NO_EMOJIS)
         pred = ReactionPredicate.yes_or_no(confirmation, ctx.author)
         try:
             await ctx.bot.wait_for("reaction_add", check=pred, timeout=30)
