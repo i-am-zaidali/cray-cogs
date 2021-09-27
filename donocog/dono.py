@@ -122,6 +122,15 @@ class DonationLogging(commands.Cog):
     
     def cog_unload(self):
         asyncio.create_task(self.to_config())
+        
+    async def red_delete_data_for_user(self, *, requester, user_id: int):
+        if requester not in ("discord_deleted_user", "user"):
+            return
+        for guild, data in self.cache.items():
+            try:
+                del data[str(user_id)]
+            except KeyError:
+                continue
   
     async def to_cache(self):
         self.cache = await self.config.all_members()
@@ -131,8 +140,8 @@ class DonationLogging(commands.Cog):
             for member, data in memberdata.items():
                 await self.config.member_from_ids(int(guild), int(member)).donations.set(data)
 
-    async def GetMessage(self, ctx, contentOne, contentTwo, timeout=100):
-        embed = discord.Embed(title=f"{contentOne}", description=f"{contentTwo}", color=discord.Color.random())
+    async def GetMessage(self, ctx :commands.Context, contentOne, contentTwo, timeout=100):
+        embed = discord.Embed(title=f"{contentOne}", description=f"{contentTwo}", color=await ctx.embed_color())
         sent = await ctx.send(embed=embed)
         try:
             msg = await self.bot.wait_for(
@@ -324,7 +333,7 @@ class DonationLogging(commands.Cog):
         else:
             ch = None
 
-        emb = discord.Embed(title="Is all this information valid?", color=discord.Color.green())
+        emb = discord.Embed(title="Is all this information valid?", color=await ctx.embed_color())
         emb.add_field(name=f"Question: `{questions[0][0]}`", value=f"Answer: `{' '.join([role.name for role in roles])}\n{'Couldnt find roles with following ids'+' '.join([i for i in failed]) if failed else ''}`", inline=False)
         emb.add_field(name=f"Question: `{questions[1][0]}`", value="Answer: `{}`".format(f'#{channel.name}' if ch else "None"), inline=False)
 
@@ -352,7 +361,7 @@ class DonationLogging(commands.Cog):
         
         These can be setup with `[p]donoset roles`"""
         data = await self.config.guild(ctx.guild).assignroles()
-        embed = discord.Embed(title=f"Donation autoroles for {ctx.guild.name}")
+        embed = discord.Embed(title=f"Donation autoroles for {ctx.guild.name}", color=await ctx.embed_color())
         embed.set_footer(text=f"{ctx.guild.name}", icon_url=ctx.author.avatar_url)
         emoji = await self.config.guild(ctx.guild).currency()
         if data:
@@ -386,7 +395,7 @@ class DonationLogging(commands.Cog):
         donos = await self.get_data(ctx.author, ctx.guild)
         emoji = await self.config.guild(ctx.guild).currency()
         
-        embed = discord.Embed(title=f"Your donations in **__{ctx.guild.name}__**", description="Total amount donated: {} *{:,}*".format(emoji, donos))
+        embed = discord.Embed(title=f"Your donations in **__{ctx.guild.name}__**", description="Total amount donated: {} *{:,}*".format(emoji, donos), color=await ctx.embed_color())
         embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         embed.set_footer(text="Thanks for donating. Keep donating for awesome perks. <3", icon_url=ctx.guild.icon_url)
 
@@ -403,7 +412,7 @@ class DonationLogging(commands.Cog):
     
     async def dono_log(self, ctx, action, user, amount, donos, role=None, note=None):
         emoji = await self.config.guild(ctx.guild).currency()
-        embed = discord.Embed(title="***__Added!__***" if action.lower() == "add" else "***__Removed!__***", description=f"{emoji} {humanize_number(amount)} was {'added to' if action.lower() == 'add' else 'removed from'} {user.name}'s donations balance.\n", color=discord.Color.random())
+        embed = discord.Embed(title="***__Added!__***" if action.lower() == "add" else "***__Removed!__***", description=f"{emoji} {humanize_number(amount)} was {'added to' if action.lower() == 'add' else 'removed from'} {user.name}'s donations balance.\n", color=await ctx.embed_color())
         embed.add_field(name="Note: ", value=note if note else "No note taken.", inline=False)
         embed.add_field(name="Their total donations are: ", value="{} {:,}".format(emoji, donos))
         embed.add_field(name="Jump Link To The Command:", value=f"[click here]({ctx.message.jump_url})")
@@ -512,7 +521,7 @@ class DonationLogging(commands.Cog):
         self.cache[str(ctx.guild.id)][str(user.id)] = 0
         emoji = await self.config.guild(ctx.guild).currency()
 
-        embed = discord.Embed(title="***__Reset!__***", description=f"Resetted {user.name}'s donation bal. Their current donation amount is {emoji} 0", color=discord.Color.random())
+        embed = discord.Embed(title="***__Reset!__***", description=f"Resetted {user.name}'s donation bal. Their current donation amount is {emoji} 0", color=await ctx.embed_color())
         embed.add_field(name="Jump Link To The Command:", value=f"[click here]({ctx.message.jump_url})")
         embed.set_footer(text=f"Command executed by: {ctx.author.display_name}", icon_url=ctx.guild.icon_url)
 
