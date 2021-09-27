@@ -403,9 +403,7 @@ class DonationLogging(commands.Cog):
         
     async def dono_Add(self, ctx, user, amount):
         await self.open_account(user, ctx.guild)
-
-        donos = await self.get_data(user, ctx.guild)
-
+        
         self.cache[str(ctx.guild.id)][str(user.id)] += amount
         
         return await self.get_data(user, ctx.guild)
@@ -429,7 +427,7 @@ class DonationLogging(commands.Cog):
                 await log.send(role, embed=embed)
             else:
                 await ctx.send(role + "\n Couldn't find the logging channel.", embed=embed)
-            await ctx.message.add_reaction("<a:verified:821460262225051669>")
+            await ctx.message.add_reaction("✅")
 
         elif not chanid:
             await ctx.send(role, embed=embed)
@@ -468,14 +466,13 @@ class DonationLogging(commands.Cog):
         note = await self.add_note(user, ctx.message, flag if flag else {})
 
         role = await self.donoroles(ctx, user, donos)
-        emoji = await self.config.guild(ctx.guild).currency()
         
         await self.dono_log(ctx, "add", user, amount, donos, role, note)
         
     async def dono_Remove(self, ctx, user, amount):
         donation = await self.get_data(user, ctx.guild)
 
-        self.cache[str(ctx.guild.id)][str(user.id)] += amount
+        self.cache[str(ctx.guild.id)][str(user.id)] -= amount
 
         return await self.get_data(user, ctx.guild)
     
@@ -531,7 +528,7 @@ class DonationLogging(commands.Cog):
 
         if chanid and chanid != "none":
             channel = await self.bot.fetch_channel(chanid)
-            await ctx.message.add_reaction("<a:verified:821460262225051669>")
+            await ctx.message.add_reaction("✅")
             await channel.send(role, embed=embed)
         else:
             await ctx.send(role, embed=embed)
