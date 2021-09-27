@@ -6,7 +6,7 @@
   <a href="https://github.com/Rapptz/discord.py/">
      <img src="https://img.shields.io/badge/discord-py-blue.svg" alt="discord.py">
   </a>
-  <a href="https://discord.gg/cGJ8JmX">
+  <a href="https://discord.gg/xfmN4C3vUP">
     <img src="https://discordapp.com/api/guilds/750553548525273208/widget.png?style=shield" alt="Support Server">
   </a>
 </p>
