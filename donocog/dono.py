@@ -792,10 +792,12 @@ class DonationLogging(commands.Cog):
                 return await ctx.send("That role's position is higher than me, I cannot manually assign it to people. Please move the role created by me, above the assigning roles.")
             elif role.is_bot_managed():
                 return await ctx.send("That role is managed by a bot so it can't be assigned by me.")
+            elif role.position > ctx.author.top_role.position:
+                return await ctx.send("That role's postition is above you and can not be set to be assigned by you.")
 
             ardict[amount] = role.id
 
-            await message.add_reaction("<a:catclap:857638874646052885>")
+            await message.add_reaction("✅")
 
 
         embed = discord.Embed(title=f"Autoroles setup for {ctx.guild.name}: ", color=discord.Color.green())
