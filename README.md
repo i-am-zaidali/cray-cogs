@@ -28,4 +28,4 @@ Incase you encounter a bug, either create an issue on the repo
 <h4 align="center"> OR </h4>
 You can join my [support server](https://discord.gg/xfmN4C3vUP)
 <h4 align="center"> OR </h4>
-You can post your query in #support-othercogs in the [Cog support server](https://discord.gg/GET4DVk)
+You can post your query and ping me in #support-othercogs in the [Cog support server](https://discord.gg/GET4DVk)
