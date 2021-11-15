@@ -9,7 +9,7 @@
         "crayyy_zee"
     ],
     "required_cogs": {},
-    "requirements": ["git+github.com/i-am-zaidali/AmariWrapper"],
+    "requirements": ["git+github.com/i-am-zaidali/AmariWrapper.git@main#egg=amari"],
     "tags": [
         "giveaways",
         "requirements",
