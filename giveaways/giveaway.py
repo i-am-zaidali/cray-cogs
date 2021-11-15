@@ -12,7 +12,7 @@ from redbot.core import commands
 from redbot.core.utils.chat_formatting import humanize_list, humanize_timedelta, pagify
 from redbot.core.utils.menus import menu, DEFAULT_CONTROLS, start_adding_reactions
 from redbot.core.utils.predicates import ReactionPredicate
-from giveawaycog.models import Giveaway, Requirements
+from .models import Giveaway, Requirements
 from .util import TimeConverter, WinnerConverter, prizeconverter, readabletimer, is_gwmanager, flags
 from .gset import gsettings
 
