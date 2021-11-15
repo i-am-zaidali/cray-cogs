@@ -70,11 +70,13 @@ class giveaways(gsettings, name="Giveaways"):
             `[p]g start 30s 1 none my soul`
             `[p]g start 5m 1 someroleid;;another_role[bypass];;onemore[blacklist] Yayyyy new giveaway`
         """
-        if not getattr(self, "amari", None):
-            requirements.no_amari_available()
-        prize = " ".join(prize)
         if not time or not winners or not prize or not requirements:
             return await ctx.send_help("giveaway start")
+        
+        prize = " ".join(prize)
+        
+        if not getattr(self, "amari", None):
+            requirements.no_amari_available()
 
         if time < 15:
             return await ctx.reply("Giveaways have to be longer than 15 seconds.")    
@@ -420,7 +422,7 @@ Ends at: {endsat}
     
 ***__Requirements:__ ***
     > You can set requirements for the people who wish to join the giveaways.
-    > These requirements can be either of role requirements, ASH level requirements or AmariBot level requirements.
+    > These requirements can be either of role requirements or AmariBot level requirements.
     > Requirements are provided after the time and no. of winners like so: 
         *{ctx.prefix}g start <time> <no. of winners> <requirements> <prize> [flags]*
         
@@ -432,7 +434,7 @@ Ends at: {endsat}
     > You can also have Amari weekly xp requirements, just use the level amount and use the `[aweekly]` brackets.
     
     For example:
-        **{ctx.prefix}g start 1h30m somerolemention[bypass];;123456789[blacklist];;12[alvl] [alevel]**
+        **{ctx.prefix}g start 1h30m 1 somerolemention[bypass];;123456789[blacklist];;12[alvl] [alevel]**
         
     **NOTE**:
         > Amari requirements will be ignored if the amari api key is not set.
