@@ -105,7 +105,7 @@ class ButtonPaginator:
                 ),
                 self.client.add_callback(
                     Button(style=ButtonStyle.red, emoji="❎"),
-                    self.cancel_pag
+                    self.cross_callback
                 )
             ]
         ]
