@@ -112,6 +112,8 @@ class Notes(commands.Cog):
         if len(notes) == 1:
             final = ""
             for user, n in notes.items():
+                if not n:
+                    return await ctx.send("No notes found for this server.")
                 for i, note in enumerate(n, 1):
                     final += f"**{i}**. {note}"
             return await ctx.send(
@@ -128,6 +130,8 @@ class Notes(commands.Cog):
         embeds = []
         for ind, (user, n) in enumerate(notes.items(), 1):
             final = ""
+            if not n:
+                continue
             for i, note in enumerate(n, 1):
                 final += f"**{i}**. {note}\n"
             user = ctx.guild.get_member(user)
@@ -137,8 +141,13 @@ class Notes(commands.Cog):
             ).add_field(
                 name=f"**{user}: **",
                 value=final
-            ).set_footer(text=f"Page {ind} of {len(notes)}")
+            )
             embeds.append(embed)
+    
+        embeds = [embed.set_footer(text=f"Page {embeds.index(embed)+1}/{len(embeds)}") for embed in embeds]
+        
+        if not embeds:
+            return await ctx.send("No notes found for this server.")
     
         paginator = ButtonPaginator(self.bot.ButtonClient, ctx, embeds)
         await paginator.start()
