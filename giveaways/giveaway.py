@@ -403,7 +403,7 @@ Ends at: {endsat}
     @giveaway.command(name="explain")
     @commands.cooldown(1, 5, commands.BucketType.guild)
     async def gexplain(self, ctx):
-        "Start a paginated embeds session explaining how
+        """Start a paginated embeds session explaining how
         to use the commands of this cog and how it works."""
         embeds = []
         something = f"""
