@@ -243,7 +243,7 @@ class Giveaway:
         winners = Counter(winners)
         # winners = [k for k, v in winners.items()]
         for winner in winners.keys():
-            member = await self.bot.fetch_user(winner)
+            member = await self.bot.get_or_fetch_user(winner)
             if member:
                 try:
                     embed = discord.Embed(
