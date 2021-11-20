@@ -115,7 +115,7 @@ class Notes(commands.Cog):
                 if not n:
                     return await ctx.send("No notes found for this server.")
                 for i, note in enumerate(n, 1):
-                    final += f"**{i}**. {note}"
+                    final += f"**{i}**. {note}/n"
             return await ctx.send(
                 embed=discord.Embed(
                     title=f"Notes for {ctx.guild}",
