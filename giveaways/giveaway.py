@@ -45,7 +45,7 @@ class giveaways(gsettings, name="Giveaways"):
     @commands.guild_only()
     async def giveaway(self, ctx):
         await ctx.send_help("giveaway")
-
+    @commands.bot_has_permissions(embed_links=True, manage_message=True)
     @giveaway.command(name="start",
                       usage="<time> <winners> <requirements> <prize> [flags]",
                       description="Start a giveaway directly in the current channel.")
@@ -295,6 +295,7 @@ class giveaways(gsettings, name="Giveaways"):
     @giveaway.command(name="list")
     @commands.cooldown(1, 30, commands.BucketType.guild)
     @commands.max_concurrency(3, commands.BucketType.default, wait=True)
+    @commands.bot_has_permissions(embed_links=True)
     async def glist(self, ctx:commands.Context):
         """
         See a list of active giveaway in your server.
@@ -331,6 +332,7 @@ class giveaways(gsettings, name="Giveaways"):
         
     @giveaway.command(name="show")
     @commands.is_owner()
+    @commands.bot_has_permissions(embed_links=True)
     async def gshow(self, ctx, giveaway:discord.Message=None):
         """
         Shows all active giveaways in all servers.
@@ -392,6 +394,7 @@ Ends at: {endsat}
 
     @giveaway.command(name="top")
     @commands.cooldown(1, 10, commands.BucketType.guild)
+    @commands.bot_has_permissions(embed_links=True)
     async def top_mgrs(self, ctx):
         """
         See the users who have performed the most giveaways in your server.
@@ -411,6 +414,7 @@ Ends at: {endsat}
         
     @giveaway.command(name="explain")
     @commands.cooldown(1, 5, commands.BucketType.guild)
+    @commands.bot_has_permissions(embed_links=True)
     async def gexplain(self, ctx):
         """Start a paginated embeds session explaining how
         to use the commands of this cog and how it works."""

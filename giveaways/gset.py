@@ -137,6 +137,7 @@ class gsettings(main):
 	@gset.command(name="blacklist", aliases=["bl"])
 	@commands.guild_only()
 	@commands.admin_or_permissions(administrator=True)
+	@commands.bot_has_permissions(embed_links=True)
 	async def bl_role(self, ctx, roles:commands.Greedy[discord.Role]=None):
 		"""
   		Blacklist roles from giveaway permanently without having to pass them as requirements each time.
@@ -159,6 +160,7 @@ class gsettings(main):
 	@gset.command(name="unblacklist", aliases=["ubl"])
 	@commands.guild_only()
 	@commands.admin_or_permissions(administrator=True)
+	@commands.bot_has_permissions(embed_links=True)
 	async def ubl_role(self, ctx, roles:commands.Greedy[discord.Role]):
 		"""
   		Unblacklist previously blacklisted roles from giveaways."""
@@ -168,6 +170,7 @@ class gsettings(main):
 	@gset.command(name="bypass", aliases=["by"])
 	@commands.guild_only()
 	@commands.admin_or_permissions(administrator=True)
+	@commands.bot_has_permissions(embed_links=True)
 	async def by_role(self, ctx, add_or_remove=None, roles:commands.Greedy[discord.Role]=None):
 		"""
   		Set roles to bypass all giveaways in your server.
@@ -197,6 +200,7 @@ class gsettings(main):
 	@gset.command(name="multi", aliases=["rolemulti", "rm"])
 	@commands.guild_only()
 	@commands.admin_or_permissions(administrator=True)
+	@commands.bot_has_permissions(embed_links=True)
 	async def role_multi(self, ctx, add_or_remove=None, role:discord.Role=None, multi:int=None):
 		"""
   		Add role multipliers for giveaways.
@@ -234,6 +238,7 @@ class gsettings(main):
 
 	@gset.command(name="showsettings", aliases=["ss", "show", "showset"])
 	@commands.admin_or_permissions(administrator=True)
+	@commands.bot_has_permissions(embed_links=True)
 	async def show(self, ctx):
 		"""
   		See giveaway settings configured for your server"""
@@ -242,7 +247,7 @@ class gsettings(main):
 		winnerdm = await self.config.dm_winner(ctx.guild)
 		hostdm = await self.config.dm_host(ctx.guild)
 		endmsg = await self.config.get_guild_endmsg(ctx.guild)
-		managers = await self.config.get_manager(ctx.guild)
+		managers = await self.config.get_managers(ctx.guild)
 		autodelete = await self.config.config.guild(ctx.guild).autodelete()
 
 		embed = discord.Embed(
