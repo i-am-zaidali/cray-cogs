@@ -8,6 +8,7 @@ import datetime
 import random
 
 from discord.ext.commands.converter import MemberConverter
+from discord.message import Message
 from redbot.core import commands
 from redbot.core.utils.chat_formatting import humanize_list, humanize_timedelta, pagify
 from redbot.core.utils.menus import menu, DEFAULT_CONTROLS, start_adding_reactions
@@ -32,7 +33,7 @@ class giveaways(gsettings, name="Giveaways"):
         for i in self.giveaway_cache.copy():
             if i.host.id == user_id:
                 self.giveaway_cache.remove(i)
-    
+                
     @commands.Cog.listener()
     async def on_command_completion(self, ctx):
         if ctx.command.qualified_name.lower() == "giveaway start":
@@ -158,11 +159,19 @@ class giveaways(gsettings, name="Giveaways"):
         giveaway = Giveaway(**data)
         self.giveaway_cache.append(giveaway)
         
-    def giveaway_from_message_reply(self, message: discord.Message):
+    async def message_reply(self, message: discord.Message) -> discord.Message:
         if not message.reference:
             return
         
-        msg =  message.reference.resolved
+        try:
+            return await message.channel.fetch_message(message.reference.message_id)
+        
+        except:
+            return message.reference.resolved
+            
+    async def giveaway_from_message_reply(self, message: discord.Message):
+        msg = await self.message_reply(message)
+        
         e = list(filter(lambda x: x.message_id == msg.id and x.guild == message.guild, self.giveaway_cache.copy()))
         if not e:
             return
@@ -176,7 +185,7 @@ class giveaways(gsettings, name="Giveaways"):
         
         This will end the giveaway before its original time.
         You can also reply to the giveaway message instead of passing its id"""
-        gmsg = giveaway_id or self.giveaway_from_message_reply(ctx.message)
+        gmsg = giveaway_id or await self.giveaway_from_message_reply(ctx.message)
         if not gmsg:
             return await ctx.send_help("giveaway end")
         activegaw = self.giveaway_cache.copy()
@@ -198,9 +207,10 @@ class giveaways(gsettings, name="Giveaways"):
                 for i in activegaw.copy():
                     if i.guild == ctx.guild:
                         await i.end()
+                return await ctx.send("All giveaways have been ended.")
             
             else:
-                return await ctx.send("Thanks for savign me from all that hard work lmao :weary:")
+                return await ctx.send("Thanks for saving me from all that hard work lmao :weary:")
 
         e = list(filter(lambda x: x.message_id == gmsg.id and x.guild == ctx.guild, activegaw))
         if len(e) == 0:
@@ -221,17 +231,16 @@ class giveaways(gsettings, name="Giveaways"):
         You can also reply to the giveaway message instead of passing its id.
         
         [winners] is the amount of winners to pick."""
-        gmsg = giveaway_id or self.giveaway_from_message_reply(ctx.message)
-        data = self.giveaway_cache.copy()
-        if not data:
-            return await ctx.send("There are no active giveaways.")
-        e = list(filter(lambda x: x.message_id == gmsg.id and x.guild == ctx.guild, data))
+        gmsg = giveaway_id or await self.message_reply(ctx.message)
         if not gmsg:
             return await ctx.send_help("giveaway reroll")
+        
+        if e := list(filter(lambda x: x.message_id == gmsg.id and x.guild == ctx.guild, self.giveaway_cache.copy())):
+            return await ctx.send("That giveaway is currently active. Can't reroll an already active giveaway.")
             
         if await self.config.get_guild_autodel(ctx.guild):
             await ctx.message.delete()
-
+            
         entrants = await gmsg.reactions[0].users().flatten()
         try: entrants.pop(entrants.index(ctx.guild.me))
         except: pass
@@ -430,15 +439,14 @@ Ends at: {endsat}
     > For role requirements, you just use the role id, mention, or exact name. 
     > But if you wanna set a role to be a bypass for the giveaway, you put the role and follow it with a `[bypass]` or `[blacklist]`
     
+    > There are also ash level requirements based on ASH's levelling system. `{ctx.prefix}help Levelling`
+    > These can be used with `[level]` or `[lvl]` brackets.
+    
     > For Amari level requirements you do the same but `[level]` gets replaced with `[alevel]` or `[alvl]`
     > You can also have Amari weekly xp requirements, just use the level amount and use the `[aweekly]` brackets.
     
     For example:
         **{ctx.prefix}g start 1h30m 1 somerolemention[bypass];;123456789[blacklist];;12[alvl] [alevel]**
-        
-    **NOTE**:
-        > Amari requirements will be ignored if the amari api key is not set.
-        > You can set the amari api key with the `{ctx.prefix}set api amari auth,<api key>` command.
     
 ***__Flags:__ ***
     > Flags are extra arguments passed to the giveaway command to modify it.
@@ -450,7 +458,7 @@ Ends at: {endsat}
         
     > *--amt*
         This adds the given amount to the donor's (or the command author if donor is not provided) donation balance.
-        This requires for you to install my "DonationLogging" cog for this to work.
+        **You need my DonationLogging cog for this to work.**
     
     > *--msg*
         This sends a separate embed after the main giveaway one stating a message give by you.
