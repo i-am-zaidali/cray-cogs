@@ -35,7 +35,7 @@ class main(commands.Cog):
                 
             else:
                 if not await s.config._sent_message():
-                    await bot.send_to_owners("""
+                    await bot.send_to_owners(f"""
                                             Thanks for installing and using my Giveaways cog.
                                             This cog has a requirements system for the giveaways and one of 
                                             these requirements type is amari levels.

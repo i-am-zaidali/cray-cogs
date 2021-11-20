@@ -261,6 +261,10 @@ class giveaways(gsettings, name="Giveaways"):
     @giveaway.command(name="clear")
     @commands.is_owner()
     async def clear(self, ctx):
+        """
+        Clear the giveaway cache in the bot.
+
+        This will abandon all ongoing giveaways and leave them as is"""
         self.giveaway_cache.clear()
 
         await ctx.send("Cleared all giveaway data.")
@@ -408,6 +412,8 @@ Ends at: {endsat}
     @giveaway.command(name="explain")
     @commands.cooldown(1, 5, commands.BucketType.guild)
     async def gexplain(self, ctx):
+        """Start a paginated embeds session explaining how
+        to use the commands of this cog and how it works."""
         embeds = []
         something = f"""
 ***__Basics:__ ***
