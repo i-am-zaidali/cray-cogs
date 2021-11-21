@@ -7,6 +7,8 @@ from typing import Dict, Tuple, Union
 from redbot.core.bot import Red
 from redbot.core import Config
 
+from .exceptions import CategoryAlreadyExists
+
 class DonoUser:
     def __init__(self, bot: Red, dono_bank: str, guild_id: int, user_id: int, data: int = 0):
         self.bot = bot
@@ -38,36 +40,47 @@ class Donations:
         self.bot = bot
         self.config = Config.get_conf(self, identifier=123_6969_420)
         # config structure would be something like:
-        # {guild_id: {"categories": [list of category names], "category name": {user_id: amount}}}
+        # {
+        #  guild_id: {
+        #      "categories": {
+        #          "category name": [list of roles]
+        #          },
+        #      "category name": {
+        #          user_id: amount
+        #          }
+        #      }
+        #  }
         
-        self.config.register_guild(categories=[])
+        self.config.register_guild(categories={})
+        self.config.init_custom("guild_category", 2)
         
     async def _verify_guild_category(self, guild_id: int, category: str) -> Tuple[bool, Union[Tuple[str, int], None]]:
         categories = await self.config.guild_from_id(guild_id).categories()
         org = category.lower() in categories
-        match = process.extractOne(org, categories, score_cutoff=80) # Just to keep up with typos
+        match = process.extractOne(org, categories.keys(), score_cutoff=80) # Just to keep up with typos
         
         return (org and match), match
     
-    async def _create_category(self, guild_id: int, category: str):
-        if (tup:=await self._verify_guild_category(guild_id, category))[0]:
-            raise ValueError(f"Category `{category}` already exists with the name {tup[1][0]}")
+    async def _create_category(self, guild_id: int, category: str, force:bool=False):
+        if (tup:=await self._verify_guild_category(guild_id, category))[0] and not force:
+            raise CategoryAlreadyExists(f"A similar category already exists with the name {tup[1][0]},"
+                                        "Pass True to the force argument to override this exception.", tup[1][0])
         
         async with self.config.guild_from_id(guild_id).categories() as categories:
-            categories.append(category.lower())
+            categories.setdefault(category.lower(), [])
             
-        return tup[1][0] if tup[0] else category
+        return category.lower()
             
-    async def get_dono_bank(self, name: str, guild_id: int) -> DonoBank:
+    async def get_dono_bank(self, name: str, guild_id: int, *, force=False) -> DonoBank:
         try:
-            name = await self._create_category(guild_id, name)
+            name = await self._create_category(guild_id, name, force)
             
-        except ValueError as e:
-            pass
+        except CategoryAlreadyExists as e:
+            name = e.name
         
         return DonoBank(
             self.bot,
             name,
             guild_id,
-            await getattr(self.config.guild_from_id(guild_id), name)()
+            await self.config.custom("guild_category", guild_id, name).all()
         )
