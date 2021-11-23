@@ -40,15 +40,19 @@ class giveaways(gsettings, name="Giveaways"):
             async with self.config.config.guild(ctx.guild).top_managers() as top:
                 top[str(ctx.author.id)] = (1 if not str(ctx.author.id) in top else top[str(ctx.author.id)] + 1)
     
-    @commands.group(name="giveaway", help="Base command for giveaways", description="Use subcommands for further functionality regarding creating, ending and rerolling a giveaway.",
-                    aliases=["g"], invoke_without_command=True)
+    @commands.group(name="giveaway", aliases=["g"], invoke_without_command=True)
     @commands.guild_only()
     async def giveaway(self, ctx):
+        """
+        Base command for giveaway controls.
+        
+        Use given subcommands to start new giveaways, 
+        end all (or one) giveaway and reroll ended giveaways.
+        """
         await ctx.send_help("giveaway")
         
     @giveaway.command(name="start",
-                      usage="<time> <winners> <requirements> <prize> [flags]",
-                      description="Start a giveaway directly in the current channel.")
+                      usage="<time> <winners> <requirements> <prize> [flags]")
     @commands.max_concurrency(5, per=commands.BucketType.guild, wait=True)
     @commands.bot_has_permissions(embed_links=True, manage_messages=True)
     @commands.guild_only()
@@ -66,7 +70,7 @@ class giveaways(gsettings, name="Giveaways"):
 
         Requires a manager role set with `[p]gset manager` or
         The bot mod role set with `[p]set addmodrole`
-        or manage message permissions.
+        or manage messages permissions.
         
         Example:
             `[p]g start 30s 1 none my soul`
@@ -231,7 +235,7 @@ class giveaways(gsettings, name="Giveaways"):
         
         You can also reply to the giveaway message instead of passing its id.
         
-        [winners] is the amount of winners to pick."""
+        [winners] is the amount of winners to pick. Defaults to 1"""
         gmsg = giveaway_id or await self.message_reply(ctx.message)
         if not gmsg:
             return await ctx.send_help("giveaway reroll")
@@ -259,7 +263,7 @@ class giveaways(gsettings, name="Giveaways"):
 
         await gmsg.reply(f"Congratulations :tada:{humanize_list(winner)}:tada:. You are the new winners for the giveaway below.\n{link}")
 
-    @giveaway.command(name="clear")
+    @giveaway.command(name="clear", hidden=True)
     @commands.is_owner()
     async def clear(self, ctx):
         """

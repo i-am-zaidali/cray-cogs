@@ -119,7 +119,7 @@ class gsettings(main):
 		"""
   		Set which role gets pinged in giveaways.
 	
-		This only takes effect when the `--ping` is used in giveaways."""
+		This only takes effect when the `--ping` flag is used in giveaways."""
 		await self.config.set_guild_pingrole(ctx.guild, role.id)
 		await ctx.reply(f"{role.mention} has been set as the pingrole!", allowed_mentions=discord.AllowedMentions(roles=False, replied_user=False))
 
@@ -209,10 +209,10 @@ class gsettings(main):
 	 	If a user has multiple roles each with its separate multiplier, all of them will apply to him.
 	  	A role's multiplier can not be greater than 5.
 	   	
-		Passing no parameters will shpow you the current multipliers of the server. 
+		Passing no parameters will show you the current multipliers of the server. 
 		[add_or_remove] takes either of 'add' or 'remove'.
 		[role] is the role name, id or mention and 
-		[multi] is the multiplier amount. This is not required when you are removing."""
+		[multi] is the multiplier amount. **Must be under 5**. This is not required when you are removing."""
 		if not add_or_remove and not role and not multi:
 			roles = await self.config.get_all_roles_multi(ctx.guild)
 			return await ctx.send(
