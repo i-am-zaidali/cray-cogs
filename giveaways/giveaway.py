@@ -25,7 +25,7 @@ class Coordinate(dict):
 
 class giveaways(gsettings, name="Giveaways"):
     def __init__(self, bot):
-        self.bot = bot
+        super().__init__(bot)
         
     async def red_delete_data_for_user(self, *, requester, user_id: int):
         if not self.giveaway_cache:
