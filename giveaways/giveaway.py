@@ -45,11 +45,12 @@ class giveaways(gsettings, name="Giveaways"):
     @commands.guild_only()
     async def giveaway(self, ctx):
         await ctx.send_help("giveaway")
-    @commands.bot_has_permissions(embed_links=True, manage_messages=True)
+        
     @giveaway.command(name="start",
                       usage="<time> <winners> <requirements> <prize> [flags]",
                       description="Start a giveaway directly in the current channel.")
     @commands.max_concurrency(5, per=commands.BucketType.guild, wait=True)
+    @commands.bot_has_permissions(embed_links=True, manage_messages=True)
     @commands.guild_only()
     @is_gwmanager()
     async def _start(self,
