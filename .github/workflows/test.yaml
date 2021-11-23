@@ -4,29 +4,29 @@ on: [push]
 
 
 jobs:
-  black:
-    name: Style Reformatting
+  blackformat:
     runs-on: ubuntu-latest
     steps:
+
+      # use isort github action see https://pycqa.github.io/isort/docs/configuration/github_action.html
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: "3.8"
-      - run: "make install"
-        name: Install requirements
-      - run: "make reformat"
-        continue-on-error: true
-        name: Style reformatting
-      - name: Commit changes
-        continue-on-error: true
+          python-version: 3.8
+      - uses: jamescurtin/isort-action@master
+        with:
+          requirementsFiles: "requirements.txt docs/requirements.txt"
+          sortPaths: "buildtest tests docs"
+      # use black github action see https://black.readthedocs.io/en/stable/integrations/github_actions.html
+      - uses: psf/black@stable
+        with:
+          options: "--check"
+          src: "buildtest tests scripts"
+
+      - name: Check imports with pyflakes
         run: |
-          git config --local committer.email "noreply@github.com"
-          git config --local committer.name "GitHub"
-          git config --local author.email "${{ github.actor }}@users.noreply.github.com"
-          git config --local author.name "{{ github.actor }}"
-          git add -A
-          git commit -m "Style Reformatting"
-          git push "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:${GITHUB_REF#refs/heads/}
+          pip install pyflakes
+          pyflakes buildtest tests scripts
   lint_python:
     name: Lint Python
     runs-on: ubuntu-latest
