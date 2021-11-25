@@ -41,7 +41,7 @@ class main(commands.Cog):
                                             these requirements type is amari levels.
                                             If you don't know what amari is, ignore this message.
                                             But if u do, you need an Amari auth key for these to work,
-                                            go to this website: https://forms.gle/TEZ3YbbMPMEWYuuMAa
+                                            go to this website: https://forms.gle/TEZ3YbbMPMEWYuuMA
                                             and apply to get the key. You should probably get a response within 
                                             24 hours but if you don't, visit this server for information: https://discord.gg/6FJhupDHS6
                                             
