@@ -23,7 +23,7 @@
 | DonationLogging               | 1.5.0            | <details><summary>Store donation amounts.</summary>This cog allows you to store a member's donations in a guild.</details>                                                                   |
 | VoteTracker                   | 1.0.0            | <details><summary>Track votes for your bot.</summary>Track votes for your bot on top.gg with vote logs and role rewards.</details>                                                            |
 | Giveaways                     | 1.0.0            | <details><summary>Host embedded giveaways using reactions.</summary>Start giveaways in your server using reactions and advanced requirements.</details>                                     |
-| Giveaways                     | 1.0.0            | <details><summary>Moderation Notes</summary>Keep moderation notes on people.</details>                                                                                                          |
+| Notes                     | 1.0.0            | <details><summary>Moderation Notes</summary>Keep moderation notes on people.</details>                                                                                                          |
 ## Support
 
 Incase you encounter a bug, either create an issue on the repo
