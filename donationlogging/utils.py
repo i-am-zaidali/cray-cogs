@@ -1,5 +1,8 @@
 import asyncio
+import discord
+import re
 
+from emoji import UNICODE_EMOJI_ENGLISH
 from discord.ext.commands.errors import BadArgument, EmojiNotFound
 from redbot.core import commands
 from redbot.core.utils import mod
@@ -7,9 +10,8 @@ from discord.ext.commands.converter import EmojiConverter, RoleConverter
 from discord.ext.commands.view import StringView
 from redbot.core.utils.predicates import MessagePredicate
 
-from donationlogging.exceptions import CategoryAlreadyExists, CategoryDoesNotExist, SimilarCategoryExists
+from donationlogging.exceptions import CategoryAlreadyExists, CategoryDoesNotExist
 from .models import DonoBank
-import re
 
 time_regex = re.compile(r"(?:(\d{1,5})(h|s|m|d))+?")
 time_dict = {"h": 3600, "s": 1, "m": 60, "d": 86400}
@@ -28,10 +30,12 @@ class CategoryConverter(commands.Converter):
 class CategoryMaker(commands.Converter):
 	async def convert(self, ctx, argument) -> DonoBank:
 		name, emoji = argument.strip().split(",")
-		try:
-			emoji = await EmojiConverter().convert(ctx, emoji)
-		except EmojiNotFound:
-			raise BadArgument("You need to provide a valid emoji that the bot has access to.")
+		if not emoji == "⏣":
+			if not emoji in UNICODE_EMOJI_ENGLISH.keys() :
+				try:
+					emoji = await EmojiConverter().convert(ctx, emoji)
+				except EmojiNotFound:
+					raise BadArgument("You need to provide a unicode emoji or a valid custom emoji that the bot has access to.")
 		if len(name) > 32:
 			raise BadArgument("The name of the category can't be longer than 32 characters.")
 
@@ -149,9 +153,27 @@ class AmountRoleConverter(commands.Converter):
 		for pair in pairs:
 			amount, roles = pair.split(",")
 			roles = roles.split(":")
-			final.update({await mconv(ctx, amount): [await rconv(ctx, role) for role in roles]})
+			act_roles = []
+			for role in roles:
+				role = await rconv(ctx, role)
+				if not await valid_role(ctx, role):
+					raise BadArgument("Roles to assign cannot be higher than the bot's or your top role nor can they be bot managed.")
+				act_roles.append(role)
+			final.update({await mconv(ctx, amount): act_roles})
 			
 		return final
+
+async def valid_role(ctx: commands.Context, role : discord.Role):
+		my_position = role > ctx.me.top_role 
+		bot_managed = role.is_bot_managed()
+		author_position = role > ctx.author.top_role
+		integration = role.is_integration()
+		default = role.is_default()
+
+		if my_position or bot_managed or author_position or integration or default:
+			return False
+		
+		return True
 
 async def sortdict(argument, key_or_value="value"):
 	if not isinstance(argument, dict):
@@ -168,26 +190,26 @@ async def sortdict(argument, key_or_value="value"):
 # ______________ checks ______________
 
 def setup_done():
-    async def predicate(ctx):
-        if not await ctx.cog.config.guild(ctx.guild).setup():
-            return False
-        return True
-    return commands.check(predicate)
+	async def predicate(ctx):
+		if not await ctx.cog.config.guild(ctx.guild).setup():
+			return False
+		return True
+	return commands.check(predicate)
 
 def is_dmgr():
-    async def predicate(ctx):
-        cog = ctx.cog
-        data = await cog.config.guild(ctx.guild).managers()
-        if data:
-            for i in data:
-                role = ctx.guild.get_role(int(i))
-                if role and role in ctx.author.roles:
-                    return True
+	async def predicate(ctx):
+		cog = ctx.cog
+		data = await cog.config.guild(ctx.guild).managers()
+		if data:
+			for i in data:
+				role = ctx.guild.get_role(int(i))
+				if role and role in ctx.author.roles:
+					return True
 
-        elif ctx.author.guild_permissions.administrator == True:
-            return True
-        
-        elif await mod.is_mod_or_superior(ctx.bot, ctx.author) == True:
-            return True
+		elif ctx.author.guild_permissions.administrator == True:
+			return True
+		
+		elif await mod.is_mod_or_superior(ctx.bot, ctx.author) == True:
+			return True
 
-    return commands.check(predicate)
+	return commands.check(predicate)
