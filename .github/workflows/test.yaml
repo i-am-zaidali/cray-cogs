@@ -4,18 +4,6 @@ on: [push]
 
 
 jobs:
-  blackformat:
-    runs-on: ubuntu-latest
-    steps:
-      # use black github action see https://black.readthedocs.io/en/stable/integrations/github_actions.html
-      - uses: psf/black@stable
-        with:
-          options: "--check"
-
-      - name: Check imports with pyflakes
-        run: |
-          pip install pyflakes
-          pyflakes .
   lint_python:
     name: Lint Python
     runs-on: ubuntu-latest
