@@ -90,7 +90,7 @@ class giveaways(gsettings, name="Giveaways"):
         ctx: commands.Context,
         time: TimeConverter = None,
         winners: WinnerConverter = None,
-        requirements: Requirements = None,
+        requirements: typing.Optional[Requirements] = None,
         prize: commands.Greedy[prizeconverter] = None,
         *,
         flags: flags = None,
@@ -102,11 +102,16 @@ class giveaways(gsettings, name="Giveaways"):
         or manage messages permissions.
 
         Example:
-            `[p]g start 30s 1 none my soul`
+            `[p]g start 30s 1 my soul`
             `[p]g start 5m 1 someroleid;;another_role[bypass];;onemore[blacklist] Yayyyy new giveaway`
         """
         if not time or not winners or not prize or not requirements:
             return await ctx.send_help("giveaway start")
+
+        if not requirements:
+            requirements = await Requirements.convert(
+                ctx, "none"
+            )  # requirements weren't provided, they are now null
 
         prize = " ".join(prize)
 
