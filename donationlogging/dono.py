@@ -93,8 +93,12 @@ class DonationLogging(commands.Cog):
         except asyncio.TimeoutError:
             return False
 
-    @commands.group(name="dono", help="Donation logging. (most subcommands require admin perms or manager role) Run `{pre}dono setup` before using any commands.", description="Parameters:\n\nNone", invoke_without_command=True)
+    @commands.group(name="dono", invoke_without_command=True)
     async def dono(self, ctx):
+        """
+        Donation Logging for your server.
+        
+        (For currency based bots on discord)"""
         await ctx.send_help("dono")
 
     @dono.command(name="setup")
@@ -244,7 +248,8 @@ class DonationLogging(commands.Cog):
         Shows the donation autoroles for the category provided.
         If the category isn't provided, shows all the category autoroles.
         
-        These can be setup with `[p]donoset roles`"""
+        These are set initially in the `[p]dono setup` command
+        but can also be set with `[p]donoset addroles`"""
         if not category:
             categories = await self.cache.config.guild(ctx.guild).categories()
             cat_roles = {}
@@ -388,6 +393,7 @@ class DonationLogging(commands.Cog):
         Add an amount to someone's donation balance.
         
         This requires either one of the donation manager roles or the bot mod role.
+        The category must be the name of a registered category. These can be seen with `[p]donoset category list`
         [--note] parameter is a flag used for setting notes for a donation
         For example:
             `[p]dono add dank 1000 @Twentysix --note hes cute`"""
@@ -417,6 +423,7 @@ class DonationLogging(commands.Cog):
         """
         Remove an amount from someone's donation balance.
         
+        The category must be the name of a registered category. These can be seen with `[p]donoset category list`
         This requires either one of the donation manager roles or the bot mod role."""
         user = user or ctx.author
         
@@ -445,6 +452,7 @@ class DonationLogging(commands.Cog):
         """
         Reset someone's donation balance
         
+        The category must be the name of a registered category. These can be seen with `[p]donoset category list`
         This will set their donations to 0.
         This requires either one of the donation manager roles or the bot mod role."""
         user = user or ctx.author
@@ -492,6 +500,11 @@ class DonationLogging(commands.Cog):
     @is_dmgr()
     @setup_done()
     async def check_notes(self, ctx, member:Optional[discord.Member]=None, number=None):
+        """
+        See donation notes taken for users.
+        
+        Theses are set with the `--note` flag in either 
+        `[p]dono add` or `[p]dono remove` commands."""
         EmbedField = namedtuple("EmbedField", "name value inline")
         member = member or ctx.author
         notes = await self.get_member_notes(member)
@@ -551,6 +564,7 @@ class DonationLogging(commands.Cog):
         """
         Check someone's donation balance.
         
+        The category must be the name of a registered category. These can be seen with `[p]donoset category list`
         This requires either one of the donation manager roles or the bot mod role."""
         if not user:
             await ctx.send("Please mention a user or provide their id to check their donations")
@@ -594,6 +608,7 @@ class DonationLogging(commands.Cog):
         """
         See the top donators in the server.
         
+        The category must be the name of a registered category. These can be seen with `[p]donoset category list`
         Use the <topnumber> parameter to see the top `x` donators. """
         data: List[DonoUser] = category.get_leaderboard()
 
@@ -635,7 +650,7 @@ class DonationLogging(commands.Cog):
     @setup_done()
     async def ar_add(self, ctx, true_or_false:bool):
         """
-        Set whether donation roles(set with `[p]donoset roles`) automatically get added to users or not.
+        Set whether donation roles(set with `[p]donoset addroles`) automatically get added to users or not.
         
         \n<true_or_false> is supposed to be either of True or False.
         True to enable and False to disable."""
@@ -817,6 +832,9 @@ class DonationLogging(commands.Cog):
     @donoset.command(name="showsettings", aliases=["showset", "ss"])
     @setup_done()
     async def showsettings(self, ctx):
+        """
+        See all the configured donation logging settings for your guild.
+        """
         data = await self.config.guild(ctx.guild).all()
         
         embed = discord.Embed(
