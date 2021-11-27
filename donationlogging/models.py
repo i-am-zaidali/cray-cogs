@@ -78,7 +78,7 @@ class DonoBank:
             categories[self.name].update(pairs)
             
     async def getroles(self, ctx):
-        roles = await getattr(self.manager.guild_from_id(self.guild_id).categories, self.name)()
+        roles = await getattr(self.manager.config.guild_from_id(self.guild_id).categories, self.name)()
         roles.pop("emoji")
         return {amount: [ctx.guild.get_role(r) for r in role] for amount, role in roles.items()}
     
@@ -86,22 +86,23 @@ class DonoBank:
         # if not await self.config.guild(ctx.guild).autoadd():
         #     return f"Auto role adding is disabled for this server. Enable with `{ctx.prefix}donoset autorole add true`."
         try:
-            data : dict = await getattr(self.manager.config.guild(ctx.guild).categories, self.name)()
+            data : dict = await (getattr(self.manager.config.guild(ctx.guild).categories, self.name))()
             data.pop("emoji")
             if not data:
                 return
             amount = self.get_user(user.id).donations
-            added_roles : set = {}
+            added_roles = set()
             for key, value in data.items():
                 if amount >= int(key):
                     roles = [ctx.guild.get_role(int(val)) for val in value]
-                    added_roles.union({role.name for role in roles if not role in user.roles})
-            user.add_roles(*roles, reason=f"Automatic role adding based on donation logging, requested by {ctx.author}")
-            roleadded = f"The following roles were added to `{user.name}`: {humanize_list(added_roles)}" if added_roles else ""
+                    added_roles.update({role for role in roles if not role in user.roles})
+            added_roles = list(added_roles)
+            await user.add_roles(*added_roles, reason=f"Automatic role adding based on donation logging, requested by {ctx.author}")
+            roleadded = f"The following roles were added to `{user.name}`: {humanize_list([f'**{role.name}**' for role in added_roles])}" if added_roles else ""
             return roleadded
 
-        except:
-            pass
+        except Exception as e:
+            raise e
         
     async def removeroles(self, ctx, user: discord.Member):
         try:
@@ -114,8 +115,8 @@ class DonoBank:
             for key, value in data.items():
                 if amount < int(key):
                     roles = [ctx.guild.get_role(int(val)) for val in value]
-                    removed_roles.union({role.name for role in roles if role in user.roles})
-            user.remove_roles(*removed_roles, reason=f"Automatic role removal based on donation logging, requested by {ctx.author}")
+                    removed_roles.update({role.name for role in roles if role in user.roles})
+            await user.remove_roles(*removed_roles, reason=f"Automatic role removal based on donation logging, requested by {ctx.author}")
             roleadded = f"The following roles were added to `{user.name}`: {humanize_list(removed_roles)}" if removed_roles else ""
             return roleadded
 
@@ -176,7 +177,6 @@ class DonationManager:
                 continue
             for category_name, d in data["categories"].items():
                 donos = await self.config.custom("guild_category", guild, category_name).donations()
-                print(donos)
                 self._CACHE.append(
                     DonoBank(
                         self.bot,
@@ -195,8 +195,7 @@ class DonationManager:
         if not copy:
             log.debug("DonationLogging cache is empty, not backing to config.")
             return
-        
-        print(copy[0]._data)
+
         for i in copy:
             await self.config.custom("guild_category", i.guild_id, i.name).donations.set(i._data)
             log.debug("Cache backed up to config.")
