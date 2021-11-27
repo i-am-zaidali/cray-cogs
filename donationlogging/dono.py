@@ -43,6 +43,8 @@ class DonationLogging(commands.Cog):
         self.config.register_guild(**default_guild)
         self.config.register_member(notes={})
         
+        self.conv = MoniConverter().convert # api for giveaway cog.
+        
     @classmethod
     async def initialize(cls, bot):
         s = cls(bot)
@@ -90,74 +92,6 @@ class DonationLogging(commands.Cog):
 
         except asyncio.TimeoutError:
             return False
-
-    # async def donoroles(self, ctx, user:Member, amount):
-    #     if not await self.config.guild(ctx.guild).autoadd():
-    #         return f"Auto role adding is disabled for this server. Enable with `{ctx.prefix}donoset autorole add true`."
-    #     try:
-    #         data = await self.config.guild(ctx.guild).assignroles()
-
-    #         roles = []
-    #         for key, value in data.items():
-    #             if amount >= int(key):
-    #                 if isinstance(value, list):
-    #                     #role = [ctx.guild.get_role(int(i)) for i in value]
-    #                     for i in value:
-    #                         role = ctx.guild.get_role(int(i))
-    #                         if role not in user.roles:
-    #                             try:
-    #                                 await user.add_roles(role, reason=f"Automatic role adding based on donation logging, requested by {ctx.author}")
-    #                                 roles.append(f"`{role.name}`")
-    #                             except:
-    #                                 pass
-                            
-    #                 elif isinstance(value, int):
-    #                     role = ctx.guild.get_role(int(value))
-    #                     if role not in user.roles:
-    #                         try:
-    #                             await user.add_roles(role, reason=f"Automatic role adding based on donation logging, requested by {ctx.author}")
-    #                             roles.append(f"`{role.name}`")
-    #                         except:
-    #                             pass
-    #         roleadded = f"The following roles were added to `{user.name}`: {humanize_list(roles)}" if roles else ""
-    #         return roleadded
-
-    #     except:
-    #         pass
-        
-    # async def remove_roles(self, ctx, user:Member, amount):
-    #     if not await self.config.guild(ctx.guild).autoremove():
-    #         return f"Auto role removing is disabled for this server. Enable with `{ctx.prefix}donoset autorole remove true`."
-    #     try: 
-    #         data = await self.config.guild(ctx.guild).assignroles()
-        
-    #         roles_removed = []
-            
-    #         for key, value in data.items():
-    #             if amount < int(key):
-    #                 if isinstance(value, list):
-    #                     #role = [ctx.guild.get_role(int(i)) for i in value]
-    #                     for i in value:
-    #                         role = ctx.guild.get_role(int(i))
-    #                         if role in user.roles:
-    #                             try:
-    #                                 await user.remove_roles(role, reason=f"Automatic role removing based on donation logging, requested by {ctx.author}")
-    #                                 roles_removed.append(f"`{role.name}`")
-    #                             except:
-    #                                 pass
-                            
-    #                 elif isinstance(value, int):
-    #                     role = ctx.guild.get_role(int(value))
-    #                     if role in user.roles:
-    #                         try:
-    #                             await user.remove_roles(role, reason=f"Automatic role removing based on donation logging, requested by {ctx.author}")
-    #                             roles_removed.append(f"`{role.name}`")
-    #                         except:
-    #                             pass
-                        
-    #         roleadded = f"The following roles were removed from `{user}` {humanize_list(roles_removed)}" if roles_removed else ""
-    #         return roleadded
-    #     except: pass
 
     @commands.group(name="dono", help="Donation logging. (most subcommands require admin perms or manager role) Run `{pre}dono setup` before using any commands.", description="Parameters:\n\nNone", invoke_without_command=True)
     async def dono(self, ctx):
