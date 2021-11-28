@@ -80,9 +80,9 @@ class giveaways(gsettings, name="Giveaways"):
         """
         await ctx.send_help("giveaway")
 
-    @giveaway.command(name="start", usage="<time> <winners> <requirements> <prize> [flags]")
+    @giveaway.command(name="start", usage="<time> <winners> [requirements] <prize> [flags]")
     @commands.max_concurrency(5, per=commands.BucketType.guild, wait=True)
-    @commands.bot_has_permissions(embed_links=True, manage_messages=True)
+    @commands.bot_has_permissions(embed_links=True)
     @commands.guild_only()
     @is_gwmanager()
     async def _start(
@@ -105,7 +105,7 @@ class giveaways(gsettings, name="Giveaways"):
             `[p]g start 30s 1 my soul`
             `[p]g start 5m 1 someroleid;;another_role[bypass];;onemore[blacklist] Yayyyy new giveaway`
         """
-        if not time or not winners or not prize or not requirements:
+        if not time or not winners or not prize:
             return await ctx.send_help("giveaway start")
 
         if not requirements:
@@ -136,7 +136,7 @@ class giveaways(gsettings, name="Giveaways"):
             color=discord.Color.green(),
             timestamp=endtime,
         )
-        embed.set_footer(text=f"ends | ", icon_url=ctx.guild.icon_url)
+        embed.set_footer(text=f"Winners: {winners} | ends | ", icon_url=ctx.guild.icon_url)
 
         message = await self.config.get_guild_msg(ctx.guild)
         p = None
