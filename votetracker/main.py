@@ -178,7 +178,7 @@ class VoteTracker(commands.Cog):
         This command can only be run by bot owners."""
         await self.config.role.set(role.id)
         await self.config.guild.set(ctx.guild.id)
-        
+
         await ctx.send(f"Set the role for voting to {role.name}")
 
     @commands.is_owner()
@@ -228,7 +228,7 @@ class VoteTracker(commands.Cog):
         user = await self.bot.get_or_fetch_user(vote.user)
         user_mention = user.mention
         user_id = user.id
-        
+
         g = await self.get_guild()
 
         if vote.type.name == "test":
@@ -252,7 +252,7 @@ class VoteTracker(commands.Cog):
 
     @tasks.loop(minutes=10)
     async def remove_role_from_members(self):
-        if not (g:=await self.get_guild()):
+        if not (g := await self.get_guild()):
             return
 
         await g.chunk()
