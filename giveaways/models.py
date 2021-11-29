@@ -338,6 +338,7 @@ class Giveaway:
 
             await gmsg.reply(
                 f"The giveaway for ***{prize}*** has ended. There were 0 winners.\nClick on my replied message to jump to the giveaway."
+                f"Or click on this link: {gmsg.jump_url}"
             )
             if hostdm == True:
                 await self.hdm(host, gmsg.jump_url, prize, "None")
