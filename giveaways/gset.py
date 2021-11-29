@@ -20,7 +20,7 @@ class gsettings(main):
         All subcommands represent a separate settings."""
         await ctx.send_help("gset")
 
-    @gset.command(name="giveaway_message", aliases=["gmsg"], usage="<message>")
+    @gset.command(name="gmsg", usage="<message>")
     @commands.admin_or_permissions(administrator=True)
     async def gmsg(self, ctx, *, message):
         """
@@ -30,7 +30,7 @@ class gsettings(main):
         await self.config.set_guild_msg(ctx.guild, message)
         await ctx.reply(f"The new giveaway message has been set to \n```\n{message}\n```")
 
-    @gset.command(name="thank_message", aliases=["tmsg"])
+    @gset.command(name="tmsg")
     @commands.admin_or_permissions(administrator=True)
     async def tmsg(self, ctx, *, message):
         """
@@ -93,7 +93,7 @@ class gsettings(main):
             else "The host will not be dm'ed when the giveaway ends."
         )
 
-    @gset.command(name="end_message", aliases=["endmsg"], usage="<message>")
+    @gset.command(name="endmsg", usage="<message>")
     @commands.admin_or_permissions(administrator=True)
     async def endmsg(self, ctx, *, message):
         """
@@ -277,6 +277,7 @@ class gsettings(main):
         """
         See giveaway settings configured for your server"""
         message = await self.config.get_guild_msg(ctx.guild)
+        tmsg = await self.config.get_guild_tmsg(ctx.guild)
         emoji = await self.config.get_guild_emoji(ctx.guild)
         winnerdm = await self.config.dm_winner(ctx.guild)
         hostdm = await self.config.dm_host(ctx.guild)
@@ -293,7 +294,8 @@ class gsettings(main):
 **Will the winner be dm'ed?:** {winnerdm}
 **Will the host be dm'ed?:** {hostdm}
 **Auto delete Giveaway Commands?:** {autodelete}
-**Giveaway Ending message:** \n```\n{endmsg}\n```\n
+**Giveaway Thank message:** {box(tmsg)}
+**Giveaway Ending message:** {box(endmsg)}
 			""",
             color=discord.Color.green(),
         )
