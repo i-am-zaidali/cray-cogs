@@ -103,7 +103,7 @@ class Requirements(commands.Converter):
 
     @property
     def null(self):
-        return all([i is None for i in self.as_dict().values()])
+        return all([not i for i in self.as_dict().values()])
 
     @classmethod
     async def convert(cls, ctx, arg: str):
@@ -386,3 +386,20 @@ class Giveaway:
             "requirements": self.requirements.as_dict(),
         }
         return data
+
+
+class SafeMember:
+    def __init__(self, member: discord.Member):
+        self._org = member
+        self.id = member.id
+        self.name = member.name
+        self.mention = member.mention
+        self.avatar_url = member.avatar_url
+
+    def __str__(self) -> str:
+        return self._org.__str__()
+
+    def __getattr__(
+        self, value
+    ):  # if anyone tries to be sneaky and tried to access things they cant
+        return f"donor.{value}"  # since its only used in one place where the var name is donor.

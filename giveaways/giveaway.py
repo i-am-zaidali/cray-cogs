@@ -14,7 +14,7 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu, start_adding_reactio
 from redbot.core.utils.predicates import ReactionPredicate
 
 from .gset import gsettings
-from .models import Giveaway, Requirements
+from .models import Giveaway, Requirements, SafeMember
 from .util import (
     TimeConverter,
     WinnerConverter,
@@ -135,8 +135,7 @@ class giveaways(gsettings, name="Giveaways"):
             description=f"React with {emoji} to enter\nTotal Time: {readabletimer(time)}\nEnds <t:{int(_time.time())+time}:R>\nHost: {ctx.author.mention}",
             color=discord.Color.green(),
             timestamp=endtime,
-        )
-        embed.set_footer(text=f"Winners: {winners} | ends | ", icon_url=ctx.guild.icon_url)
+        ).set_footer(text=f"Winners: {winners} | ends | ", icon_url=ctx.guild.icon_url)
 
         message = await self.config.get_guild_msg(ctx.guild)
         p = None
@@ -153,7 +152,7 @@ class giveaways(gsettings, name="Giveaways"):
             else:
                 requirements = requirements.no_defaults()
 
-        if str(requirements):
+        if not requirements.null:
             embed.add_field(name="Requirements:", value=str(requirements), inline=False)
 
         gembed = await ctx.send(message, embed=embed)
@@ -202,10 +201,13 @@ class giveaways(gsettings, name="Giveaways"):
                 )
                 await ctx.send(embed=membed)
             if "thank" in flags or (_list and "thank" in _list):
-                tmsg = await self.config.get_guild_tmsg(ctx.guild)
+                tmsg: str = await self.config.get_guild_tmsg(ctx.guild)
                 embed = discord.Embed(
                     description=tmsg.format_map(
-                        Coordinate(donor=donor if donor else ctx.author, prize=prize)
+                        Coordinate(
+                            donor=SafeMember(donor) if donor else SafeMember(ctx.author),
+                            prize=prize,
+                        )
                     ),
                     color=0x303036,
                 )
