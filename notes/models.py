@@ -1,56 +1,64 @@
-from typing import List, Union
-from redbot.core.bot import Red
-from redbot.core import commands
-from discord_components import Interaction, Button, ButtonStyle, DiscordComponents
-
-import time
 import asyncio
-import discord
 import datetime
+import time
+from typing import List, Union
+
+import discord
+from discord_components import Button, ButtonStyle, DiscordComponents, Interaction
+from redbot.core import commands
+from redbot.core.bot import Red
+
 
 class UserNote:
     def __init__(self, bot, guild, user, author, content, date):
-        self.bot : Red = bot
-        self._guild :int = guild
-        self._user : int = user
-        self._author : int = author
-        self.content : str = content
-        self._date : float = int(date)
-        
+        self.bot: Red = bot
+        self._guild: int = guild
+        self._user: int = user
+        self._author: int = author
+        self.content: str = content
+        self._date: float = int(date)
+
     def __str__(self):
         return f"""Content: ***{self.content}***
     Taken by: ***{self.author}***
     Taken on: <t:{self._date}:F>
     """
-        
+
     @property
-    def guild(self) -> discord.Guild :
+    def guild(self) -> discord.Guild:
         return self.bot.get_guild(self._guild)
-    
+
     @property
-    def user(self) -> discord.Member :
+    def user(self) -> discord.Member:
         return self.guild.get_member(self._user)
-    
+
     @property
-    def author(self) -> discord.Member :
+    def author(self) -> discord.Member:
         return self.guild.get_member(self._author)
-        
+
     @property
     def date(self):
         return datetime.datetime.fromtimestamp(self._date)
-                
+
     def to_dict(self):
-        return {"user": self._user, "author": self._author, "content": self.content, "date": self._date}
-    
+        return {
+            "user": self._user,
+            "author": self._author,
+            "content": self.content,
+            "date": self._date,
+        }
+
+
 class ButtonPaginator:
     """
     A custom paginator class that uses buttons :D"""
+
     def __init__(
         self,
         client: DiscordComponents,
         context: commands.Context,
         contents: Union[List[str], List[discord.Embed]],
-        timeout: int = 30
+        timeout: int = 30,
     ):
         self.client = client
         self.bot = self.client.bot
@@ -65,13 +73,13 @@ class ButtonPaginator:
             isinstance(x, str) for x in contents
         ):
             raise RuntimeError("All pages must be of the same type")
-        
+
         if self.timeout:
             self.clicks = [time.time()]
-            
+
             self.loop = self.bot.loop
             self.loop.create_task(self.deactivate_components_on_timeout())
-        
+
     async def deactivate_components_on_timeout(self):
         if self.timeout:
             while True:
@@ -90,30 +98,28 @@ class ButtonPaginator:
             return []
         elif len(self.contents) < 3:
             return [
-            [
-                self.client.add_callback(
-                    Button(style=ButtonStyle.blue, emoji="◀️"),
-                    self.button_left_callback,
-                ),
-                Button(
-                    label=f"Page {self.index + 1}/{len(self.contents)}",
-                    disabled=True,
-                ),
-                self.client.add_callback(
-                    Button(style=ButtonStyle.blue, emoji="▶️"),
-                    self.button_right_callback,
-                ),
-                self.client.add_callback(
-                    Button(style=ButtonStyle.red, emoji="❎"),
-                    self.cross_callback
-                )
+                [
+                    self.client.add_callback(
+                        Button(style=ButtonStyle.blue, emoji="◀️"),
+                        self.button_left_callback,
+                    ),
+                    Button(
+                        label=f"Page {self.index + 1}/{len(self.contents)}",
+                        disabled=True,
+                    ),
+                    self.client.add_callback(
+                        Button(style=ButtonStyle.blue, emoji="▶️"),
+                        self.button_right_callback,
+                    ),
+                    self.client.add_callback(
+                        Button(style=ButtonStyle.red, emoji="❎"), self.cross_callback
+                    ),
+                ]
             ]
-        ]
         return [
             [
                 self.client.add_callback(
-                    Button(style=ButtonStyle.red, emoji="◀️"),
-                    self.ff_left_callback
+                    Button(style=ButtonStyle.red, emoji="◀️"), self.ff_left_callback
                 ),
                 self.client.add_callback(
                     Button(style=ButtonStyle.blue, emoji="⬅"),
@@ -128,16 +134,14 @@ class ButtonPaginator:
                     self.button_right_callback,
                 ),
                 self.client.add_callback(
-                    Button(style=ButtonStyle.red, emoji="▶️"),
-                    self.ff_right_callback
+                    Button(style=ButtonStyle.red, emoji="▶️"), self.ff_right_callback
                 ),
             ],
             [
                 self.client.add_callback(
-                    Button(style=ButtonStyle.red, emoji="❎"),
-                    self.cross_callback
-                ) 
-            ]
+                    Button(style=ButtonStyle.red, emoji="❎"), self.cross_callback
+                )
+            ],
         ]
 
     async def start(self):
@@ -156,7 +160,7 @@ class ButtonPaginator:
         await inter.edit_origin(
             content=self.contents[self.index], components=self.get_components()
         )
-        
+
     def valid_inter(self, inter: Interaction):
         return inter.author == self.user
 
@@ -179,21 +183,21 @@ class ButtonPaginator:
             self.index += 1
 
         await self.button_callback(inter)
-        
+
     async def ff_right_callback(self, inter: Interaction):
         if not self.valid_inter(inter):
             return
         self.index = len(self.contents) - 1
-        
+
         await self.button_callback(inter)
-        
-    async def ff_left_callback(self, inter:Interaction):
+
+    async def ff_left_callback(self, inter: Interaction):
         if not self.valid_inter(inter):
             return
         self.index = 0
-        
+
         await self.button_callback(inter)
-        
+
     async def cross_callback(self, inter: Interaction):
         if not self.valid_inter(inter):
             return
@@ -210,7 +214,7 @@ class ButtonPaginator:
             content=content, embed=embed, components=self.get_components()
         )
         self.clicks.append(time.time())
-    
+
     async def cancel_pag(self):
         if isinstance(self.contents[self.index], discord.Embed):
             embed = self.contents[self.index]
