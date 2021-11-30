@@ -704,8 +704,6 @@ class DonationLogging(commands.Cog):
 
     @dono.command(
         name="leaderboard",
-        description="Parameters:\n\n<topnumber> The amount of people to show on the leaderboard. deafaults to 5.",
-        help="Shows a leaderboard containing the top donators in the guild.",
         aliases=["lb", "topdonators"],
     )
     @commands.guild_only()
