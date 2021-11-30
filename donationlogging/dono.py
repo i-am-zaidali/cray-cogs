@@ -153,7 +153,11 @@ class DonationLogging(commands.Cog):
             ],
             [
                 "Are there any roles that you would like to be assigned at certain milestones in this category?",
-                "Send amount and roles separate by a comma. Multiple roles should also be separated by a colon (:) or just send `none`\nFor example: `10000,someroleid:onemoreroleid 15k,@rolemention 20e4,arolename`",
+                (
+                    "Send amount and roles separate by a comma. "
+                    "Multiple roles should also be separated by a colon (:) or just send `none`"
+                    "\nFor example: `10000,someroleid:onemoreroleid 15k,@rolemention 20e4,arolename`"
+                ),
             ],
         ]
         answers = {}
@@ -191,10 +195,13 @@ class DonationLogging(commands.Cog):
         else:
             channel = None
 
-        try:
-            pairs = await AmountRoleConverter().convert(ctx, answers[3])
-        except Exception as e:
-            return await ctx.send(e)
+        if answers[3] == "none":
+            pairs = {}
+        else:
+            try:
+                pairs = await AmountRoleConverter().convert(ctx, answers[3])
+            except Exception as e:
+                return await ctx.send(e)
 
         try:
             bank = await CategoryMaker().convert(ctx, answers[2])
@@ -244,7 +251,8 @@ class DonationLogging(commands.Cog):
         await self.config.guild(ctx.guild).logchannel.set(channel.id if channel else None)
         await self.config.guild(ctx.guild).managers.set([role.id for role in roles])
         await self.config.guild(ctx.guild).setup.set(True)
-        await bank.setroles(pairs)
+        if pairs:
+            await bank.setroles(pairs)
         await self.cache.set_default_category(ctx.guild.id, bank.name)
 
         if old_data := await self.get_old_data(ctx.guild):
@@ -265,7 +273,6 @@ class DonationLogging(commands.Cog):
                 )  # nah we wont actually do it :P
 
             else:
-                bank = (await self.cache.get_all_dono_banks(ctx.guild.id))[0]
                 bank._data.update(old_data)
                 await ctx.send(
                     "Updated new category with old data :D You can now continue logging donations normally."
