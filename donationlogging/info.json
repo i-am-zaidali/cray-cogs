@@ -9,7 +9,7 @@
         "crayyy_zee"
     ],
     "required_cogs": {},
-    "requirements": [],
+    "requirements": ["emoji"],
     "tags": [
         "donations",
         "donation",
