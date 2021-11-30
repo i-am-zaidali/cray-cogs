@@ -26,7 +26,7 @@ class CategoryConverter(commands.Converter):
         except CategoryDoesNotExist:
             raise BadArgument(
                 f"You haven't registered a currency category with the name `{argument}`."
-                f"Use `{ctx.prefix}help donoset currency` to know how to add a currency category."
+                f"Use `{ctx.prefix}help donoset category` to know how to add a currency category."
             )
 
         return dono_bank
