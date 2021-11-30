@@ -720,19 +720,23 @@ class DonationLogging(commands.Cog):
             title=f"Top {topnumber} donators for **__{category.name.title()}__**",
             color=discord.Color.random(),
         )
-        emoji = category.emojis
+        emoji = category.emoji
 
-        for index, user in enumerate(data, 1):
-            if user.donations != 0:
-                u = user.user
-                embed.add_field(
-                    name=f"{index}. **{u.display_name}**",
-                    value=f"{emoji} {humanize_number(user.donations)}",
-                    inline=False,
-                )
+        if data:
+            for index, user in enumerate(data, 1):
+                if user.donations != 0:
+                    u = user.user
+                    embed.add_field(
+                        name=f"{index}. **{u.display_name}**",
+                        value=f"{emoji} {humanize_number(user.donations)}",
+                        inline=False,
+                    )
 
-            if (index) == topnumber:
-                break
+                if (index) == topnumber:
+                    break
+
+        else:
+            embed.description = f"No donations have been made yet for **{category}**."
 
         embed.set_thumbnail(url=ctx.guild.icon_url)
         embed.set_author(name=ctx.guild.name)
