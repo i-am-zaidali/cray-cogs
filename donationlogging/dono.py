@@ -870,12 +870,32 @@ class DonationLogging(commands.Cog):
         embed = discord.Embed(
             title=f"Registered currency categories in **__{ctx.guild.name}__**",
             description="\n".join(
-                f"{index}: {emoji} {category}"
+                f"{index}: {emoji} {category} "
+                f"{'(default)' if category == await self.cache.get_default_category(ctx.guild.id) else ''}"
                 for index, (category, emoji) in enumerate(categories.items(), 1)
             ),
             color=await ctx.embed_color(),
         )
         await ctx.send(embed=embed)
+
+    @category.command(name="default")
+    @commands.mod_or_permissions(administrator=True)
+    @setup_done()
+    async def category_default(self, ctx, *, category: CategoryConverter = None):
+        """
+        See or set the default category for your server.
+
+        if not category is given, it will show the currenct default.
+
+        This category will be used for commands if no category is specified
+        in commands that require a category being specified.
+        """
+        if not category:
+            return await ctx.send(
+                f"The current default category is: {await self.cache.get_default_category(ctx.guild.id)}"
+            )
+        await self.cache.set_default_category(ctx.guild.id, category.name)
+        await ctx.send(f"Default category for this server has been set to {category.name}")
 
     @donoset.command(name="addroles")
     @commands.mod_or_permissions(administrator=True)
