@@ -246,6 +246,7 @@ class DonationLogging(commands.Cog):
             return await ctx.send("Request timed out.")
 
         if not pred.result:
+            await self.category_remove(ctx, bank.name)
             return await ctx.send("Aight, retry the command and do it correctly this time.")
 
         await self.config.guild(ctx.guild).logchannel.set(channel.id if channel else None)
@@ -725,12 +726,18 @@ class DonationLogging(commands.Cog):
         if data:
             for index, user in enumerate(data, 1):
                 if user.donations != 0:
-                    u = user.user
-                    embed.add_field(
-                        name=f"{index}. **{u.display_name}**",
-                        value=f"{emoji} {humanize_number(user.donations)}",
-                        inline=False,
-                    )
+                    if u := user.user:
+                        embed.add_field(
+                            name=f"{index}. **{u.display_name}**",
+                            value=f"{emoji} {humanize_number(user.donations)}",
+                            inline=False,
+                        )
+                    else:
+                        embed.add_field(
+                            name=f"{index}. **{user.user_id} (user not found in guild)**",
+                            value=f"{emoji} {humanize_number(user.donations)}",
+                            inline=False,
+                        )
 
                 if (index) == topnumber:
                     break
@@ -823,6 +830,8 @@ class DonationLogging(commands.Cog):
         The format for a category definition is `name,emoji`.
         Multiple categories should be separated by a space. `name,emoji anothername,emoji2 thirdcategory,emoji3`
         """
+        if not categories:
+            return await ctx.send("You need to specify at least one category.")
         guild = ctx.guild
         await ctx.send(
             (
@@ -850,6 +859,8 @@ class DonationLogging(commands.Cog):
         Send their names separated with a space.
         For example:
         `name anothername thirdcategory`"""
+        if not categories:
+            return await ctx.send("You need to specify at least one category.")
         for category in categories:
             self.cache._CACHE.remove(category)
             await self.cache.config.custom("guild_category", ctx.guild.id, category.name).clear()
@@ -872,9 +883,11 @@ class DonationLogging(commands.Cog):
         embed = discord.Embed(
             title=f"Registered currency categories in **__{ctx.guild.name}__**",
             description="\n".join(
-                f"{index}: {emoji} {category} "
-                f"{'(default)' if category == await self.cache.get_default_category(ctx.guild.id) else ''}"
-                for index, (category, emoji) in enumerate(categories.items(), 1)
+                [
+                    f"{index}: {emoji} {category} "
+                    f"{'(default)' if category == await self.cache.get_default_category(ctx.guild.id) else ''}"
+                    for index, (category, emoji) in enumerate(categories.items(), 1)
+                ]
             ),
             color=await ctx.embed_color(),
         )
