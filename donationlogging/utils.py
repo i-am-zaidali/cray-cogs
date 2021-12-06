@@ -10,8 +10,7 @@ from redbot.core import commands
 from redbot.core.utils import mod
 from redbot.core.utils.predicates import MessagePredicate
 
-from donationlogging.exceptions import CategoryAlreadyExists, CategoryDoesNotExist
-
+from .exceptions import CategoryAlreadyExists, CategoryDoesNotExist
 from .models import DonoBank
 
 time_regex = re.compile(r"(?:(\d{1,5})(h|s|m|d))+?")

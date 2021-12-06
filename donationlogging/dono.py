@@ -24,7 +24,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2,0.0"
+    __version__ = "2.1.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -680,7 +680,7 @@ class DonationLogging(commands.Cog):
                 color=await ctx.embed_color(),
             )
             for bank in banks:
-                donations = bank.get_user(ctx.author.id).donations
+                donations = bank.get_user(user.id).donations
                 embed.add_field(
                     name=f"*{bank.name.title()}*",
                     value=f"Donated: {bank.emoji} {humanize_number(donations)}",
@@ -726,18 +726,15 @@ class DonationLogging(commands.Cog):
         if data:
             for index, user in enumerate(data, 1):
                 if user.donations != 0:
-                    if u := user.user:
-                        embed.add_field(
-                            name=f"{index}. **{u.display_name}**",
-                            value=f"{emoji} {humanize_number(user.donations)}",
-                            inline=False,
-                        )
-                    else:
-                        embed.add_field(
-                            name=f"{index}. **{user.user_id} (user not found in guild)**",
-                            value=f"{emoji} {humanize_number(user.donations)}",
-                            inline=False,
-                        )
+                    embed.add_field(
+                        name=(
+                            f"{index}. **{u.display_name}**"
+                            if (u := user.user)
+                            else f"{index}. **{user.user_id} (User not found in server)**"
+                        ),
+                        value=f"{emoji} {humanize_number(user.donations)}",
+                        inline=False,
+                    )
 
                 if (index) == topnumber:
                     break

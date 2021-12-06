@@ -20,7 +20,7 @@
 ## Cogs
 | Name              | Version   | Functionality (Click to see full description)                                                                                                                     |
 |-------------------|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| DonationLogging               | 2.0.0            | <details><summary>Store donation amounts.</summary>This cog allows you to store a member's donations in a guild.</details>                                                                   |
+| DonationLogging               | 2.1.0            | <details><summary>Store donation amounts.</summary>This cog allows you to store a member's donations in a guild.</details>                                                                   |
 | VoteTracker                   | 1.0.0            | <details><summary>Track votes for your bot.</summary>Track votes for your bot on top.gg with vote logs and role rewards.</details>                                                            |
 | Giveaways                     | 1.3.0            | <details><summary>Host embedded giveaways using reactions.</summary>Start giveaways in your server using reactions and advanced requirements.</details>                                     |
 | Notes                     | 1.0.0            | <details><summary>Moderation Notes</summary>Keep moderation notes on people.</details>                                                                                                          |
