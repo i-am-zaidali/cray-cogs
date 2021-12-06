@@ -676,7 +676,7 @@ class DonationLogging(commands.Cog):
             banks = await self.cache.get_all_dono_banks(ctx.guild.id)
             embed = discord.Embed(
                 title=f"All of {user}'s donations in **__{ctx.guild.name}__**",
-                description=f"Total amount donated overall: {humanize_number(sum([bank.get_user(ctx.author.id).donations for bank in banks]))}",
+                description=f"Total amount donated overall: {humanize_number(sum([bank.get_user(user.id).donations for bank in banks]))}",
                 color=await ctx.embed_color(),
             )
             for bank in banks:
@@ -689,7 +689,7 @@ class DonationLogging(commands.Cog):
 
             return await ctx.send(embed=embed)
 
-        donos = category.get_user(ctx.author.id).donations
+        donos = category.get_user(user.id).donations
         emoji = category.emoji
         notes = len(await self.get_member_notes(user))
 
@@ -698,7 +698,7 @@ class DonationLogging(commands.Cog):
             description=f"Total amount donated: {emoji}{humanize_number(donos)}\n\nThey have **{notes}** notes",
             color=discord.Color.random(),
         )
-        embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
+        embed.set_author(name=user, icon_url=user.avatar_url)
         embed.set_footer(text=f"{ctx.guild.name}", icon_url=ctx.guild.icon_url)
 
         await ctx.send(embed=embed)
