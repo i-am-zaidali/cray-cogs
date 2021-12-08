@@ -9,6 +9,7 @@ from .models import Giveaway, Requirements
 
 class conf:
     cache = []
+    ended_cache = []
 
     def __init__(self, bot):
         self.bot = bot
@@ -24,6 +25,7 @@ class conf:
             "manager": [],
             "pingrole": None,
             "autodelete": False,
+            "edit_timer": False,
             "blacklist": [],
             "bypass": [],
             "top_managers": {},
@@ -31,7 +33,7 @@ class conf:
 
         default_role = {"multi": 0}
 
-        default_global = {"activegaws": [], "already_sent": False}
+        default_global = {"activegaws": [], "endedgaws": [], "already_sent": False}
 
         self.config.register_guild(**default_guild)
         self.config.register_global(**default_global)
@@ -41,6 +43,9 @@ class conf:
         if not b:
             return await self.config.already_sent()
         await self.config.already_sent.set(True)
+
+    async def get_guild_timer(self, guild: discord.Guild):
+        return await self.config.guild(guild).edit_timer()
 
     async def get_guild_msg(self, guild: discord.Guild):
         return await self.config.guild(guild).msg()
@@ -139,6 +144,9 @@ class conf:
     async def set_manager(self, guild: discord.Guild, *roles):
         return await self.config.guild(guild).manager.set(roles)
 
+    async def set_guild_timer(self, guild: discord.Guild, b: bool):
+        return await self.config.guild(guild).edit_timer.set(b)
+
     async def reset_role_multi(self, role: discord.Role):
         await self.config.role(role).multi.set(0)
         return f"Reset the multi for role: `@{role.name}`"
@@ -221,10 +229,12 @@ class conf:
 
     async def cache_to_config(self):
         await self.config.activegaws.set([i.to_dict() for i in self.cache.copy()])
+        await self.config.endedgaws.set(self.ended_cache)
         self.cache.clear()
 
     async def config_to_cache(self, bot, cog):
         org = await self.config.activegaws()
+        self.ended_cache = await self.config.endedgaws()
         if org:
             for i in org:
                 i.update(

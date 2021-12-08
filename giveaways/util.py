@@ -64,7 +64,9 @@ class WinnerConverter(commands.Converter):
 
         else:
             if len(argument) > 1:
-                winner = float(argument[:-1])
+                winner = int(
+                    float(argument[:-1])
+                )  # case where user writes `1w` instead of just an integer.
 
         return winner
 

@@ -270,6 +270,19 @@ class gsettings(main):
             role = await self.config.reset_role_multi(role)
             return await ctx.send(role)
 
+    @gset.command(name="et", aliases=["edit_timer"])
+    @commands.admin_or_permissions(administrator=True)
+    async def edit_timers(self, ctx, enable_or_disable: bool):
+        """
+        Configure whether you want to edit the timers for your server's giveaways.
+
+        If disabled, the embed will use discord's native timestamps or else will use text
+        to show the remaining time for the giveaway to end."""
+        await self.config.set_guild_timer(ctx.guild, enable_or_disable)
+        return await ctx.send(
+            f"Editing timers for giveaways has been {'enabled' if enable_or_disable else 'disabled'}."
+        )
+
     @gset.command(name="showsettings", aliases=["ss", "show", "showset"])
     @commands.admin_or_permissions(administrator=True)
     @commands.bot_has_permissions(embed_links=True)

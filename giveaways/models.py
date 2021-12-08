@@ -2,14 +2,14 @@ import random
 import time
 from collections import Counter
 from functools import reduce
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import discord
 from discord.ext.commands.converter import RoleConverter
 from discord.ext.commands.errors import BadArgument, RoleNotFound
 from redbot.core import commands
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import humanize_list
+from redbot.core.utils.chat_formatting import humanize_list, humanize_timedelta
 
 
 class Requirements(commands.Converter):
@@ -74,7 +74,7 @@ class Requirements(commands.Converter):
         self.amari_weekly = None
         return True
 
-    def verify_role(self, id) -> discord.Role:
+    def verify_role(self, id) -> Optional[discord.Role]:
         role = self.guild.get_role(id)
         return role
 
@@ -220,6 +220,8 @@ class Giveaway:
         self.prize = prize
         self.emoji = emoji or "🎉"
 
+        self.next_edit = self.get_next_edit_time()
+
     def __getitem__(self, key):
         attr = getattr(self, key, None)
         if not attr:
@@ -243,7 +245,10 @@ class Giveaway:
         return self.bot.get_user(self._host)
 
     async def get_message(self) -> discord.Message:
-        return await self.channel.fetch_message(self.message_id)
+        msg = self.bot._connection._get_message(
+            self.message_id
+        )  # i mean, if its cached, why waste an api request right?
+        return msg or await self.channel.fetch_message(self.message_id)
 
     @property
     def remaining_time(self) -> int:
@@ -251,6 +256,23 @@ class Giveaway:
             return self._time - int(time.time())
         else:
             return 0
+
+    def get_next_edit_time(self):
+        if not (t := self.remaining_time) == 0:
+            if t < 60:
+                return None  # no edit if its within a minute of ending
+            elif t >= 1200:
+                return (
+                    time.time() + 600
+                )  # edit every half an hour if its longer than half an hour.
+            elif t >= 300:
+                return (
+                    time.time() + 60
+                )  # its longer than 5 minutes but less than half an hour, edit it every minute.
+
+            return (
+                time.time() + 60
+            )  # middle case, its not greater than 5 minutes but greater than a minute.
 
     async def hdm(self, host, jump_url, prize, winners):
         member = await self.bot.fetch_user(host)
@@ -283,6 +305,22 @@ class Giveaway:
 
                 except discord.HTTPException:
                     return False
+
+    async def edit_timer(self):
+        if not (t := self.next_edit) or not await self.cog.config.get_guild_timer(self.guild):
+            return
+
+        if t > time.time():
+            return
+
+        message = await self.get_message()
+        embed: discord.Embed = message.embeds[0]
+        timer_pos = embed.description.find("in") + 3
+        embed.description = embed.description[:timer_pos] + humanize_timedelta(
+            seconds=self.remaining_time
+        )
+        await message.edit(embed=embed)
+        self.next_edit = self.get_next_edit_time()
 
     async def end(self) -> None:
         try:

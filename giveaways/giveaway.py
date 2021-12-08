@@ -105,7 +105,7 @@ class giveaways(gsettings, name="Giveaways"):
             `[p]g start 30s 1 my soul`
             `[p]g start 5m 1 someroleid;;another_role[bypass];;onemore[blacklist] Yayyyy new giveaway`
         """
-        if not time or not winners or not prize:
+        if not time or winners is None or not prize:
             return await ctx.send_help("giveaway start")
 
         if not requirements:
@@ -115,27 +115,28 @@ class giveaways(gsettings, name="Giveaways"):
 
         prize = " ".join(prize)
 
-        if not getattr(self, "amari", None):
-            requirements.no_amari_available()
+        if not getattr(self, "amari", None):  # amari token wasn't available.
+            requirements.no_amari_available()  # cancel out amari reqs if they were given.
 
         if time < 15:
             return await ctx.reply("Giveaways have to be longer than 15 seconds.")
 
-        winners = int(winners)
-
         if await self.config.get_guild_autodel(ctx.guild):
-            with contextlib.suppress(Exception) as e:
+            with contextlib.suppress(Exception):
                 await ctx.message.delete()
 
         emoji = await self.config.get_guild_emoji(ctx.guild)
         endtime = ctx.message.created_at + datetime.timedelta(seconds=time)
 
         embed = discord.Embed(
-            title=f"**{prize}**",
-            description=f"React with {emoji} to enter\nTotal Time: {readabletimer(time)}\nEnds <t:{int(_time.time())+time}:R>\nHost: {ctx.author.mention}",
-            color=discord.Color.green(),
+            title=prize.center(len(prize) + 4, "*"),
+            description=(
+                f"React with {emoji} to enter\n"
+                f"Host: {ctx.author.mention}\n"
+                f"Ends {f'<t:{int(_time.time())+time}:R>' if not await self.config.get_guild_timer(ctx.guild) else f'in {humanize_timedelta(seconds=time)}'}\n"
+            ),
             timestamp=endtime,
-        ).set_footer(text=f"Winners: {winners} | ends | ", icon_url=ctx.guild.icon_url)
+        ).set_footer(text=f"Winners: {winners} | ends : ", icon_url=ctx.guild.icon_url)
 
         message = await self.config.get_guild_msg(ctx.guild)
         p = None

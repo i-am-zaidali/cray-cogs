@@ -1,9 +1,12 @@
 import asyncio
+from typing import Dict, List
 
 import discord
 from amari import AmariClient
 from discord.ext import tasks
 from redbot.core import commands
+
+from giveaways.models import Giveaway
 
 from .confhandler import conf
 
@@ -13,12 +16,14 @@ class main(commands.Cog):
         self.bot = bot
         self.config = conf(bot)
         self.edit_minutes_task = self.end_giveaways.start()
-        self.giveaway_cache = []
+        self.giveaway_cache: List[Giveaway] = []
+        self.ended_cache: Dict[int, List[int]] = {}
 
     def cog_unload(self):
         async def stop() -> asyncio.Task:
             self.edit_minutes_task.cancel()
             self.config.cache = self.giveaway_cache
+            self.config.ended_cache = self.ended_cache
             await self.config.cache_to_config()
             if getattr(self.bot, "amari", None):
                 await self.bot.amari.close()
@@ -41,14 +46,14 @@ class main(commands.Cog):
                     await bot.send_to_owners(
                         f"""
                                             Thanks for installing and using my Giveaways cog.
-                                            This cog has a requirements system for the giveaways and one of 
+                                            This cog has a requirements system for the giveaways and one of
                                             these requirements type is amari levels.
                                             If you don't know what amari is, ignore this message.
                                             But if u do, you need an Amari auth key for these to work,
                                             go to this website: https://forms.gle/TEZ3YbbMPMEWYuuMA
-                                            and apply to get the key. You should probably get a response within 
+                                            and apply to get the key. You should probably get a response within
                                             24 hours but if you don't, visit this server for information: https://discord.gg/6FJhupDHS6
-                                            
+
                                             You can then set the amari api key with the `[p]set api amari auth,<api key>` command"""
                     )
 
@@ -57,6 +62,7 @@ class main(commands.Cog):
         s.amari = getattr(bot, "amari", None)
         await s.config.config_to_cache(bot, s)
         s.giveaway_cache = s.config.cache
+        s.ended_cache = s.config.ended_cache
         return s
 
     @commands.Cog.listener()
@@ -195,5 +201,6 @@ class main(commands.Cog):
         await self.bot.wait_until_red_ready()
         data = self.giveaway_cache
         for i in data:
+            await i.edit_timer()
             if i.remaining_time == 0:
                 await i.end()
