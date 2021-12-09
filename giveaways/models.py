@@ -208,6 +208,9 @@ class Giveaway:
         requirements: Union[Any, Dict[str, List[int]]] = None,
         winners: int = 1,
         emoji: str = None,
+        use_multi: bool = True,
+        donor: Optional[int] = None,
+        donor_can_join: bool = True,
     ):
         self.bot = bot
         self.cog = cog
@@ -219,6 +222,9 @@ class Giveaway:
         self.winners = winners
         self.prize = prize
         self.emoji = emoji or "🎉"
+        self.use_multi = use_multi
+        self._donor = donor or self._host
+        self.donor_can_join = donor_can_join
 
         self.next_edit = self.get_next_edit_time()
 
@@ -244,11 +250,20 @@ class Giveaway:
     def host(self) -> discord.User:
         return self.bot.get_user(self._host)
 
+    @property
+    def donor(self) -> discord.Member:
+        return self.guild.get_member(self._donor)
+
     async def get_message(self) -> discord.Message:
         msg = self.bot._connection._get_message(
             self.message_id
         )  # i mean, if its cached, why waste an api request right?
-        return msg or await self.channel.fetch_message(self.message_id)
+        if not msg:
+            try:
+                msg = await self.channel.fetch_message(self.message_id)
+            except Exception:
+                msg = None
+        return msg
 
     @property
     def remaining_time(self) -> int:
@@ -361,7 +376,8 @@ class Giveaway:
             entrants.pop(entrants.index(msg.guild.me))
         except:
             pass
-        entrants = await self.cog.config.get_list_multi(channel.guild, entrants)
+        if self.use_multi:
+            entrants = await self.cog.config.get_list_multi(channel.guild, entrants)
         link = gmsg.jump_url
 
         if len(entrants) == 0 or winners == 0:
@@ -423,6 +439,9 @@ class Giveaway:
             "winners": self.winners,
             "prize": self.prize,
             "requirements": self.requirements.as_dict(),
+            "use_multi": self.use_multi,
+            "donor": self._donor,
+            "donor_can_join": self.donor_can_join,
         }
         return data
 

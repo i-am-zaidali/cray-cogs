@@ -140,15 +140,29 @@ class giveaways(gsettings, name="Giveaways"):
 
         message = await self.config.get_guild_msg(ctx.guild)
         p = None
+        no_multi = False
+        donor = None
+        donor_join = True
         if flags:
             donor = flags.get("donor")
             _list = flags.get(None)
+            nm = flags.get("no_multi")
             no_defaults = flags.get("no-defaults")
+            dj = flags.get("no-donor")
             if donor:
-                donor = await MemberConverter().convert(ctx, donor)
+                try:
+                    donor = await MemberConverter().convert(ctx, donor)
+                except Exception:
+                    return await ctx.send("You didn't provide a proper donor.")
                 embed.add_field(name="**Donor:**", value=f"{donor.mention}", inline=False)
             if no_defaults or (_list and "no-defaults" in _list):
                 requirements = requirements.no_defaults(True)
+
+            if nm or (_list and "no-multi" in _list):
+                no_multi = True
+
+            if dj or (_list and "no-donor" in _list):
+                donor_join = False
 
             else:
                 requirements = requirements.no_defaults()
@@ -215,6 +229,9 @@ class giveaways(gsettings, name="Giveaways"):
                 await ctx.send(embed=embed)
 
         data = {
+            "donor": donor,
+            "donor_can_join": donor_join,
+            "use_multi": not no_multi,
             "message": gembed.id,
             "emoji": emoji,
             "channel": ctx.channel.id,
@@ -570,12 +587,14 @@ Ends at: {endsat}
     > Flags should be prefixed with `--` (two minus signs?)
 
     **Types of flags**
+    > *--no-multi*
+        This flag will disallow role multipliers to determine the giveaway winner.
+
     > *--donor*
         This sets a donor for the giveaway. This donor name shows up in the giveaway embed and also is used when using the `--amt` flag
 
-    > *--amt*
-        This adds the given amount to the donor's (or the command author if donor is not provided) donation balance.
-        **You need my DonationLogging cog for this to work.**
+    > *--no-donor*
+        This flag will disallow the donor (if given, else the host) to win the giveaway.
 
     > *--msg*
         This sends a separate embed after the main giveaway one stating a message give by you.
@@ -588,6 +607,16 @@ Ends at: {endsat}
 
     > *--no-defaults*
         This disables the default bypass and blacklist roles set by you with the `{ctx.prefix}gset blacklist` and `{ctx.prefix}gset bypass`
+
+    **NOTE: The below flags will only work if the DonationLogging cog has been loaded!!**
+
+    > *--amt*
+        This adds the given amount to the donor's (or the command author if donor is not provided) donation balance.
+
+    > *--bank* or *--category*
+        This flag followed with a category name, uses the given category to to add the amount to.
+        If not given, the default category, if set, will be used.
+        This flag can not be used without using the *--amt* flag.
 
 ***__Customization:__ ***
     > Giveaways can be customized to your liking but under a certain limit.
