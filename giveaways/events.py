@@ -82,6 +82,11 @@ class main(commands.Cog):
                         color=discord.Color.red(),
                         timestamp=datetime.utcnow(),
                     )
+                    try:
+                        return await ind.donor.send(embed=embed)
+                    except Exception:
+                        return
+
                 if ind.requirements.null:
                     return
 
