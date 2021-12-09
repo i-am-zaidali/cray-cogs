@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 from typing import Dict, List
 
 import discord
@@ -72,24 +73,39 @@ class main(commands.Cog):
             return
         if payload.message_id in (e := [i.message_id for i in data]):
             if str(payload.emoji) == (emoji := (ind := data[e.index(payload.message_id)]).emoji):
+                message = await ind.get_message()
+                if not ind.donor_can_join and payload.member == ind.donor:
+                    embed = discord.Embed(
+                        title="Entry Invalidated!",
+                        description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                        f"This giveaway used the `--no-donor` flag which disallows the donor/host to join  the giveaway.",
+                        color=discord.Color.red(),
+                        timestamp=datetime.utcnow(),
+                    )
                 if ind.requirements.null:
                     return
 
                 else:
-                    message = await ind.get_message()
                     requirements = ind.requirements.as_role_dict()
+
+                    if requirements["bypass"]:
+                        maybe_bypass = any(
+                            [role in payload.member.roles for role in requirements["bypass"]]
+                        )
+                        if maybe_bypass:
+                            return  # All the below requirements can be overlooked if user has bypass role.
+
                     for key, value in requirements.items():
                         if value:
                             if isinstance(value, list):
                                 for i in value:
-                                    if key == "bypass" and i in payload.member.roles:
-                                        pass
-
-                                    elif key == "blacklist" and i in payload.member.roles:
+                                    if key == "blacklist" and i in payload.member.roles:
                                         await message.remove_reaction(emoji, payload.member)
                                         embed = discord.Embed(
                                             title="Entry Invalidated!",
-                                            description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\nYou had a role that was blacklisted from this giveaway.\nBlacklisted role: `{i.name}`",
+                                            description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                            "You had a role that was blacklisted from this giveaway.\n"
+                                            f"Blacklisted role: `{i.name}`",
                                             color=discord.Color.random(),
                                             timestamp=message.created_at,
                                         )
@@ -101,14 +117,12 @@ class main(commands.Cog):
                                         continue
 
                                     elif key == "required" and i not in payload.member.roles:
-                                        if requirements["bypass"]:
-                                            for r in requirements["bypass"]:
-                                                if r in payload.member.roles:
-                                                    continue
                                         await message.remove_reaction(emoji, payload.member)
                                         embed = discord.Embed(
                                             title="Entry Invalidated!",
-                                            description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\nYou did not have the required role to join it.\nRequired role: `{i.name}`",
+                                            description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                            "You did not have the required role to join it.\n"
+                                            f"Required role: `{i.name}`",
                                             color=discord.Color.random(),
                                             timestamp=message.created_at,
                                         )
@@ -129,15 +143,12 @@ class main(commands.Cog):
                                     except:
                                         pass
                                     level = int(user.level) if user else 0
-                                    if requirements["bypass"]:
-                                        for role in requirements["bypass"]:
-                                            if role in payload.member.roles:
-                                                continue
                                     if int(level) < int(value):
                                         await message.remove_reaction(emoji, payload.member)
                                         embed = discord.Embed(
                                             title="Entry Invalidated!",
-                                            description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\nYou are amari level `{level}` which is `{value - level}` levels fewer than the required `{value}`.",
+                                            description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                            f"You are amari level `{level}` which is `{value - level}` levels fewer than the required `{value}`.",
                                             color=discord.Color.random(),
                                             timestamp=message.created_at,
                                         )
@@ -155,37 +166,13 @@ class main(commands.Cog):
                                         )
                                     except:
                                         pass
-                                    if requirements["bypass"]:
-                                        for role in requirements["bypass"]:
-                                            if role in payload.member.roles:
-                                                continue
                                     weeklyxp = int(user.weeklyxp) if user else 0
                                     if int(weeklyxp) < int(value):
                                         await message.remove_reaction(emoji, payload.member)
                                         embed = discord.Embed(
                                             title="Entry Invalidated!",
-                                            description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\nYou have `{weeklyxp}` weekly amari xp which is `{value - weeklyxp}` xp fewer than the required `{value}`.",
-                                            color=discord.Color.random(),
-                                            timestamp=message.created_at,
-                                        )
-                                        embed.set_thumbnail(url=message.guild.icon_url)
-                                        try:
-                                            await payload.member.send(embed=embed)
-                                        except discord.HTTPException:
-                                            pass
-                                        continue
-
-                                elif key == "ash_level":
-                                    level = await self.levels.get_member_level(payload.member)
-                                    if requirements["bypass"]:
-                                        for role in requirements["bypass"]:
-                                            if role in payload.member.roles:
-                                                continue
-                                    if int(level) < int(value):
-                                        await message.remove_reaction(emoji, payload.member)
-                                        embed = discord.Embed(
-                                            title="Entry Invalidated!",
-                                            description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\nYou are level `{level}` which is `{value - level}` levels fewer than the required `{value}`.",
+                                            description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                            f"You have `{weeklyxp}` weekly amari xp which is `{value - weeklyxp}` xp fewer than the required `{value}`.",
                                             color=discord.Color.random(),
                                             timestamp=message.created_at,
                                         )
