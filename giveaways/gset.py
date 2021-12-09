@@ -277,7 +277,11 @@ class gsettings(main):
         Configure whether you want to edit the timers for your server's giveaways.
 
         If disabled, the embed will use discord's native timestamps or else will use text
-        to show the remaining time for the giveaway to end."""
+        to show the remaining time for the giveaway to end.
+
+        **NOTE TO BOT OWNER:**
+            > This has the potential of ratelimiting your bot and if you want to prevent that,
+            > disable this command globally using `[p]command disable gset et`."""
         await self.config.set_guild_timer(ctx.guild, enable_or_disable)
         return await ctx.send(
             f"Editing timers for giveaways has been {'enabled' if enable_or_disable else 'disabled'}."
