@@ -88,7 +88,7 @@ class VoteTracker(commands.Cog):
             await bot.send_to_owners(
                 f"""
                 The cog `VoteTracker` requires an api token and webhook password from top.gg to function.
-                If you already have one you the command: `[p]set api topgg api_key,<api_key> pass,<password>`
+                If you already have one, use the command: `[p]set api topgg api_key,<api_key> pass,<password>`
                 to add the token to the bot's shared tokens and then try reloading the cog
                 again. If it still doesnt work, contact crayyy_zee#2900."""
             )
@@ -202,7 +202,7 @@ class VoteTracker(commands.Cog):
             return await ctx.send(f"{user.name} has not voted yet.")
 
         return await ctx.send(
-            f"{user.name} has voted for **server knight** *{user_votes}* time{'s' if user_votes > 1 else ''}."
+            f"{user.name} has voted for **{self.bot.user.name}** *{user_votes}* time{'s' if user_votes > 1 else ''}."
         )
 
     async def embed_from_vote(self, vote: VoteInfo):
@@ -213,7 +213,7 @@ class VoteTracker(commands.Cog):
         )
         embed = discord.Embed(
             title="Vote recieved on Top.gg!",
-            description=f"{vote.user.mention} (`{vote.user_id}`) has voted for **server knight**"
+            description=f"{vote.user.mention} (`{vote.user_id}`) has voted for **{self.bot.user}**"
             f"\nTheir total votes are: {self.cache.get(vote.user_id)}" + role_recieved,
             color=0x303036,
         )
