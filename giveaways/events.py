@@ -75,6 +75,7 @@ class main(commands.Cog):
             if str(payload.emoji) == (emoji := (ind := data[e.index(payload.message_id)]).emoji):
                 message = await ind.get_message()
                 if not ind.donor_can_join and payload.member == ind.donor:
+                    await message.remove_reaction(emoji, payload.member)
                     embed = discord.Embed(
                         title="Entry Invalidated!",
                         description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
@@ -82,6 +83,11 @@ class main(commands.Cog):
                         color=discord.Color.red(),
                         timestamp=datetime.utcnow(),
                     )
+                    try:
+                        return await ind.donor.send(embed=embed)
+                    except Exception:
+                        return
+
                 if ind.requirements.null:
                     return
 

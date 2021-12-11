@@ -555,8 +555,10 @@ Ends at: {endsat}
 
     > You can also set multipliers for roles which increase the chances of people with that role to win in a giveaway. `{ctx.prefix}gset multi`
     > These multipliers stack and a user's entries in a giveaway add up for each role multiplier they have.
+
     > The format to add multis is:
         `{ctx.prefix}gset multi add <role id or mention> <multi>`
+
     > And to remove is the same:
         `{ctx.prefix}gset multi remove <role id or mention>`
 
@@ -646,7 +648,7 @@ Ends at: {endsat}
     > **Default bypass**
         The roles that are by default able to bypass requirements in giveaways. `{ctx.prefix}gset bypass`
         """
-        pages = list(pagify(something, delims=["\n***"], page_length=1200))
+        pages = list(pagify(something, delims=["\n***"], page_length=1600))
         for page in pages:
             embed = discord.Embed(title="Giveaway Explanation!", description=page, color=0x303036)
             embed.set_footer(text=f"Page {pages.index(page) + 1} out of {len(pages)}")
