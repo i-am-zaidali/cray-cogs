@@ -120,7 +120,9 @@ class gsettings(main):
 
         If you dont set this up, users will need either manage messages permission or the server's bot mod role."""
         if not roles:
-            return await ctx.send("You need to provide proper role ids or mentions to add them as managers")
+            return await ctx.send(
+                "You need to provide proper role ids or mentions to add them as managers"
+            )
         await self.config.set_manager(ctx.guild, [role.id for role in roles])
         await ctx.reply(
             f"{humanize_list([role.mention for role in roles])} have been set as the giveaway managers!",
