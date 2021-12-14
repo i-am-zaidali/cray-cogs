@@ -308,15 +308,14 @@ class Giveaway:
         winners = Counter(winners)
         # winners = [k for k, v in winners.items()]
         for winner in winners.keys():
-            member = await self.bot.get_or_fetch_user(winner)
-            if member:
+            if winner:
                 try:
                     embed = discord.Embed(
                         title="Congratulations!",
                         description=f"You have won a giveaway for `{prize}` in **__{guild}__**.\nClick [here]({jump_url}) to jump to the giveaway.",
                         color=discord.Color.random(),
-                    ).set_thumbnail(url=member.avatar_url)
-                    await member.send(embed=embed)
+                    ).set_thumbnail(url=winner.avatar_url)
+                    await winner.send(embed=embed)
 
                 except discord.HTTPException:
                     return False
@@ -405,8 +404,11 @@ class Giveaway:
 
         for i in range(winners):
             winner = random.choice(entrants)
-            w_list.append(winner.id)
-            w += f"{winner.mention} "
+            w_list.append(winner)
+
+        wcounter = Counter(w_list)
+        for k, v in wcounter.items():
+            w += f"<@{k.id}> x {v}, " if v > 1 else f"<@{k.id}> "
 
         formatdict = {"winner": w, "prize": prize, "link": link}
 
