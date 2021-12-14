@@ -575,9 +575,6 @@ Ends at: {endsat}
     > For role requirements, you just use the role id, mention, or exact name.
     > But if you wanna set a role to be a bypass for the giveaway, you put the role and follow it with a `[bypass]` or `[blacklist]`
 
-    > There are also ash level requirements based on ASH's levelling system. `{ctx.prefix}help Levelling`
-    > These can be used with `[level]` or `[lvl]` brackets.
-
     > For Amari level requirements you do the same but `[level]` gets replaced with `[alevel]` or `[alvl]`
     > You can also have Amari weekly xp requirements, just use the level amount and use the `[aweekly]` brackets.
 
