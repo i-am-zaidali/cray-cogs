@@ -259,14 +259,15 @@ class giveaways(gsettings, name="Giveaways"):
     async def giveaway_from_message_reply(self, message: discord.Message):
         msg = await self.message_reply(message)
 
-        e = list(
-            filter(
-                lambda x: x.message_id == msg.id and x.guild == message.guild,
-                self.giveaway_cache.copy(),
+        if msg:
+            e = list(
+                filter(
+                    lambda x: x.message_id == msg.id and x.guild == message.guild,
+                    self.giveaway_cache.copy(),
+                )
             )
-        )
-        if not e:
-            return
+            if not e:
+                return
         return msg
 
     @giveaway.command(name="end")
