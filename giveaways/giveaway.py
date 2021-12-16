@@ -458,7 +458,7 @@ class giveaways(gsettings, name="Giveaways"):
         data = self.giveaway_cache.copy()
         if not data:
             return await ctx.send("No active giveaways currently")
-        if not giveaway and not self.giveaway_from_message_reply(ctx.message):
+        if not giveaway and not await self.giveaway_from_message_reply(ctx.message):
 
             embeds = []
             final, failed = await self.active_giveaways(ctx)
