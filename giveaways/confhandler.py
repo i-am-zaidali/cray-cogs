@@ -142,7 +142,10 @@ class conf:
         return await self.config.guild(guild).autodelete.set(status)
 
     async def set_manager(self, guild: discord.Guild, *roles):
-        return await self.config.guild(guild).manager.set(roles)
+        async with self.config.guild(guild).manager() as managers:
+            managers += [role.id for role in roles]
+
+        return True
 
     async def set_guild_timer(self, guild: discord.Guild, b: bool):
         return await self.config.guild(guild).edit_timer.set(b)

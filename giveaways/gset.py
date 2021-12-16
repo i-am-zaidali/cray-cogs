@@ -123,7 +123,7 @@ class gsettings(main):
             return await ctx.send(
                 "You need to provide proper role ids or mentions to add them as managers"
             )
-        await self.config.set_manager(ctx.guild, [role.id for role in roles])
+        await self.config.set_manager(ctx.guild, *list(roles))
         await ctx.reply(
             f"{humanize_list([role.mention for role in roles])} have been set as the giveaway managers!",
             allowed_mentions=discord.AllowedMentions(roles=False, replied_user=False),
