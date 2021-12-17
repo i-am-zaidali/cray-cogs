@@ -4,7 +4,7 @@ import logging
 import math
 import random
 from dataclasses import make_dataclass
-from typing import Dict, List, Optional, Tuple, Type, Union
+from typing import Dict, List, Literal, Optional, Tuple, Type, Union
 
 import discord
 from discord.ext.commands.converter import EmojiConverter
@@ -41,6 +41,20 @@ class HitOrMiss(commands.Cog):
         self.config.register_user(**user_defaults)
 
         self.converter = PlayerConverter()
+
+    async def red_delete_data_for_user(
+        self,
+        *,
+        requester: Literal["discord_deleted_user", "owner", "user", "user_strict"],
+        user_id: int,
+    ):
+        if requester not in ("discord_deleted_user", "user"):
+            return
+
+        await self.config.user_from_id(user_id).clear()
+        u = functools.reduce(lambda x: x.id == user_id, self.cache)
+        if u:
+            self.cache.remove(u)
 
     def group_embeds_by_fields(*fields: Dict[str, Union[str, bool]], per_embed: int = 3):
         """
