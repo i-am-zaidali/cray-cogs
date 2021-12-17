@@ -25,6 +25,7 @@ These cogs are mostly aimed towards the **Dank Memer based servers.**
 | DonationLogging               | 2.1.0            | <details><summary>Store donation amounts.</summary>This cog allows you to store a member's donations in a guild.</details>                                                                   |
 | Giveaways                     | 1.3.0            | <details><summary>Host embedded giveaways using reactions.</summary>Start giveaways in your server using reactions and advanced requirements.</details>                                           |
 | Notes                         | 1.0.0            | <details><summary>Moderation Notes</summary>Keep moderation notes on people.</details>                                                                                                   |
+| HitOrMiss                     | 1.0.0            | <details><summary>Throw stuff at others.</summary>Throw items at users and hope you kill them. Buy items from the shop.</details>                                                                                                   |
 ## Support
 
 Incase you encounter a bug, either create an issue on the repo
