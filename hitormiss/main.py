@@ -221,7 +221,7 @@ class HitOrMiss(commands.Cog):
                     f"> **Uses**: {v.uses}\n"
                     f"> **Cooldown**: {v.cooldown}\n"
                     f"> **Accuracy**: {v.accuracy}\n\n"
-                    f"> ***Price***: {v.price}",
+                    f"> ***Price***: {v.price} {await bank.get_currency_name()}",
                     "inline": False,
                 }
             )
@@ -250,16 +250,29 @@ class HitOrMiss(commands.Cog):
         embed = discord.Embed(title=f"{me}'s Hit or Miss Inventory", color=await ctx.embed_color())
 
         for item, amount in me.inv.items.items():
+            item_cooldown = (
+                f"Can be used after **{item.on_cooldown(self):.2f} seconds**."
+                if item.on_cooldown(me)
+                else "Not on cooldown."
+            )
             embed.add_field(
-                name=f"{item.name}", value=f"> **Amount Owned: ** {amount}", inline=False
+                name=f"{item.__class__.__name__}",
+                value=f"> **Amount Owned: ** {amount}\n"
+                f"> **Uses remaining: ** {item.get_remaining_uses(me)}\n"
+                f"> **On cooldown?: ** {item_cooldown}",
+                inline=False,
             )
 
         return await ctx.send(embed=embed)
 
     @hom.command(name="buy", aliases=["purchase"])
-    async def hom_buy(self, ctx: commands.Context, amount: Optional[int], item: ItemConverter):
+    async def hom_buy(
+        self, ctx: commands.Context, amount: Optional[int] = None, item: ItemConverter = None
+    ):
         """
         Buy a Hit Or Miss item for your inventory."""
+        if not item:
+            return await ctx.send_help()
         amount = amount or 1
         needed_to_buy = item.price * amount
         if await bank.can_spend(ctx.author, needed_to_buy):
@@ -268,7 +281,7 @@ class HitOrMiss(commands.Cog):
             await bank.withdraw_credits(ctx.author, needed_to_buy)
             await self.config.user(ctx.author).set(me.to_dict())
             return await ctx.send(
-                f"You have successfully bought {amount} {item.name}(s) for {needed_to_buy} {await bank.get_bank_name()}."
+                f"You have successfully bought {amount} {item.name}(s) for {needed_to_buy} {await bank.get_currency_name()}."
             )
 
         return await ctx.send(
