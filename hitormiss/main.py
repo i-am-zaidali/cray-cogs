@@ -373,7 +373,8 @@ class HitOrMiss(commands.Cog):
             )
 
         name = answers.pop("name")
-        if self.items.get(name):
+
+        if functools.reduce(lambda x: x.lower() == name.lower(), self.items.keys()):
             return await ctx.send(f"An item with the name `{name}` already exists.")
 
         answers["throwable"] = True
