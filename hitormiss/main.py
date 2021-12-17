@@ -229,7 +229,7 @@ class HitOrMiss(commands.Cog):
         for k, v in self.items.items():
             fields.append(
                 {
-                    "name": k.center(len(k) + 4, "*") + f" {v.emoji}",
+                    "name": k.center(len(k) + 4, "*") + f" {v.emoji if v.emoji else ''}",
                     "value": f"> **Damage**: {v.damage}\n"
                     f"> **Throwable**: {v.throwable}\n"
                     f"> **Uses**: {v.uses}\n"
@@ -270,7 +270,7 @@ class HitOrMiss(commands.Cog):
                 else "Not on cooldown."
             )
             embed.add_field(
-                name=f"{item.__class__.__name__}",
+                name=f"{item.__class__.__name__} {item.emoji if item.emoji else ''}",
                 value=f"> **Amount Owned: ** {amount}\n"
                 f"> **Uses remaining: ** {item.get_remaining_uses(me)}\n"
                 f"> **On cooldown?: ** {item_cooldown}",
