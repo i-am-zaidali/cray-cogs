@@ -137,27 +137,17 @@ class Player:
 
     @property
     def stats(self):
-        items = ""
-        for item, amount in self.inv.items.items():
-            item_cooldown = (
-                f"Can be used after {item.on_cooldown(self):.2f} seconds."
-                if item.on_cooldown(self)
-                else "Not on cooldown."
-            )
-            items += f"{item.name.title()} - {amount} - {item_cooldown} - {item.get_remaining_uses(self)}/item.uses\n"
-
+        items = (
+            f"You own {len(self.inv.items)} items."
+            if self.inv.items
+            else "You don't own any items."
+        )
         return f"""
             Health Points (hp): **{self.hp}**
 
             Accuracy: **{self.accuracy}**
 
-            Items:
-```
-Format:
-Item name - amount owned - cooldown - remaining uses/total uses
-
-{items}
-```
+            Items: {items}
             """
 
 
