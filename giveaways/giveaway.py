@@ -156,10 +156,10 @@ class giveaways(gsettings, name="Giveaways"):
                     return await ctx.send("You didn't provide a proper donor.")
                 embed.add_field(name="**Donor:**", value=f"{donor.mention}", inline=False)
             if no_defaults or (_list and "no-defaults" in _list):
-                requirements = requirements.no_defaults(True) # ignore defaults. 
-            
+                requirements = requirements.no_defaults(True)  # ignore defaults.
+
             else:
-                requirements = requirements.no_defaults() # defaults will be used!!!
+                requirements = requirements.no_defaults()  # defaults will be used!!!
 
             if nm or (_list and "no-multi" in _list):
                 no_multi = True
