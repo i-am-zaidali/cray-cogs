@@ -382,7 +382,7 @@ class giveaways(gsettings, name="Giveaways"):
 
     async def active_giveaways(self, ctx, per_guild: bool = False):
         data = self.giveaway_cache.copy()
-        failed = []
+        failed = ""
         final = ""
         for index, i in enumerate(data, 1):
             channel = i.channel
@@ -396,8 +396,8 @@ class giveaways(gsettings, name="Giveaways"):
     in {f'guild {i.guild} ({i.guild.id})' if not per_guild else f'{channel.mention}'}
     Ends <t:{int(i._time)}:R> ({humanize_timedelta(seconds=i.remaining_time)})
     """
-            except:
-                failed.append(i)
+            except Exception as e:
+                final += f"There was an error with the giveaway `{i.message_id}` so it was removed:\n{e}\n"
                 self.giveaway_cache.remove(i)
                 continue
 
