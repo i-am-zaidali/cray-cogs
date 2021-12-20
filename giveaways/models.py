@@ -61,7 +61,7 @@ class Requirements(commands.Converter):
 
         The idea is to get a Requirements object and then use this method by passing the flag :thumbsup:"""
         if not stat:
-            self.blacklist += self.default_by
+            self.blacklist += self.default_bl
             self.bypass += self.default_by
             del self.default_by
             del self.default_bl

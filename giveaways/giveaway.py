@@ -141,6 +141,7 @@ class giveaways(gsettings, name="Giveaways"):
         message = await self.config.get_guild_msg(ctx.guild)
         p = None
         no_multi = False
+        no_defaults = False
         donor = None
         donor_join = True
         if flags:
@@ -156,7 +157,8 @@ class giveaways(gsettings, name="Giveaways"):
                     return await ctx.send("You didn't provide a proper donor.")
                 embed.add_field(name="**Donor:**", value=f"{donor.mention}", inline=False)
             if no_defaults or (_list and "no-defaults" in _list):
-                requirements = requirements.no_defaults(True)
+                requirements = requirements.no_defaults(True)  # ignore defaults.
+                no_defaults = True
 
             if nm or (_list and "no-multi" in _list):
                 no_multi = True
@@ -164,8 +166,8 @@ class giveaways(gsettings, name="Giveaways"):
             if dj or (_list and "no-donor" in _list):
                 donor_join = False
 
-            else:
-                requirements = requirements.no_defaults()
+        if not no_defaults:
+            requirements = requirements.no_defaults()  # defaults will be used!!!
 
         if not requirements.null:
             embed.add_field(name="Requirements:", value=str(requirements), inline=False)
