@@ -13,12 +13,10 @@ def no_special_characters(ctx):
             return False
         regex = re.compile(r"[@_!#$%^&*()<>?/\|}{~:]")
         if not regex.search(message.content):
-            print("yes")
             s.result = message.content
             return True
 
         else:
-            print("no")
             s.result = None
             return False
 
