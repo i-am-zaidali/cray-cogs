@@ -243,7 +243,7 @@ class VoteTracker(commands.Cog):
             f"\nTheir total votes are: {self.cache.get(vote.user.id)}" + role_recieved,
             color=0x303036,
         )
-        embed.set_footer(text=f"Total Votes: {reduce(lambda x, y: x+y, self.cache.values())}")
+        embed.set_footer(text=f"Total Votes: {self.total_votes}")
         embed.timestamp = datetime.datetime.now()
 
         u_data["vote_cd"] = int(time.time() + (3600 * 12))
