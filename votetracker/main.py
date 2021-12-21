@@ -159,7 +159,7 @@ class VoteTracker(commands.Cog):
             k = await self.bot.get_or_fetch_user(k)
             embed.add_field(
                 name=f"{i}. {k.name}",
-                value=f"Amount of votes: \n{box(f'**{v:>10}**')}",
+                value=f"Amount of votes: \n{box(f'**{v}**')}",
                 inline=False,
             )
 
