@@ -74,7 +74,8 @@ class main(commands.Cog):
         if payload.message_id in (e := [i.message_id for i in data]):
             if str(payload.emoji) == (emoji := (ind := data[e.index(payload.message_id)]).emoji):
                 message = await ind.get_message()
-                if not ind.donor_can_join and payload.member == ind.donor:
+                print(ind.donor_can_join, payload.member.id == ind._donor)
+                if not ind.donor_can_join and payload.member.id == ind._donor:
                     await message.remove_reaction(emoji, payload.member)
                     embed = discord.Embed(
                         title="Entry Invalidated!",

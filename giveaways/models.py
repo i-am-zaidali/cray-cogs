@@ -67,7 +67,10 @@ class Requirements(commands.Converter):
             del self.default_bl
             return self  # return self because nothing needs to be modified
 
-        return self.__class__(**self.as_dict().update({"default_by": [], "default_bl": []}))
+        d = self.as_dict()
+        d.update({"default_by": [], "default_bl": []})
+
+        return self.__class__(**d)
 
     def no_amari_available(self):
         self.amari_level = None
