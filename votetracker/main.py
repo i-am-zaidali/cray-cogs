@@ -209,7 +209,7 @@ class VoteTracker(commands.Cog):
     async def on_dbl_vote(self, data: dict):
         vote = VoteInfo(self.bot, data)
 
-        user = await self.bot.get_or_fetch_user(vote.user)
+        user = vote.user
         user_mention = user.mention
         user_id = user.id
 
