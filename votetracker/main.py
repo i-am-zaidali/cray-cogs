@@ -24,7 +24,7 @@ class VoteTracker(commands.Cog):
 
         self.config: Config = Config.get_conf(None, 1, True, "VoteTracker")
         self.config.register_user(votes=0, vote_cd=None)
-        self.config.register_global(role=None, chan=None, guild=None)
+        self.config.register_global(role=None, chan=None, guild_id=None)
 
         self.topgg_client: DBLClient = DBLClient(
             bot,
@@ -37,7 +37,7 @@ class VoteTracker(commands.Cog):
         self.cache: Dict[int, Dict[str, int]] = {}
 
     async def get_guild(self) -> Optional[discord.Guild]:
-        gid = await self.config.guild()
+        gid = await self.config.guild_id()
         if gid:
             return self.bot.get_guild(gid)
         else:
