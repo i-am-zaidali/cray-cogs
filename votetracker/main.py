@@ -69,7 +69,7 @@ class VoteTracker(commands.Cog):
         """
         Credits to Predä for this
         """
-        data = await self.bot.topggclient.get_bot_votes()
+        data = await self.bot.topgg_client.get_bot_votes()
         votes_count = Counter()
         for user_data in data:
             votes_count[user_data["id"]] += 1
