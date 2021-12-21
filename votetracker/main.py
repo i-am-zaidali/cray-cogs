@@ -24,7 +24,7 @@ class VoteTracker(commands.Cog):
 
         self.config: Config = Config.get_conf(None, 1, True, "VoteTracker")
         self.config.register_user(votes=0, vote_cd=None)
-        self.config.register_global(role=None, chan=None, guild_id=None)
+        self.config.register_global(role_id=None, chan=None, guild_id=None)
 
         self.topgg_client: DBLClient = DBLClient(
             bot,
@@ -176,7 +176,7 @@ class VoteTracker(commands.Cog):
         Set the role to be assigned to the user upon recieving a vote from them.
 
         This command can only be run by bot owners."""
-        await self.config.role.set(role.id)
+        await self.config.role_id.set(role.id)
         await self.config.guild.set(ctx.guild.id)
 
         await ctx.send(f"Set the role for voting to {role.name}")
@@ -208,7 +208,7 @@ class VoteTracker(commands.Cog):
     async def embed_from_vote(self, vote: VoteInfo):
         role_recieved = (
             f"\n{vote.user_mention} has recieved the role: <@&{r}>"
-            if (r := await self.config.role())
+            if (r := await self.config.role_id())
             else ""
         )
         embed = discord.Embed(
@@ -237,7 +237,7 @@ class VoteTracker(commands.Cog):
 
         u_data = self.cache.setdefault(user_id, {"votes": 0, "vote_cd": None})
         u_data.update({"votes": u_data["votes"] + 1})
-        if r := await self.config.role() and g:
+        if r := await self.config.role_id() and g:
             if mem := g.get_member(user_id):
                 await mem.add_roles(g.get_role(r))
 
@@ -257,7 +257,7 @@ class VoteTracker(commands.Cog):
 
         await g.chunk()
 
-        if not (r := await self.config.role()):
+        if not (r := await self.config.role_id()):
             return
 
         if not self.cache:
