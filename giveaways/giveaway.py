@@ -30,7 +30,7 @@ class giveaways(gsettings, name="Giveaways"):
     with advanced requirements, customizable embeds
     and much more."""
 
-    __version__ = "1.3.1"
+    __version__ = "1.5.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot):
