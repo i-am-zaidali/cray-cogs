@@ -79,6 +79,13 @@ class VoteTracker(commands.Cog):
 
         return final
 
+    @property
+    def total_votes(self):
+        return reduce(
+            lambda x, y: x["votes"] + y["votes"] if isinstance(x, dict) else x + y["vote"],
+            self.cache.values(),
+        )
+
     @classmethod
     async def initialize(cls, bot: Red):
         tokens = await bot.get_shared_api_tokens("topgg")
@@ -133,12 +140,12 @@ class VoteTracker(commands.Cog):
             k = await self.bot.get_or_fetch_user(k)
             embed.add_field(
                 name=f"{i}. {k.name}",
-                value=f"Amount of votes: \n{box(f'**{v}**')}",
+                value=f"Amount of votes: \n**{box(f'{v}')}**",
                 inline=False,
             )
 
         embed.set_footer(
-            text=f"Total Votes: {reduce(lambda x, y: x+y, lb.values())}",
+            text=f"Total Votes: {self.total_votes}",
             icon_url=ctx.author.avatar_url,
         )
         await ctx.send(embed=embed)
@@ -159,12 +166,12 @@ class VoteTracker(commands.Cog):
             k = await self.bot.get_or_fetch_user(k)
             embed.add_field(
                 name=f"{i}. {k.name}",
-                value=f"Amount of votes: \n{box(f'**{v}**')}",
+                value=f"Amount of votes: \n**{box(f'{v}')}**",
                 inline=False,
             )
 
         embed.set_footer(
-            text=f"Total Monthly Votes: {reduce(lambda x, y: x['votes'] + y['votes'] if isinstance(x, dict) else x + y['votes'], lb.values())}",
+            text=f"Total Monthly Votes: {reduce(lambda x, y: x + y, lb.values())}",
             icon_url=ctx.author.avatar_url,
         )
         await ctx.send(embed=embed)
@@ -197,7 +204,7 @@ class VoteTracker(commands.Cog):
     async def guv(self, ctx: commands.Context, user: discord.User):
         """
         Check how many times a certain user has voted for **[botname]**."""
-        user_votes = self.cache.setdefault(user, {"votes": 0, "vote_cd": None}).get("votes")
+        user_votes = self.cache.setdefault(user.id, {"votes": 0, "vote_cd": None}).get("votes")
         if user_votes == 0:
             return await ctx.send(f"{user.name} has not voted yet.")
 
