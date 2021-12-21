@@ -34,12 +34,12 @@ class BaseItem:
         price: int,
         emoji: Optional[str],
     ) -> None:
-        self.damage = damage
-        self.uses = uses
-        self.accuracy = accuracy
-        self.cooldown = cooldown
+        self.damage = int(damage)
+        self.uses = int(uses)
+        self.accuracy = int(accuracy)
+        self.cooldown = int(cooldown)
         self.throwable = throwable
-        self.price = price
+        self.price = int(price)
         self.emoji = emoji
         self.cache: Dict[int, Dict[str, Optional[Union[int, float]]]] = {}
 
