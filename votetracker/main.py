@@ -104,7 +104,7 @@ class VoteTracker(commands.Cog):
         await self.topgg_webhook.close()
         if self.cache:
             for k, v in self.cache.items():
-                self.config.user_from_id(k).set(v)
+                await self.config.user_from_id(k).set(v)
             log.debug("Transferred cache to config.")
 
     def cog_unload(self):
@@ -133,7 +133,7 @@ class VoteTracker(commands.Cog):
             k = await self.bot.get_or_fetch_user(k)
             embed.add_field(
                 name=f"{i}. {k.name}",
-                value=f"Amount of votes: \n{box(f'**{v:>10}**')}",
+                value=f"Amount of votes: \n{box(f'**{v}**')}",
                 inline=False,
             )
 
@@ -205,22 +205,6 @@ class VoteTracker(commands.Cog):
             f"{user.name} has voted for **{self.bot.user.name}** *{user_votes}* time{'s' if user_votes > 1 else ''}."
         )
 
-    async def embed_from_vote(self, vote: VoteInfo):
-        role_recieved = (
-            f"\n{vote.user_mention} has recieved the role: <@&{r}>"
-            if (r := await self.config.role_id())
-            else ""
-        )
-        embed = discord.Embed(
-            title="Vote recieved on Top.gg!",
-            description=f"{vote.user.mention} (`{vote.user_id}`) has voted for **{self.bot.user}**"
-            f"\nTheir total votes are: {self.cache.get(vote.user_id)}" + role_recieved,
-            color=0x303036,
-        )
-        embed.set_footer(text=f"Total Votes: {reduce(lambda x, y: x+y, self.cache.values())}")
-        embed.timestamp = datetime.datetime.now()
-        return embed
-
     @commands.Cog.listener()
     async def on_dbl_vote(self, data: dict):
         vote = VoteInfo(self.bot, data)
@@ -241,12 +225,26 @@ class VoteTracker(commands.Cog):
             if mem := g.get_member(user_id):
                 await mem.add_roles(g.get_role(r))
 
+        role_recieved = (
+            f"\n{vote.user_mention} has recieved the role: <@&{r}>"
+            if (r := await self.config.role_id())
+            else ""
+        )
+        embed = discord.Embed(
+            title="Vote recieved on Top.gg!",
+            description=f"{vote.user.mention} (`{vote.user.id}`) has voted for **{self.bot.user}**"
+            f"\nTheir total votes are: {self.cache.get(vote.user.id)}" + role_recieved,
+            color=0x303036,
+        )
+        embed.set_footer(text=f"Total Votes: {reduce(lambda x, y: x+y, self.cache.values())}")
+        embed.timestamp = datetime.datetime.now()
+
         u_data["vote_cd"] = int(time.time() + (3600 * 12))
 
         self.cache[user_id] = u_data  # just to make sure data is actually updated in cache
 
         if chanid := await self.config.chan():
-            self.bot.get_channel(chanid).send(embed=await self.embed_from_vote(vote))
+            self.bot.get_channel(chanid).send(embed=embed)
 
         log.info(f"Vote recieved from: {user_mention} (`{user_id}`)")
 
