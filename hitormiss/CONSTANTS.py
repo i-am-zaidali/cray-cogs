@@ -1,6 +1,15 @@
 from typing import Optional
 
-user_defaults = {"hp": 100, "accuracy": 10, "items": {"snowball": 1}}
+user_defaults = {
+    "hp": 100,
+    "accuracy": 10,
+    "throws": 0,
+    "hits": 0,
+    "misses": 0,
+    "kills": 0,
+    "deaths": 0,
+    "items": {"snowball": 1},
+}
 
 global_defaults = {
     "items": {
@@ -61,3 +70,5 @@ dc_fields = [
     ("price", int),
     ("emoji", Optional[str]),
 ]
+
+lb_types = ["throws", "kills", "deaths", "hits", "misses", "kdr"]
