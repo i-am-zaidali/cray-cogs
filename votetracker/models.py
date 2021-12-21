@@ -18,6 +18,10 @@ class VoteInfo:
         self.bot = bot
         self.raw = data
         # self._bot : int = data.get("bot") since the bot will always be our own
-        self.user: int = data.get("user")
+        self._user: int = int(data.get("user"))
         self.type = Types[data.get("type")]
         self.is_weekend: bool = data.get("isWeekend")
+
+    @property
+    def user(self):
+        return self.bot.get_user(self._user)
