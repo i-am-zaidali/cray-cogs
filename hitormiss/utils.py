@@ -28,7 +28,7 @@ def is_lt(lt: int, ctx):
         if not ctx.author == message.author and ctx.channel == message.channel:
             return False
         if message.content.isdigit() and int(message.content) <= lt:
-            s.result = message.content
+            s.result = int(message.content)
             return True
         else:
             s.result = None
