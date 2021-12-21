@@ -9,7 +9,7 @@ import discord
 from discord.ext import tasks
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import box
+from redbot.core.utils.chat_formatting import box, humanize_list
 from topgg import DBLClient, WebhookManager
 
 from .models import VoteInfo
@@ -19,6 +19,10 @@ log = logging.getLogger("red.skcogs.VoteTracker")
 
 
 class VoteTracker(commands.Cog):
+
+    __version__ = "1.5.0"
+    __author__ = ["crayyy_zee#2900"]
+
     def __init__(self, bot: Red, token: str, password: str):
         self.bot: Red = bot
 
@@ -35,6 +39,16 @@ class VoteTracker(commands.Cog):
         self.topgg_webhook = WebhookManager(bot).dbl_webhook("/dbl", password)
 
         self.cache: Dict[int, Dict[str, int]] = {}
+
+    def format_help_for_context(self, ctx: commands.Context) -> str:
+        pre_processed = super().format_help_for_context(ctx) or ""
+        n = "\n" if "\n\n" not in pre_processed else ""
+        text = [
+            f"{pre_processed}{n}",
+            f"Cog Version: **{self.__version__}**",
+            f"Author: {humanize_list(self.__author__)}",
+        ]
+        return "\n".join(text)
 
     async def get_guild(self) -> Optional[discord.Guild]:
         gid = await self.config.guild_id()
@@ -69,7 +83,7 @@ class VoteTracker(commands.Cog):
         """
         Credits to Predä for this
         """
-        data = await self.bot.topgg_client.get_bot_votes()
+        data = await self.topgg_client.get_bot_votes()
         votes_count = Counter()
         for user_data in data:
             votes_count[user_data["id"]] += 1
@@ -93,11 +107,16 @@ class VoteTracker(commands.Cog):
         password = tokens.get("pass")
         if not key or not password:
             await bot.send_to_owners(
-                f"""
-                The cog `VoteTracker` requires an api token and webhook password from top.gg to function.
-                If you already have one, use the command: `[p]set api topgg api_key,<api_key> pass,<password>`
-                to add the token to the bot's shared tokens and then try reloading the cog
-                again. If it still doesnt work, contact crayyy_zee#2900."""
+                f"The cog `VoteTracker` requires an api token and webhook password from top.gg to function. "
+                "To get these, you must visit the top.gg website, go to your profile, click on your bot's edit buttons "
+                "Go to the webhooks section and click the `reveal` button to get your token. "
+                "Scroll down to find the `Webhook url` field and replace it with `https://<Your-vps-ip-here>:5400/dbl`. "
+                "Below that will be the password field and set that to whatever you want."
+                "Then use the following command on your bot: `[p]set api topgg api_key,<api_token> pass,<password>` "
+                "to add the token to the bot's shared tokens and then try reloading the cog "
+                "again. If it still doesnt work, contact crayyy_zee#2900. "
+                "\nHere's a little gif showing where everything is present: "
+                "\nhttps://media.giphy.com/media/XB4JIFSPvC7WurI62B/giphy.gif"
             )
             return
 

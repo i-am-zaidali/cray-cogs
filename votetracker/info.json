@@ -9,6 +9,5 @@
         "crayyy_zee"
     ],
     "requirements": ["topggpy==1.3.0"],
-    "type": "COG",
-    "hidden": true
+    "type": "COG"
 }
