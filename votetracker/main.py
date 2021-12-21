@@ -54,16 +54,16 @@ class VoteTracker(commands.Cog):
             return False
 
     async def _populate_cache(self):
-        async with self.config.all_users() as users:
-            if users:
-                self.cache = {uid: v for uid, v in users.items()}
-                log.debug("Transferred config to cache.")
-            else:
-                self.cache = {
-                    k: {"votes": v, "vote_cd": None}
-                    for k, v in (await self.get_monthly_votes()).items()
-                }
-                log.debug("Populated cache.")
+        users = await self.config.all_users()
+        if users:
+            self.cache = {uid: v for uid, v in users.items()}
+            log.debug("Transferred config to cache.")
+        else:
+            self.cache = {
+                k: {"votes": v, "vote_cd": None}
+                for k, v in (await self.get_monthly_votes()).items()
+            }
+            log.debug("Populated cache.")
 
     async def get_monthly_votes(self):
         """
