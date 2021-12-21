@@ -112,7 +112,7 @@ class VoteTracker(commands.Cog):
 
     @staticmethod
     def sort_dict(d: dict):
-        d = sorted(dict.items(), key=lambda x: x[1], reversed=True)
+        d = sorted(d.items(), key=lambda x: x[1], reversed=True)
         d = {i[0]: i[1] for i in d}
         return d
 
