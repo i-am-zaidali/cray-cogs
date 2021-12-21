@@ -75,9 +75,14 @@ class BaseItem:
 class Player:
     def __init__(self, user: discord.User, data: dict) -> None:
         self._user = user
-        self.inv = Inventory(self, data["items"])
-        self.hp: int = data["hp"]
-        self.accuracy = data["accuracy"]
+        self.inv = Inventory(self, data.get("items", {}))
+        self.hp: int = data.get("hp", 100)
+        self.accuracy = data.get("accuracy", 10)
+        self.throws = data.get("throws", 0)
+        self.hits = data.get("hits", 0)
+        self.misses = data.get("misses", 0)
+        self.kills = data.get("kills", 0)
+        self.deaths = data.get("deaths", 0)
 
     def __getattr__(self, attr):
         return getattr(self._user, attr)
@@ -86,7 +91,16 @@ class Player:
         return str(self._user)
 
     def to_dict(self):
-        return {"hp": self.hp, "items": self.inv.to_dict()}
+        return {
+            "hp": self.hp,
+            "accuracy": self.accuracy,
+            "throws": self.throws,
+            "hits": self.hits,
+            "misses": self.misses,
+            "kills": self.kills,
+            "deaths": self.deaths,
+            "items": self.inv.to_dict(),
+        }
 
     def reduce_hp(self, amount: int):
         if self.hp - amount <= 0:
@@ -110,8 +124,10 @@ class Player:
             raise ValueError(f"You don't have a {item.name}")
 
         item._handle_usage(self)  # let the exceptions raise. The command gonna handle those.
+        self.throws += 1
 
         if true_random() <= (item.damage + self.accuracy + (true_random() / 3)):
+            self.hits += 1
             damage = random.randrange(1, item.damage)
             ohp = other.reduce_hp(damage)
             if true_random() > 75:
@@ -124,6 +140,8 @@ class Player:
 
                 other.inv.clear(confirm=True)
                 self.accuracy += 0.5  # increase your accuracy more when target is killed :p
+                self.kills += 1
+                other.deaths += 1
                 return (
                     True,
                     f"You threw {item} at {other} and luck had it, that they got killed by it. You got all of the items they had.",
@@ -133,6 +151,7 @@ class Player:
                 f"You threw {item} at {other} and they took {damage} damage. They now have {ohp} hp.",
             )
 
+        self.misses += 1
         return (False, f"You threw {item} at {other} but you couldn't hit them.")
 
     @property
@@ -142,13 +161,28 @@ class Player:
             if self.inv.items
             else "You don't own any items."
         )
-        return f"""
-            Health Points (hp): **{self.hp}**
+        return (  # The docstring messed up the view on discord mobile ughhh
+            f"Health Points (hp): **{self.hp}**\n\n"
+            f"Accuracy: **{self.accuracy}**\n\n"
+            f"Total Throws: **{self.throws}**\n\n"
+            f"Total Hits: **{self.hits}**\n\n"
+            f"Total Misses: **{self.misses}**\n\n"
+            f"Total Kills: **{self.kills}**\n\n"
+            f"Items: {items}"
+        )
 
-            Accuracy: **{self.accuracy}**
+    @property
+    def kdr(self):
+        if self.deaths == 0:
+            return 0
+        return self.kills / self.deaths
 
-            Items: {items}
-            """
+    @property
+    def new_player(self):
+        """
+        A property that shows if a player is new or not.
+        This is for filtering purposes in the leaderboard."""
+        return not self.throws  # if they haven't thrown yet, they are new.
 
 
 class Inventory:

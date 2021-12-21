@@ -12,10 +12,12 @@ from emoji.unicode_codes import UNICODE_EMOJI_ENGLISH
 from redbot.core import Config, bank, commands
 from redbot.core.bot import Red
 from redbot.core.errors import CogLoadError
+from redbot.core.utils.chat_formatting import box, pagify
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils.predicates import MessagePredicate
+from tabulate import tabulate
 
-from .CONSTANTS import dc_fields, global_defaults, user_defaults
+from .CONSTANTS import dc_fields, global_defaults, lb_types, user_defaults
 from .converters import ItemConverter, PlayerConverter
 from .models import BaseItem, Player
 from .utils import is_lt, no_special_characters
@@ -147,8 +149,7 @@ class HitOrMiss(commands.Cog):
             try:
                 u = await self.bot.get_or_fetch_user(uid)
             except:
-                await self.config.user_from_id(uid).clear()
-                log.debug(f"User with id `{uid}` not found, clearing their data.")
+                log.debug(f"User with id `{uid}` not found, not caching their data.")
                 continue
 
             data["items"] = self.filter_user_items(data["items"])
@@ -166,7 +167,7 @@ class HitOrMiss(commands.Cog):
         return s
 
     async def _unload(self):
-        for player in self.cache:
+        for player in self.cache.copy():
             await self.config.user(player._user).set(player.to_dict())
 
     def cog_unload(self):
@@ -265,7 +266,7 @@ class HitOrMiss(commands.Cog):
 
         for item, amount in me.inv.items.items():
             item_cooldown = (
-                f"Can be used after **{item.on_cooldown(self):.2f} seconds**."
+                f"Can be used <t:{int(item.on_cooldown(me))}:R>."
                 if item.on_cooldown(me)
                 else "Not on cooldown."
             )
@@ -279,7 +280,7 @@ class HitOrMiss(commands.Cog):
 
         return await ctx.send(embed=embed)
 
-    @hom.command(name="buy", aliases=["purchase"])
+    @hom.command(name="buy", aliases=["purchase"], usage="[amount] <item>")
     async def hom_buy(
         self, ctx: commands.Context, amount: Optional[int] = None, item: ItemConverter = None
     ):
@@ -288,7 +289,7 @@ class HitOrMiss(commands.Cog):
         if not item:
             return await ctx.send_help()
         amount = amount or 1
-        needed_to_buy = item.price * amount
+        needed_to_buy = int(item.price) * amount
         if await bank.can_spend(ctx.author, needed_to_buy):
             me = await self.converter.convert(ctx, f"{ctx.author.id}")
             me.inv.add(item, amount)
@@ -304,6 +305,8 @@ class HitOrMiss(commands.Cog):
 
     @hom.command(name="stats", aliases=["profile"])
     async def hom_stats(self, ctx: commands.Context, user: PlayerConverter = None):
+        """
+        See yours or others Hit Or Miss stats."""
         user: Player = user or await self.converter.convert(ctx, str(ctx.author.id))
         embed = discord.Embed(
             title=f"HitOrMiss stats for {user}",
@@ -404,3 +407,71 @@ class HitOrMiss(commands.Cog):
         async with self.config.items() as items:
             del items[name]
         return await ctx.send(f"Item `{item.name}` has been deleted.")
+
+    @hom.command(
+        name="leaderboard",
+        aliases=["lb", "top"],
+        cooldown_after_parsing=True,
+        usage="[type=kills] [global_or_local=False]",
+    )
+    async def hom_lb(
+        self, ctx: commands.Context, _type: str = "kills", global_or_local: bool = False
+    ):
+        """
+        Show the top players in the Hit Or Miss leaderboard.
+
+        There are 6 ways learderboards can be sorted:
+        - **Throws**: The leaderboard shows the top players who threw the most items.
+        - **Kills**: The amount of kills users have. (default)
+        - **Deaths**: The amount of times users have died.
+        - **Hits**: The amount of times users have hit others.
+        - **Misses**: The amount of times users have missed a throw.
+        - **KDR**: The K/D ratio of user's kills to their deaths.
+        - **All**: TO see all of the above at once. (This type won't be sorted and randomly placed.)
+
+        Pass any of the above exactly to the `type` parameter.
+
+        The leaderboard is `local` by default (only for the current server).
+        To show the global leaderboard, pass `true` to the `global_or_local` argument.
+        """
+        if _type.lower() not in lb_types and _type.lower() != "all":
+            return await ctx.send(
+                "Invalid type. Valid types are `throws`, `kills`, `deaths`, `hits`, `misses`, `kdr` or `all`."
+            )
+
+        final = []
+
+        users = self.cache.copy()
+        if not users:
+            return await ctx.send(
+                "It seems like no one has played yet so I can't show you the leaderboard :("
+            )
+        if not _type.lower() == "all":
+            users = sorted(users, key=lambda x: getattr(x, _type), reverse=True)
+        for user in users:
+            if not global_or_local and not ctx.guild.get_member(user.id) or user.new_player:
+                continue
+            f = [str(user)]
+            if _type == "all":
+                f += [f"{getattr(user, t):,}" for t in lb_types]
+            else:
+                f.append(f"{getattr(user, _type):,}")
+            final.append(f)
+
+        index = [i for i in range(1, len(final) + 1)]
+        headers = ["UserName"] + (
+            [t.capitalize() for t in lb_types] if _type == "all" else [_type.capitalize()]
+        )
+
+        msg = tabulate(final, tablefmt="rst", showindex=index, headers=headers)
+        pages = []
+        title = f"Hit Or Miss Leaderboard {'in ' + ctx.guild.name.capitalize() if not global_or_local else 'globally'}".center(
+            20
+        )
+        for page in pagify(msg, delims=["\n"], page_length=700):
+            page = title + "\n\n" + page + "\n\n"
+            pages.append(box(page, lang="html"))
+
+        if len(pages) == 1:
+            return await ctx.send(pages[0])
+        return await menu(ctx, pages, DEFAULT_CONTROLS)
