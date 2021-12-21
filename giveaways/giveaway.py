@@ -7,7 +7,6 @@ import time as _time
 import typing
 
 import discord
-from discord.ext.commands.converter import MemberConverter
 from redbot.core import commands
 from redbot.core.utils.chat_formatting import humanize_list, humanize_timedelta, pagify
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu, start_adding_reactions
@@ -15,14 +14,7 @@ from redbot.core.utils.predicates import ReactionPredicate
 
 from .gset import gsettings
 from .models import Giveaway, Requirements, SafeMember
-from .util import (
-    TimeConverter,
-    WinnerConverter,
-    flags,
-    is_gwmanager,
-    prizeconverter,
-    readabletimer,
-)
+from .util import Flags, TimeConverter, WinnerConverter, is_gwmanager, prizeconverter
 
 log = logging.getLogger("red.ashcogs.giveaways")
 
@@ -80,6 +72,14 @@ class giveaways(gsettings, name="Giveaways"):
         """
         await ctx.send_help("giveaway")
 
+    @giveaway.command(name="create", hidden=True)
+    @commands.max_concurrency(5, per=commands.BucketType.guild, wait=True)
+    @commands.bot_has_permissions(embed_links=True)
+    @commands.guild_only()
+    @is_gwmanager()
+    async def giveaway_create(self, ctx):
+        pass
+
     @giveaway.command(name="start", usage="<time> <winners> [requirements] <prize> [flags]")
     @commands.max_concurrency(5, per=commands.BucketType.guild, wait=True)
     @commands.bot_has_permissions(embed_links=True)
@@ -93,7 +93,7 @@ class giveaways(gsettings, name="Giveaways"):
         requirements: typing.Optional[Requirements] = None,
         prize: commands.Greedy[prizeconverter] = None,
         *,
-        flags: flags = None,
+        flags: Flags = {},
     ):
         """Start a giveaway in the current channel with a prize
 
@@ -125,6 +125,7 @@ class giveaways(gsettings, name="Giveaways"):
             with contextlib.suppress(Exception):
                 await ctx.message.delete()
 
+        messagable = ctx
         emoji = await self.config.get_guild_emoji(ctx.guild)
         endtime = ctx.message.created_at + datetime.timedelta(seconds=time)
 
@@ -139,32 +140,21 @@ class giveaways(gsettings, name="Giveaways"):
         ).set_footer(text=f"Winners: {winners} | ends : ", icon_url=ctx.guild.icon_url)
 
         message = await self.config.get_guild_msg(ctx.guild)
-        p = None
-        no_multi = False
-        no_defaults = False
-        donor = None
-        donor_join = True
-        if flags:
-            donor = flags.get("donor")
-            _list = flags.get(None)
-            nm = flags.get("no_multi")
-            no_defaults = flags.get("no-defaults")
-            dj = flags.get("no-donor")
-            if donor:
-                try:
-                    donor = await MemberConverter().convert(ctx, donor)
-                except Exception:
-                    return await ctx.send("You didn't provide a proper donor.")
-                embed.add_field(name="**Donor:**", value=f"{donor.mention}", inline=False)
-            if no_defaults or (_list and "no-defaults" in _list):
-                requirements = requirements.no_defaults(True)  # ignore defaults.
-                no_defaults = True
 
-            if nm or (_list and "no-multi" in _list):
-                no_multi = True
+        # flag handling below!!
 
-            if dj or (_list and "no-donor" in _list):
-                donor_join = False
+        if donor := flags.get("donor"):
+            embed.add_field(name="**Donor:**", value=f"{donor.mention}", inline=False)
+        if channel := flags.get("channel"):
+            messagable = channel
+        ping = flags.get("ping")
+        no_multi = flags.get("no_multi")
+        no_defaults = flags.get("no_defaults")
+        donor_join = not flags.get("no_donor")
+        msg = flags.get("msg")
+        thank = flags.get("thank")
+        if no_defaults:
+            requirements = requirements.no_defaults(True)  # ignore defaults.
 
         if not no_defaults:
             requirements = requirements.no_defaults()  # defaults will be used!!!
@@ -172,71 +162,51 @@ class giveaways(gsettings, name="Giveaways"):
         if not requirements.null:
             embed.add_field(name="Requirements:", value=str(requirements), inline=False)
 
-        gembed = await ctx.send(message, embed=embed)
+        gembed = await messagable.send(message, embed=embed)
         await gembed.add_reaction(emoji)
-        if flags:
-            msg = flags.get("msg")
-            _list = flags.get(None)
-            amt = flags.get("amt")
-            bank = flags.get("bank") or flags.get("category")
-            # await ctx.send(f"{flags}")
 
-            if amt:
-                cog: commands.Cog = self.bot.get_cog("DonationLogging")
-                if cog:
-                    command = ctx.bot.get_command("dono add")
-                    if await command.can_run(ctx):
-                        amt = await cog.conv(ctx, amt)
-                        if bank:
-                            try:
-                                bank = await cog.cache.get_dono_bank(ctx.guild.id, bank)
-                            except Exception as e:
-                                bank = await cog.cache.get_default_category(ctx.guild.id)
-                        mem = await MemberConverter().convert(ctx, donor) if donor else ctx.author
-                        await ctx.invoke(command, category=bank, amount=amt, user=mem)
+        if ping:
+            pingrole = await self.config.get_pingrole(ctx.guild)
+            ping = (
+                pingrole.mention
+                if pingrole
+                else f"No pingrole set. Use `{ctx.prefix}gset pingrole` to add a pingrole"
+            )
 
-            if (_list and "ping" in _list) or "ping" in flags:
-                pingrole = await self.config.get_pingrole(ctx.guild)
-                p = (
-                    pingrole.mention
-                    if pingrole
-                    else f"No pingrole set. Use `{ctx.prefix}gset pingrole` to add a pingrole"
-                )
-
-            if msg and p:
-                membed = discord.Embed(
-                    description=f"***Message***: {msg}", color=discord.Color.random()
-                )
-                await ctx.send(
-                    p, embed=membed, allowed_mentions=discord.AllowedMentions(roles=True)
-                )
-            elif p and not msg:
-                await ctx.send(p)
-            elif msg and not p:
-                membed = discord.Embed(
-                    description=f"***Message***: {msg}", color=discord.Color.random()
-                )
-                await ctx.send(embed=membed)
-            if "thank" in flags or (_list and "thank" in _list):
-                tmsg: str = await self.config.get_guild_tmsg(ctx.guild)
-                embed = discord.Embed(
-                    description=tmsg.format_map(
-                        Coordinate(
-                            donor=SafeMember(donor) if donor else SafeMember(ctx.author),
-                            prize=prize,
-                        )
-                    ),
-                    color=0x303036,
-                )
-                await ctx.send(embed=embed)
+        if msg and ping:
+            membed = discord.Embed(
+                description=f"***Message***: {msg}", color=discord.Color.random()
+            )
+            await messagable.send(
+                ping, embed=membed, allowed_mentions=discord.AllowedMentions(roles=True)
+            )
+        elif ping and not msg:
+            await messagable.send(ping)
+        elif msg and not ping:
+            membed = discord.Embed(
+                description=f"***Message***: {msg}", color=discord.Color.random()
+            )
+            await messagable.send(embed=membed)
+        if thank:
+            tmsg: str = await self.config.get_guild_tmsg(ctx.guild)
+            embed = discord.Embed(
+                description=tmsg.format_map(
+                    Coordinate(
+                        donor=SafeMember(donor) if donor else SafeMember(ctx.author),
+                        prize=prize,
+                    )
+                ),
+                color=0x303036,
+            )
+            await messagable.send(embed=embed)
 
         data = {
-            "donor": donor,
+            "donor": donor.id if donor else None,
             "donor_can_join": donor_join,
             "use_multi": not no_multi,
             "message": gembed.id,
             "emoji": emoji,
-            "channel": ctx.channel.id,
+            "channel": channel.id if channel else ctx.channel.id,
             "cog": self,
             "time": _time.time() + time,
             "winners": winners,
@@ -552,7 +522,7 @@ Ends at: {endsat}
     > is that the bot sends an embed containing information such as the prize,
     > the amount of winners, the requirements and the time it ends.
 
-    > People have to react to an emoji set by you through the `{ctx.prefix}gset emoji` command
+    > People have to react to an emoji set by you through the `{ctx.prefix}gset emoji` command (defaults to :tada: )
     > and after the time to end has come for the giveaway to end, the bot will choose winners from the list of
     > people who reacted and send their mentions in the channel and edit the original embedded message.
 
@@ -574,15 +544,33 @@ Ends at: {endsat}
     > Requirements are provided after the time and no. of winners like so:
         *{ctx.prefix}g start <time> <no. of winners> <requirements> <prize> [flags]*
 
-    > The type of requirements is specified within square brackets `[]`.
-    > For role requirements, you just use the role id, mention, or exact name.
-    > But if you wanna set a role to be a bypass for the giveaway, you put the role and follow it with a `[bypass]` or `[blacklist]`
+    > The format to specify a requirements is as follows:
 
-    > For Amari level requirements you do the same but `[level]` gets replaced with `[alevel]` or `[alvl]`
-    > You can also have Amari weekly xp requirements, just use the level amount and use the `[aweekly]` brackets.
+    > `argument[requirements_type]`
 
-    For example:
-        **{ctx.prefix}g start 1h30m 1 somerolemention[bypass];;123456789[blacklist];;12[alvl] [alevel]**
+    > The requirements_type are below with their argument types specified in () brackets:
+        • required (role) `(role) means either a role name or id or mention`
+        • blacklist (role)
+        • bypass (role)
+        • amari level (number)
+        • amari weekly (number)
+
+    > For the required roles, you dont need to use brackets. You can just type a role and it will work.
+
+    > For example, we want a role `rolename` to be required and a role `anotherrole` to be blacklisted.
+    > This is how the requirements string will be constructed:
+    > `rolename;;anotherrole[blacklist]`
+
+    > Same way if we want amari level and weekly xp requirements, here is what we would do:
+    > `10[alevel];;200[aweekly]` Now the giveaway will require 10 amari elvel **AND** 200 amari weekly xp.
+
+    > Here's another more complicated example:
+
+    >    **{ctx.prefix}g start 1h30m 1 somerolemention[bypass];;123456789[blacklist];;12[alvl] [alevel]**
+
+    ***NOTE***:
+        Bypass overrides blacklist, so users with even one bypass role specified
+        will be able to join the giveaway regardless of the blacklist.
 
 ***__Flags:__ ***
     > Flags are extra arguments passed to the giveaway command to modify it.
@@ -648,7 +636,7 @@ Ends at: {endsat}
     > **Default bypass**
         The roles that are by default able to bypass requirements in giveaways. `{ctx.prefix}gset bypass`
         """
-        pages = list(pagify(something, delims=["\n***"], page_length=1600))
+        pages = list(pagify(something, delims=["\n***"], page_length=2000))
         for page in pages:
             embed = discord.Embed(title="Giveaway Explanation!", description=page, color=0x303036)
             embed.set_footer(text=f"Page {pages.index(page) + 1} out of {len(pages)}")
