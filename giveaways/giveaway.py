@@ -14,7 +14,19 @@ from redbot.core.utils.predicates import ReactionPredicate
 
 from .gset import gsettings
 from .models import Giveaway, Requirements, SafeMember
-from .util import Flags, TimeConverter, WinnerConverter, is_gwmanager, prizeconverter
+from .util import (
+    Flags,
+    TimeConverter,
+    WinnerConverter,
+    ask_for_answers,
+    channel_conv,
+    datetime_conv,
+    flags_conv,
+    is_gwmanager,
+    is_lt,
+    prizeconverter,
+    requirement_conv,
+)
 
 log = logging.getLogger("red.ashcogs.giveaways")
 
@@ -77,8 +89,68 @@ class giveaways(gsettings, name="Giveaways"):
     @commands.bot_has_permissions(embed_links=True)
     @commands.guild_only()
     @is_gwmanager()
-    async def giveaway_create(self, ctx):
-        pass
+    async def giveaway_create(self, ctx: commands.Context):
+        async def _prize(m):
+            return m.content
+
+        await ctx.send(
+            "The giveaway creation process will start now. If you ever wanna quit just send a `cancel` to end the process."
+        )
+        questions = [
+            (
+                "What is the prize for this giveaway?",
+                "The prize can be multi worded and can have emojis.\nThis prize will be the embed title.",
+                "prize",
+                _prize,
+            ),
+            (
+                "How many winners will there be?",
+                "The number of winners must be a number less than 20.",
+                "winners",
+                is_lt(20),
+            ),
+            (
+                "How long/Until when will the giveaway last?",
+                "Either send a duration like `1m 45s` (1 minute 45 seconds)\nor a date/time with your timezone like `30 december 2021 1 pm UTC`.",
+                "time",
+                datetime_conv(ctx),
+            ),
+            (
+                "Are there any requirements to join this giveaways?",
+                "These requirements will be in the format explained in `[p]giveaway explain`.\nIf there are none, just send `None`.",
+                "requirements",
+                requirement_conv(ctx),
+            ),
+            (
+                "What channel will this giveaway be hosted in?",
+                "This can be a channel mention or channel ID.",
+                "channel",
+                channel_conv(ctx),
+            ),
+            (
+                "Do you want to pass flags to this giveaways?",
+                "Send the flags you want to associate to this giveaway. Send `None` if you don't want to use any.",
+                "flags",
+                flags_conv(ctx),
+            ),
+        ]
+
+        final = await ask_for_answers(ctx, questions)
+
+        if not final:
+            return
+
+        time = final.get("time", 30)
+        winners = final.get("winners", 1)
+        requirements = final.get("requirements")
+        prize = final.get("prize", "A new giveaway")
+        flags = final.get("flags", {})
+        flags.update({"channel": flags.get("channel", None)})
+
+        start = ctx.bot.get_command("giveaway start")
+        await ctx.invoke(
+            start, prize=prize, winners=winners, time=time, requirements=requirements, flags=flags
+        )  # Lmao no more handling :p
 
     @giveaway.command(name="start", usage="<time> <winners> [requirements] <prize> [flags]")
     @commands.max_concurrency(5, per=commands.BucketType.guild, wait=True)

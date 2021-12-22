@@ -1,10 +1,19 @@
+import asyncio
+import datetime
 import re
 from argparse import ArgumentParser
+from typing import Any, Awaitable, Callable, Dict, List, Tuple
 
+import discord
+from dateparser import parse
 from discord.ext.commands.converter import MemberConverter, TextChannelConverter
 from discord.ext.commands.errors import BadArgument
 from redbot.core import commands
 from redbot.core.utils import mod
+from redbot.core.utils.chat_formatting import box
+from redbot.core.utils.predicates import MessagePredicate
+
+from giveaways.models import Requirements
 
 
 def is_gwmanager():
@@ -40,6 +49,8 @@ class TimeConverter(commands.Converter):
         args = argument.lower()
         matches = re.findall(time_regex, args)
         time = 0
+        if not matches:
+            raise commands.BadArgument("Invalid time format.")
         for key, value in matches:
             try:
                 time += time_dict[value] * float(key)
@@ -152,3 +163,107 @@ class Flags(commands.Converter):
                 )
 
         return flags
+
+
+async def ask_for_answers(
+    ctx: commands.Context,
+    questions: List[Tuple[str, str, str, Callable[[discord.Message], Awaitable[Any]]]],
+    timeout: int = 30,
+) -> Dict[str, Any]:
+    main_check = MessagePredicate.same_context(ctx)
+    final = {}
+    for question in questions:
+        title, description, key, check = question
+        answer = None
+        sent = False
+        while not answer:
+            if not sent:
+                embed = discord.Embed(
+                    title=title,
+                    description=description,
+                    color=await ctx.embed_color(),
+                    timestamp=ctx.message.created_at,
+                )
+                sent = await ctx.send(embed=embed)
+            try:
+                message = await ctx.bot.wait_for("message", check=main_check, timeout=timeout)
+            except asyncio.TimeoutError:
+                await ctx.send("You took too long to answer. Cancelling.")
+                return False
+
+            if message.content.lower() == "cancel":
+                await ctx.send("Cancelling.")
+                return False
+
+            try:
+                result = await check(message)
+
+            except Exception as e:
+                await ctx.send(
+                    f"The following error has occurred:\n{box(e, lang='py')}\nPlease try again. (The process has not stopped. Send your answer again)"
+                )
+                continue
+
+            answer = result
+
+        final[key] = answer
+
+    return final
+
+
+# helper methods for ask_for_answer ugh
+
+
+def is_lt(lt: int):
+    async def pred(message: discord.Message):
+        if message.content.isdigit() and int(message.content) <= lt:
+            return int(message.content)
+        raise BadArgument()
+
+    return pred
+
+
+def datetime_conv(ctx):
+    async def pred(message: discord.Message):
+        try:
+            t = await TimeConverter().convert(ctx, message.content)
+        except Exception:
+            try:
+                t = parse(message.content)
+            except Exception:
+                raise BadArgument(f"`{message.content}` is not a valid date/time.")
+
+            if not t.tzinfo:
+                t = t.replace(tzinfo=datetime.timezone.utc)
+
+            current = datetime.datetime.now(tz=datetime.timezone.utc)
+            if t < current:
+                raise BadArgument("Given date/time is in the past.")
+            t = int(t.timestamp() - current.timestamp())
+
+        return t
+
+    return pred
+
+
+def requirement_conv(ctx):
+    async def pred(message: discord.Message):
+        return await Requirements.convert(ctx, message.content)
+
+    return pred
+
+
+def channel_conv(ctx):
+    async def pred(message: discord.Message):
+        return await TextChannelConverter().convert(ctx, message.content)
+
+    return pred
+
+
+def flags_conv(ctx):
+    async def pred(message: discord.Message):
+        if message.content.lower() == "none":
+            return {}
+        return await Flags().convert(ctx, message.content)
+
+    return pred
