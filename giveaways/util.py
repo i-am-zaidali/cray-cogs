@@ -112,6 +112,9 @@ class Flags(commands.Converter):
         parser.add_argument("--donor", dest="donor", nargs="?", default=None)
         parser.add_argument("--thank", action="store_true", dest="thank")
         parser.add_argument("--channel", "--chan", dest="channel", nargs="?", default=None)
+        parser.add_argument(
+            "--end-in", "--ends-in", "--end-at", dest="ends_at", nargs="+", default=None
+        )
         parser.add_argument("--no-defaults", action="store_true", dest="no_defaults")
         parser.add_argument("--no-multi", action="store_true", dest="no_multi")
         parser.add_argument("--no-donor", action="store_true", dest="no_donor")
@@ -126,6 +129,30 @@ class Flags(commands.Converter):
 
         if msg := flags.get("msg"):
             flags["msg"] = " ".join(msg)
+
+        if end_at := flags.get("ends_at"):
+            end_at = " ".join(end_at)
+
+            try:
+                t = await TimeConverter().convert(ctx, end_at)
+
+            except Exception:
+                try:
+                    t = parse(end_at)
+
+                except Exception as e:
+                    raise BadArgument(f"{end_at} is not a valid date/time!") from e
+
+                if not t.tzinfo:
+                    t = t.replace(tzinfo=datetime.timezone.utc)
+
+                current = datetime.datetime.now(tz=datetime.timezone.utc)
+                if t < current:
+                    raise BadArgument("Given date/time is in the past.")
+
+                t = int(t.timestamp() - current.timestamp())
+
+            flags["ends_at"] = t
 
         if donor := flags.get("donor"):
             try:
@@ -183,6 +210,8 @@ async def ask_for_answers(
                     description=description,
                     color=await ctx.embed_color(),
                     timestamp=ctx.message.created_at,
+                ).set_footer(
+                    text=f"You have {timeout} seconds to answer.\nSend `cancel` to cancel."
                 )
                 sent = await ctx.send(embed=embed)
             try:
@@ -232,6 +261,8 @@ def datetime_conv(ctx):
                 t = parse(message.content)
             except Exception:
                 raise BadArgument(f"`{message.content}` is not a valid date/time.")
+
+            # thanks to flare for the replacing idea :p
 
             if not t.tzinfo:
                 t = t.replace(tzinfo=datetime.timezone.utc)

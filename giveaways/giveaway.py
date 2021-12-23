@@ -42,7 +42,7 @@ class giveaways(gsettings, name="Giveaways"):
     with advanced requirements, customizable embeds
     and much more."""
 
-    __version__ = "1.5.0"
+    __version__ = "1.6.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot):
@@ -84,12 +84,16 @@ class giveaways(gsettings, name="Giveaways"):
         """
         await ctx.send_help("giveaway")
 
-    @giveaway.command(name="create", hidden=True)
+    @giveaway.command(name="create")
     @commands.max_concurrency(5, per=commands.BucketType.guild, wait=True)
     @commands.bot_has_permissions(embed_links=True)
     @commands.guild_only()
     @is_gwmanager()
     async def giveaway_create(self, ctx: commands.Context):
+        """
+        Start an interaction step by step questionnaire to create a new giveaway.
+        """
+
         async def _prize(m):
             return m.content
 
@@ -135,7 +139,7 @@ class giveaways(gsettings, name="Giveaways"):
             ),
         ]
 
-        final = await ask_for_answers(ctx, questions)
+        final = await ask_for_answers(ctx, questions, 45)
 
         if not final:
             return
@@ -143,16 +147,19 @@ class giveaways(gsettings, name="Giveaways"):
         time = final.get("time", 30)
         winners = final.get("winners", 1)
         requirements = final.get("requirements")
-        prize = final.get("prize", "A new giveaway")
+        prize = final.get("prize", "A new giveaway").split()
         flags = final.get("flags", {})
-        flags.update({"channel": flags.get("channel", None)})
+        channel = final.get("channel", None)
+        if channel:
+            flags.update({"channel": channel})
+            await ctx.send("Successfully created giveaway in channel `{}`.".format(channel))
 
         start = ctx.bot.get_command("giveaway start")
         await ctx.invoke(
             start, prize=prize, winners=winners, time=time, requirements=requirements, flags=flags
         )  # Lmao no more handling :p
 
-    @giveaway.command(name="start", usage="<time> <winners> [requirements] <prize> [flags]")
+    @giveaway.command(name="start", usage="[time] <winners> [requirements] <prize> [flags]")
     @commands.max_concurrency(5, per=commands.BucketType.guild, wait=True)
     @commands.bot_has_permissions(embed_links=True)
     @commands.guild_only()
@@ -160,7 +167,7 @@ class giveaways(gsettings, name="Giveaways"):
     async def _start(
         self,
         ctx: commands.Context,
-        time: TimeConverter = None,
+        time: typing.Optional[TimeConverter] = None,
         winners: WinnerConverter = None,
         requirements: typing.Optional[Requirements] = None,
         prize: commands.Greedy[prizeconverter] = None,
@@ -169,6 +176,9 @@ class giveaways(gsettings, name="Giveaways"):
     ):
         """Start a giveaway in the current channel with a prize
 
+        The time argument is optional, you can instead use the `--ends-at` flag to
+        specify a more accurate time span.
+
         Requires a manager role set with `[p]gset manager` or
         The bot mod role set with `[p]set addmodrole`
         or manage messages permissions.
@@ -176,9 +186,18 @@ class giveaways(gsettings, name="Giveaways"):
         Example:
             `[p]g start 30s 1 my soul`
             `[p]g start 5m 1 someroleid;;another_role[bypass];;onemore[blacklist] Yayyyy new giveaway`
+            `[p]giveaway start 1 this giveaway has no time argument --ends-at 30 december 2021 1 pm UTC --msg but has the `--ends-at` flag`
         """
-        if not time or winners is None or not prize:
+        if winners is None or not prize:
             return await ctx.send_help("giveaway start")
+
+        if not time and not flags.get("ends_at"):
+            return await ctx.send(
+                "If you dont pass `<time>` in the command invocation, you must pass the `--ends-at` flag.\nSee `[p]giveaway explain` for more info."
+            )
+
+        elif flags.get("ends_at"):
+            time = flags.get("ends_at")
 
         if not requirements:
             requirements = await Requirements.convert(
@@ -206,7 +225,7 @@ class giveaways(gsettings, name="Giveaways"):
             description=(
                 f"React with {emoji} to enter\n"
                 f"Host: {ctx.author.mention}\n"
-                f"Ends {f'<t:{int(_time.time())+time}:R>' if not await self.config.get_guild_timer(ctx.guild) else f'in {humanize_timedelta(seconds=time)}'}\n"
+                f"Ends {f'<t:{int(_time.time()+time)}:R>' if not await self.config.get_guild_timer(ctx.guild) else f'in {humanize_timedelta(seconds=time)}'}\n"
             ),
             timestamp=endtime,
         ).set_footer(text=f"Winners: {winners} | ends : ", icon_url=ctx.guild.icon_url)
@@ -407,7 +426,7 @@ class giveaways(gsettings, name="Giveaways"):
             )
             return
 
-        winner = [random.choice(entrants).mention for i in range(winners)]
+        winner = {random.choice(entrants).mention for i in range(winners)}
 
         await gmsg.reply(
             f"Congratulations :tada:{humanize_list(winner)}:tada:. You are the new winners for the giveaway below.\n{link}"
@@ -433,15 +452,22 @@ class giveaways(gsettings, name="Giveaways"):
             if per_guild and i.guild != ctx.guild:
                 continue
 
+            msg = await i.get_message()
+
+            if not msg:
+                failed += f"\nMessage with id `{i.message_id}` was not found. Removing from cache."
+                self.giveaway_cache.remove(i)
+                continue
+
             try:
                 final += f"""
-    {index}. **[{i.prize}]({(await i.get_message()).jump_url})**
+    {index}. **[{i.prize}]({msg.jump_url})**
     Hosted by <@{i.host.id}> with {i.winners} winners(s)
     in {f'guild {i.guild} ({i.guild.id})' if not per_guild else f'{channel.mention}'}
     Ends <t:{int(i._time)}:R> ({humanize_timedelta(seconds=i.remaining_time)})
     """
             except Exception as e:
-                final += f"There was an error with the giveaway `{i.message_id}` so it was removed:\n{e}\n"
+                failed += f"There was an error with the giveaway `{i.message_id}` so it was removed:\n{e}\n"
                 self.giveaway_cache.remove(i)
                 continue
 
@@ -487,9 +513,8 @@ class giveaways(gsettings, name="Giveaways"):
             await ctx.send("No active giveaways in this server.")
 
         if failed:
-            log.warning(
-                f"Following giveaway messages weren't found, removing them from database\n{failed}"
-            )
+            await ctx.send(failed)
+            log.warning(f"{failed}")
 
     @giveaway.command(name="show")
     @commands.is_owner()
@@ -516,10 +541,8 @@ class giveaways(gsettings, name="Giveaways"):
                 embeds.append(embed)
 
             if failed:
-                failed = "\n".join(failed)
-                log.warning(
-                    f"Following giveaway messages weren't found, removing them from database\n{failed}"
-                )
+                await ctx.send("Failed giveaways have been logged to your console.")
+                log.warning(f"{failed}")
 
             if embeds:
                 embeds = [
@@ -669,6 +692,10 @@ Ends at: {endsat}
 
     > *--no-defaults*
         This disables the default bypass and blacklist roles set by you with the `{ctx.prefix}gset blacklist` and `{ctx.prefix}gset bypass`
+
+    > *--ends-at*/*--end-in*
+        This flag allows you to pass a date/time to end the giveaway at or just a duration. This will override the duration you give in the command invocation.
+        You can provide your time zone here for more accurate end times but if you don't, it will default to UTC.
 
     **NOTE: The below flags will only work if the DonationLogging cog has been loaded!!**
 

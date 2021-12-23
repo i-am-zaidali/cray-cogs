@@ -340,9 +340,8 @@ class Giveaway:
         self.next_edit = self.get_next_edit_time()
 
     async def end(self) -> None:
-        try:
-            msg = await self.get_message()
-        except discord.NotFound as e:
+        msg = await self.get_message()
+        if not msg:
             await self.channel.send(
                 f"Can't find message with id: {self.message_id}. Removing id from active giveaways."
             )
