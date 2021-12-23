@@ -113,7 +113,13 @@ class Flags(commands.Converter):
         parser.add_argument("--thank", action="store_true", dest="thank")
         parser.add_argument("--channel", "--chan", dest="channel", nargs="?", default=None)
         parser.add_argument(
-            "--end-in", "--ends-in", "--end-at", dest="ends_at", nargs="+", default=None
+            "--ends-at",
+            "--end-in",
+            "--ends-in",
+            "--end-at",
+            dest="ends_at",
+            nargs="+",
+            default=None,
         )
         parser.add_argument("--no-defaults", action="store_true", dest="no_defaults")
         parser.add_argument("--no-multi", action="store_true", dest="no_multi")

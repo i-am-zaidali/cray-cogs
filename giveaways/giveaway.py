@@ -670,32 +670,37 @@ Ends at: {endsat}
 ***__Flags:__ ***
     > Flags are extra arguments passed to the giveaway command to modify it.
     > Flags should be prefixed with `--` (two minus signs?)
+    > Flags require you to provide an argument after them unless they are marked as `[argless]`.
+    > Then tou som't have to provide anything ans you can just type the flag and get on with it.
 
     **Types of flags**
-    > *--no-multi*
+    > *--no-multi* [argless]
         This flag will disallow role multipliers to determine the giveaway winner.
 
     > *--donor*
         This sets a donor for the giveaway. This donor name shows up in the giveaway embed and also is used when using the `--amt` flag
 
-    > *--no-donor*
+    > *--no-donor* [argless]
         This flag will disallow the donor (if given, else the host) to win the giveaway.
 
     > *--msg*
         This sends a separate embed after the main giveaway one stating a message give by you.
 
-    > *--ping*
+    > *--ping* [argless]
         This flag pings the set role. ({ctx.prefix}gset pingrole)
 
-    > *--thank*
+    > *--thank* [argless]
         This flag also sends a separate embed with a message thanking the donor. The message can be changed with `{ctx.prefix}gset tmsg`
 
-    > *--no-defaults*
+    > *--no-defaults* [argless]
         This disables the default bypass and blacklist roles set by you with the `{ctx.prefix}gset blacklist` and `{ctx.prefix}gset bypass`
 
     > *--ends-at*/*--end-in*
         This flag allows you to pass a date/time to end the giveaway at or just a duration. This will override the duration you give in the command invocation.
         You can provide your time zone here for more accurate end times but if you don't, it will default to UTC.
+
+    > *--channel*/*--chan*
+        This redirects the giveaway to the provided channel after the flag.
 
     **NOTE: The below flags will only work if the DonationLogging cog has been loaded!!**
 
