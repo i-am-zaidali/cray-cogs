@@ -131,7 +131,7 @@ class Flags(commands.Converter):
         try:
             flags = vars(parser.parse_args(argument.split(" ")))
         except Exception as e:
-            raise BadArgument() from e
+            raise BadArgument(e)
 
         if msg := flags.get("msg"):
             flags["msg"] = " ".join(msg)
