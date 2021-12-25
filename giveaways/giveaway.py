@@ -13,8 +13,9 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu, start_adding_reactio
 from redbot.core.utils.predicates import ReactionPredicate
 
 from .gset import gsettings
-from .models import Giveaway, Requirements, SafeMember
+from .models import Giveaway, PendingGiveaway, Requirements, SafeMember
 from .util import (
+    Coordinate,
     Flags,
     TimeConverter,
     WinnerConverter,
@@ -29,11 +30,6 @@ from .util import (
 )
 
 log = logging.getLogger("red.ashcogs.giveaways")
-
-
-class Coordinate(dict):
-    def __missing__(self, key):
-        return "{" + key + "}"
 
 
 class giveaways(gsettings, name="Giveaways"):
@@ -216,7 +212,25 @@ class giveaways(gsettings, name="Giveaways"):
             with contextlib.suppress(Exception):
                 await ctx.message.delete()
 
-        messagable = ctx
+        messagable = ctx.channel
+        if channel := flags.get("channel"):
+            messagable = channel
+
+        if start_in := flags.get("starts_in"):
+            flags.update({"channel": messagable.id})
+            pg = PendingGiveaway(
+                ctx.bot,
+                self,
+                ctx.author.id,
+                int(start_in + time),
+                winners,
+                requirements,
+                prize,
+                flags,
+            )
+            self.pending_cache.append(pg)
+            return await ctx.send(f"Giveaway for `{pg.prize}` will start in <t:{pg.start}:R>")
+
         emoji = await self.config.get_guild_emoji(ctx.guild)
         endtime = ctx.message.created_at + datetime.timedelta(seconds=time)
 
@@ -236,8 +250,6 @@ class giveaways(gsettings, name="Giveaways"):
 
         if donor := flags.get("donor"):
             embed.add_field(name="**Donor:**", value=f"{donor.mention}", inline=False)
-        if channel := flags.get("channel"):
-            messagable = channel
         ping = flags.get("ping")
         no_multi = flags.get("no_multi")
         no_defaults = flags.get("no_defaults")

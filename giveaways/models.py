@@ -1,8 +1,10 @@
 import random
 import time
 from collections import Counter
+from datetime import datetime, timedelta
+from enum import Enum
 from functools import reduce
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import discord
 from discord.ext.commands.converter import RoleConverter
@@ -10,6 +12,18 @@ from discord.ext.commands.errors import BadArgument, RoleNotFound
 from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list, humanize_timedelta
+
+from .util import Coordinate
+
+
+class EndReason(Enum):
+    """
+    The reason for ending a giveaway.
+    """
+
+    SUCCESS = "The giveaway ended on time successfully."
+    ERRORED = "The giveaway ended due to the following error:\n```py\n{}\n```"
+    CANCELLED = "The giveaway was cancelled by {}."
 
 
 class Requirements(commands.Converter):
@@ -194,7 +208,61 @@ class Requirements(commands.Converter):
         return cls(guild=ctx.guild, **roles)
 
 
-class Giveaway:
+class BaseGiveaway:
+    """
+    Just a base wrapper for giveaways."""
+
+    def __init__(
+        self,
+        bot,
+        cog,
+        prize=None,
+        time=None,
+        host=None,
+        channel=None,
+        requirements=None,
+        winners=None,
+    ) -> None:
+        self.bot: Red = bot
+        self.cog = cog
+        self.prize: str = prize
+        self._time: int = time
+        self._host: int = host
+        self._channel: int = channel
+        self.requirements: Requirements = requirements
+        self.winners: int = winners
+
+    def __getitem__(self, key):
+        attr = getattr(self, key, None)
+        if not attr:
+            raise KeyError(f"{key} does not exist.")
+
+        return attr
+
+    @property
+    def host(self) -> discord.User:
+        return self.bot.get_user(self._host)
+
+    @property
+    def channel(self) -> discord.TextChannel:
+        return self.bot.get_channel(self._channel)
+
+    @property
+    def guild(self) -> discord.Guild:
+        return self.channel.guild
+
+    @property
+    def remaining_time(self) -> int:
+        if self._time > int(time.time()):
+            return self._time - int(time.time())
+        else:
+            return 0
+
+    def to_dict(self):
+        raise NotImplementedError()  # this method must be implemented by the subclasses
+
+
+class Giveaway(BaseGiveaway):
     """
     A class wrapper for a giveaway which handles the ending of a giveaway and stores all its necessary attributes."""
 
@@ -208,22 +276,15 @@ class Giveaway:
         prize: str = None,
         channel: int = None,
         message: int = None,
-        requirements: Union[Any, Dict[str, List[int]]] = None,
+        requirements: Union[Requirements, Dict[str, List[int]]] = None,
         winners: int = 1,
         emoji: str = None,
         use_multi: bool = True,
         donor: Optional[int] = None,
         donor_can_join: bool = True,
     ):
-        self.bot = bot
-        self.cog = cog
-        self._time = time
-        self._host = host
-        self._channel = channel
-        self.requirements = requirements
+        super().__init__(bot, cog, prize, time, host, channel, requirements, winners)
         self.message_id = message
-        self.winners = winners
-        self.prize = prize
         self.emoji = emoji or "🎉"
         self.use_multi = use_multi
         self._donor = donor or self._host
@@ -231,27 +292,8 @@ class Giveaway:
 
         self.next_edit = self.get_next_edit_time()
 
-    def __getitem__(self, key):
-        attr = getattr(self, key, None)
-        if not attr:
-            raise KeyError(f"{key} does not exist.")
-
-        return attr
-
     def __hash__(self) -> int:
         return self.message_id
-
-    @property
-    def channel(self) -> discord.TextChannel:
-        return self.bot.get_channel(self._channel)
-
-    @property
-    def guild(self) -> discord.Guild:
-        return self.channel.guild
-
-    @property
-    def host(self) -> discord.User:
-        return self.bot.get_user(self._host)
 
     @property
     def donor(self) -> discord.Member:
@@ -267,13 +309,6 @@ class Giveaway:
             except Exception:
                 msg = None
         return msg
-
-    @property
-    def remaining_time(self) -> int:
-        if self._time > int(time.time()):
-            return self._time - int(time.time())
-        else:
-            return 0
 
     def get_next_edit_time(self):
         if not (t := self.remaining_time) == 0:
@@ -340,12 +375,31 @@ class Giveaway:
         self.next_edit = self.get_next_edit_time()
 
     async def end(self) -> None:
+        end_data = {
+            "bot": self.bot,
+            "cog": self.cog,
+            "message": self.message_id,
+            "channel": self._channel,
+            "host": self._host,
+            "prize": self.prize,
+            "requirements": self.requirements,
+            "winnersno": self.winners,
+        }
         msg = await self.get_message()
         if not msg:
             await self.channel.send(
                 f"Can't find message with id: {self.message_id}. Removing id from active giveaways."
             )
             self.cog.giveaway_cache.remove(self)
+            end_data.update(
+                {
+                    "winnerslist": [],
+                    "reason": EndReason.ERRORED.value.format(
+                        f"Message with id {self.message_id} not found."
+                    ),
+                }
+            )
+            self.cog.ended_cache.append(EndedGiveaway(**end_data))
             return
         guild = self.guild
         winners = self.winners
@@ -398,15 +452,13 @@ class Giveaway:
             if hostdm == True:
                 await self.hdm(host, gmsg.jump_url, prize, "None")
 
+            end_data.update({"winnerslist": [], "reason": EndReason.SUCCESS.value})
             self.cog.giveaway_cache.remove(self)
+            self.cog.ended_cache.append(EndedGiveaway(**end_data))
             return True
 
         w = ""
-        w_list = []
-
-        for i in range(winners):
-            winner = random.choice(entrants)
-            w_list.append(winner)
+        w_list = [random.choice(entrants) for i in range(winners)]
 
         wcounter = Counter(w_list)
         for k, v in wcounter.items():
@@ -430,6 +482,8 @@ class Giveaway:
             await self.hdm(host, gmsg.jump_url, prize, w)
 
         self.cog.giveaway_cache.remove(self)
+        end_data.update({"winnerslist": [i.id for i in w_list], "reason": EndReason.SUCCESS.value})
+        self.cog.ended_cache.append(EndedGiveaway(**end_data))
         return True
 
     def to_dict(self) -> dict:
@@ -448,6 +502,168 @@ class Giveaway:
             "donor_can_join": self.donor_can_join,
         }
         return data
+
+
+class EndedGiveaway(BaseGiveaway):
+    def __init__(
+        self, bot, cog, host, channel, message, winnersno, winnerslist, prize, requirements, reason
+    ) -> None:
+        super().__init__(
+            bot, cog, prize, None, host, channel, requirements, winnersno
+        )  # winners no is number of winners and list is a list of winners.
+        self.message_id = message
+        self._winnerlist = winnerslist
+        self.reason: str = reason
+
+    def __hash__(self) -> int:
+        return hash(self.message_id)
+
+    async def get_message(self):
+        msg = self.bot._connection._get_message(
+            self.message_id
+        )  # i mean, if its cached, why waste an api request right?
+        if not msg:
+            try:
+                msg = await self.channel.fetch_message(self.message_id)
+            except Exception:
+                msg = None
+        return msg
+
+    @property
+    def winnerslist(self):
+        return [self.guild.get_member(i) for i in self._winnerlist]
+
+    def to_dict(self):
+        return {
+            "message": self.message_id,
+            "channel": self._channel,
+            "guild": self.guild.id,
+            "host": self._host,
+            "prize": self.prize,
+            "requirements": self.requirements.as_dict(),
+            "winnersno": self.winners,
+            "winnerslist": self.winnerslist,
+            "reason": self.reason,
+        }
+
+
+class PendingGiveaway(BaseGiveaway):
+    def __init__(self, bot, cog, host, _time, winners, requirements, prize, flags):
+        super().__init__(bot, cog, prize, _time, host, flags.get("channel"), requirements, winners)
+        self.flags: dict = flags
+        self.start: int = flags.get("starts_in")
+
+    @property
+    def remaining_time_to_start(self):
+        if self.start < time.time():
+            return 0
+        return self.start - time.time()
+
+    def __hash__(self) -> int:
+        return hash((self.prize, self._time, self._host, self._channel, self.winners))
+
+    async def start_giveaway(self):
+        emoji = await self.cog.config.get_guild_emoji(self.guild)
+        endtime = datetime.now() + timedelta(seconds=self.remaining_time)
+        embed = discord.Embed(
+            title=self.prize.center(len(self.prize) + 4, "*"),
+            description=(
+                f"React with {emoji} to enter\n"
+                f"Host: {self.host.mention}\n"
+                f"Ends {f'<t:{int(time.time()+self.remaining_time)}:R>' if not await self.cog.config.get_guild_timer(self.guild) else f'in {humanize_timedelta(seconds=self.remaining_time)}'}\n"
+            ),
+            timestamp=endtime,
+        ).set_footer(text=f"Winners: {self.winners} | ends : ", icon_url=self.guild.icon_url)
+
+        message = await self.cog.config.get_guild_msg(self.guild)
+
+        # flag handling below!!
+
+        if donor := self.flags.get("donor"):
+            embed.add_field(name="**Donor:**", value=f"{donor.mention}", inline=False)
+        messagable = self.channel
+        ping = self.flags.get("ping")
+        no_multi = self.flags.get("no_multi")
+        no_defaults = self.flags.get("no_defaults")
+        donor_join = not self.flags.get("no_donor")
+        msg = self.flags.get("msg")
+        thank = self.flags.get("thank")
+        requirements = self.requirements
+        if no_defaults:
+            requirements = self.requirements.no_defaults(True)  # ignore defaults.
+
+        if not no_defaults:
+            requirements = self.requirements.no_defaults()  # defaults will be used!!!
+
+        if not requirements.null:
+            embed.add_field(name="Requirements:", value=str(requirements), inline=False)
+
+        gembed = await messagable.send(message, embed=embed)
+        await gembed.add_reaction(emoji)
+
+        if ping:
+            pingrole = await self.cog.config.get_pingrole(self.guild)
+            ping = (
+                pingrole.mention
+                if pingrole
+                else f"No pingrole set. Use `{(await self.bot.get_valid_prefixes(self.guild))[0]}gset pingrole` to add a pingrole"
+            )
+
+        if msg and ping:
+            membed = discord.Embed(
+                description=f"***Message***: {msg}", color=discord.Color.random()
+            )
+            await messagable.send(
+                ping, embed=membed, allowed_mentions=discord.AllowedMentions(roles=True)
+            )
+        elif ping and not msg:
+            await messagable.send(ping)
+        elif msg and not ping:
+            membed = discord.Embed(
+                description=f"***Message***: {msg}", color=discord.Color.random()
+            )
+            await messagable.send(embed=membed)
+        if thank:
+            tmsg: str = await self.cog.config.get_guild_tmsg(self.guild)
+            embed = discord.Embed(
+                description=tmsg.format_map(
+                    Coordinate(
+                        donor=SafeMember(donor) if donor else SafeMember(self.host),
+                        prize=self.prize,
+                    )
+                ),
+                color=0x303036,
+            )
+            await messagable.send(embed=embed)
+
+        data = {
+            "donor": donor.id if donor else None,
+            "donor_can_join": donor_join,
+            "use_multi": not no_multi,
+            "message": gembed.id,
+            "emoji": emoji,
+            "channel": self._channel,
+            "cog": self.cog,
+            "time": self._time,
+            "winners": self.winners,
+            "requirements": requirements,
+            "prize": self.prize,
+            "host": self._host,
+            "bot": self.bot,
+        }
+        giveaway = Giveaway(**data)
+        self.cog.giveaway_cache.append(giveaway)
+
+    def to_dict(self):
+        return {
+            "host": self._host,
+            "prize": self.prize,
+            "guild": self.guild.id,
+            "requirements": self.requirements.as_dict(),
+            "winners": self.winners,
+            "_time": self._time,
+            "flags": self.flags,
+        }
 
 
 class SafeMember:

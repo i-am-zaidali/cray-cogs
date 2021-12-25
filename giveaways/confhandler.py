@@ -4,12 +4,15 @@ import discord
 from redbot.core import Config
 from redbot.core.utils.chat_formatting import humanize_list
 
-from .models import Giveaway, Requirements
+from .models import EndedGiveaway, Giveaway, PendingGiveaway, Requirements
 
 
 class conf:
     cache = []
     ended_cache = []
+    pending_cache = []
+
+    cached = False
 
     def __init__(self, bot):
         self.bot = bot
@@ -33,7 +36,12 @@ class conf:
 
         default_role = {"multi": 0}
 
-        default_global = {"activegaws": [], "endedgaws": [], "already_sent": False}
+        default_global = {
+            "activegaws": [],
+            "endedgaws": [],
+            "pendinggaws": [],
+            "already_sent": False,
+        }
 
         self.config.register_guild(**default_guild)
         self.config.register_global(**default_global)
@@ -231,13 +239,16 @@ class conf:
             ]
 
     async def cache_to_config(self):
-        await self.config.activegaws.set([i.to_dict() for i in self.cache.copy()])
-        await self.config.endedgaws.set(self.ended_cache)
-        self.cache.clear()
+        active = self.cache.copy()
+        ended = self.ended_cache.copy()
+        pending = self.pending_cache.copy()
+        await self.config.activegaws.set([i.to_dict() for i in active])
+        await self.config.endedgaws.set([i.to_dict() for i in ended])
+        await self.config.pendinggaws.set([i.to_dict() for i in pending])
 
     async def config_to_cache(self, bot, cog):
+        # active giveaway caching
         org = await self.config.activegaws()
-        self.ended_cache = await self.config.endedgaws()
         if org:
             for i in org:
                 i.update(
@@ -249,3 +260,32 @@ class conf:
                 )
                 i.pop("guild")
             self.cache = [Giveaway(bot=bot, cog=cog, **i) for i in org]
+
+        # ended giveaway caching
+        org = await self.config.endedgaws()
+        if org:
+            for i in org:
+                i.update(
+                    {
+                        "requirements": Requirements(
+                            guild=bot.get_guild(i["guild"]), **i["requirements"]
+                        )
+                    }
+                )
+                i.pop("guild")
+            self.ended_cache = [EndedGiveaway(bot=bot, cog=cog, **i) for i in org]
+
+        # pending giveaway caching
+        org = await self.config.pendinggaws()
+        if org:
+            for i in org:
+                i.update(
+                    {
+                        "requirements": Requirements(
+                            guild=bot.get_guild(i.get("guild")) if i.get("guild") else None,
+                            **i["requirements"],
+                        )
+                    }
+                )
+                i.pop("guild")
+            self.pending_cache = [PendingGiveaway(bot=bot, cog=cog, **i) for i in org]

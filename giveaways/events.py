@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime
-from typing import Dict, List
+from typing import List
 
 import discord
 from amari import AmariClient
@@ -8,7 +8,7 @@ from discord.ext import tasks
 from redbot.core import commands
 
 from .confhandler import conf
-from .models import Giveaway
+from .models import EndedGiveaway, Giveaway, PendingGiveaway
 
 
 class main(commands.Cog):
@@ -17,13 +17,15 @@ class main(commands.Cog):
         self.config = conf(bot)
         self.edit_minutes_task = self.end_giveaways.start()
         self.giveaway_cache: List[Giveaway] = []
-        self.ended_cache: Dict[int, List[int]] = {}
+        self.ended_cache: List[EndedGiveaway] = []
+        self.pending_cache: List[PendingGiveaway] = []
 
     def cog_unload(self):
         async def stop() -> asyncio.Task:
             self.edit_minutes_task.cancel()
             self.config.cache = self.giveaway_cache
             self.config.ended_cache = self.ended_cache
+            self.config.pending_cache = self.pending_cache
             await self.config.cache_to_config()
             if getattr(self.bot, "amari", None):
                 await self.bot.amari.close()
@@ -45,16 +47,16 @@ class main(commands.Cog):
                 if not await s.config._sent_message():
                     await bot.send_to_owners(
                         f"""
-                                            Thanks for installing and using my Giveaways cog.
-                                            This cog has a requirements system for the giveaways and one of
-                                            these requirements type is amari levels.
-                                            If you don't know what amari is, ignore this message.
-                                            But if u do, you need an Amari auth key for these to work,
-                                            go to this website: https://forms.gle/TEZ3YbbMPMEWYuuMA
-                                            and apply to get the key. You should probably get a response within
-                                            24 hours but if you don't, visit this server for information: https://discord.gg/6FJhupDHS6
+Thanks for installing and using my Giveaways cog.
+This cog has a requirements system for the giveaways and one of
+these requirements type is amari levels.
+If you don't know what amari is, ignore this message.
+But if u do, you need an Amari auth key for these to work,
+go to this website: https://forms.gle/TEZ3YbbMPMEWYuuMA
+and apply to get the key. You should probably get a response within
+24 hours but if you don't, visit this server for information: https://discord.gg/6FJhupDHS6
 
-                                            You can then set the amari api key with the `[p]set api amari auth,<api key>` command"""
+You can then set the amari api key with the `[p]set api amari auth,<api key>` command"""
                     )
 
                     await s.config._sent_message(True)
@@ -63,6 +65,7 @@ class main(commands.Cog):
         await s.config.config_to_cache(bot, s)
         s.giveaway_cache = s.config.cache
         s.ended_cache = s.config.ended_cache
+        s.pending_cache = s.config.pending_cache
         return s
 
     @commands.Cog.listener()
@@ -191,8 +194,14 @@ class main(commands.Cog):
     @tasks.loop(seconds=5)
     async def end_giveaways(self):
         await self.bot.wait_until_red_ready()
-        data = self.giveaway_cache
-        for i in data:
+        active_data = self.giveaway_cache.copy()
+        pending_data = self.pending_cache.copy()
+        for i in active_data:
             await i.edit_timer()
             if i.remaining_time == 0:
                 await i.end()
+
+        for i in pending_data:
+            if i.remaining_time_to_start == 0:
+                await i.start_giveaway()
+                self.pending_cache.remove(i)
