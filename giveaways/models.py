@@ -374,7 +374,7 @@ class Giveaway(BaseGiveaway):
         await message.edit(embed=embed)
         self.next_edit = self.get_next_edit_time()
 
-    async def end(self) -> None:
+    async def end(self, canceller=None) -> None:
         end_data = {
             "bot": self.bot,
             "cog": self.cog,
@@ -452,7 +452,12 @@ class Giveaway(BaseGiveaway):
             if hostdm == True:
                 await self.hdm(host, gmsg.jump_url, prize, "None")
 
-            end_data.update({"winnerslist": [], "reason": EndReason.SUCCESS.value})
+            end_data.update({"winnerslist": []})
+            if not canceller:
+                end_data.update({"reason": EndReason.SUCCESS.value})
+            else:
+                end_data.update({"reason": EndReason.CANCELLED.value.format(canceller)})
+
             self.cog.giveaway_cache.remove(self)
             self.cog.ended_cache.append(EndedGiveaway(**end_data))
             return True
@@ -482,7 +487,11 @@ class Giveaway(BaseGiveaway):
             await self.hdm(host, gmsg.jump_url, prize, w)
 
         self.cog.giveaway_cache.remove(self)
-        end_data.update({"winnerslist": [i.id for i in w_list], "reason": EndReason.SUCCESS.value})
+        end_data.update({"winnerslist": [i.id for i in w_list]})
+        if not canceller:
+            end_data.update({"reason": EndReason.SUCCESS.value})
+        else:
+            end_data.update({"reason": EndReason.CANCELLED.value.format(canceller)})
         self.cog.ended_cache.append(EndedGiveaway(**end_data))
         return True
 
