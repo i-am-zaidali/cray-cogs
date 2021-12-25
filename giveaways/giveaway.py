@@ -711,6 +711,10 @@ Ends at: {endsat}
         This flag allows you to pass a date/time to end the giveaway at or just a duration. This will override the duration you give in the command invocation.
         You can provide your time zone here for more accurate end times but if you don't, it will default to UTC.
 
+    > *--starts-at*/*--start-in*
+        This flag delays the giveaway from starting until your given date/time.
+        This is useful if you want to start a giveaway at a specific time but you aren't available.
+
     > *--channel*/*--chan*
         This redirects the giveaway to the provided channel after the flag.
 
