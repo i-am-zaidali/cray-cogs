@@ -12,7 +12,7 @@ from emoji.unicode_codes import UNICODE_EMOJI_ENGLISH
 from redbot.core import Config, bank, commands
 from redbot.core.bot import Red
 from redbot.core.errors import CogLoadError
-from redbot.core.utils.chat_formatting import box, pagify
+from redbot.core.utils.chat_formatting import box, humanize_list, pagify
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils.predicates import MessagePredicate
 from tabulate import tabulate
@@ -31,6 +31,9 @@ class HitOrMiss(commands.Cog):
 
     And no it doesn't use slash commands.
     *Yet*."""
+
+    __author__ = ["crayyy_zee#2900"]
+    __version__ = "1.2.0"
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -57,6 +60,16 @@ class HitOrMiss(commands.Cog):
         u = functools.reduce(lambda x: x.id == user_id, self.cache)
         if u:
             self.cache.remove(u)
+
+    def format_help_for_context(self, ctx: commands.Context) -> str:
+        pre_processed = super().format_help_for_context(ctx) or ""
+        n = "\n" if "\n\n" not in pre_processed else ""
+        text = [
+            f"{pre_processed}{n}",
+            f"Cog Version: **{self.__version__}**",
+            f"Author: {humanize_list(self.__author__)}",
+        ]
+        return "\n".join(text)
 
     def group_embeds_by_fields(*fields: Dict[str, Union[str, bool]], per_embed: int = 3):
         """
