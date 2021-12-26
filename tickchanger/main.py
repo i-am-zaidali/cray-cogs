@@ -57,3 +57,8 @@ class TickChanger(commands.Cog):
         FakeContext.tick_emoji = emoji
         await ctx.tick()
         await ctx.send(f"{emoji} is now the tick emoji.")
+
+    @commands.command(name="gettickemoji", aliases=["gte"])
+    @commands.is_owner()
+    async def ste(self, ctx: FakeContext):
+        return await ctx.send(f"Your current tick emoji is {await self.config.tick_emoji()}")
