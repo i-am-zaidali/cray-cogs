@@ -6,9 +6,6 @@
   <a href="https://github.com/Rapptz/discord.py/">
      <img src="https://img.shields.io/badge/discord-py-blue.svg" alt="discord.py">
   </a>
-  <a href="https://discord.gg/xfmN4C3vUP">
-    <img src="https://discordapp.com/api/guilds/750553548525273208/widget.png?style=shield" alt="Support Server">
-  </a>
 </p>
 
 ### A bunch of *badly coded* yet useful utility and random cogs for Red V3 Discord Bot.</h3>
@@ -28,6 +25,7 @@ These cogs are mostly aimed towards the **Dank Memer based servers.**
 | Notes                         | 1.0.0            | <details><summary>Moderation Notes</summary>Keep moderation notes on people.</details>                                                                                                   |
 | VoteTracker                   | 1.5.0            | <details><summary>Track votes for your bot on top.gg</summary>Track votes for t=your bot on top.gg and give users roles accordingly.</details>                                                                                                   |
 | HitOrMiss                     | 1.0.0            | <details><summary>Throw stuff at others.</summary>Throw items at users and hope you kill them. Buy items from the shop.</details>                                                                                                   |
+| TickChanger                   | 1.0.0            | <details><summary>Change `ctx.tick`'s emoji.</summary>Monkeypatches the ctx.tick method to react with a given emoji of your choice.</details>                                                                                                   |
 ## Support
 
 Incase you encounter a bug, either create an issue on the repo
