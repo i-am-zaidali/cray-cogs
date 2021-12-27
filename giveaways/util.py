@@ -71,15 +71,10 @@ class WinnerConverter(commands.Converter):
     async def convert(self, ctx, argument):
         winner = 0
         try:
-            if argument.isdigit():
-                winner = int(argument)
-
-            else:
-                if len(argument) > 1:
-                    winner = int(
-                        float(argument[:-1])
-                    )  # case where user writes `1w` instead of just an integer.
-
+            match = re.findall("^\d+", argument)
+            if not match:
+                raise BadArgument(f"{argument} is not a valid number for winners.")
+            winner = int(match[0])
             return winner
 
         except Exception as e:
