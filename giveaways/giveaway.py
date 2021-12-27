@@ -2,7 +2,6 @@ import asyncio
 import contextlib
 import datetime
 import logging
-import random
 import time as _time
 import typing
 
@@ -13,16 +12,18 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu, start_adding_reactio
 from redbot.core.utils.predicates import ReactionPredicate
 
 from .gset import gsettings
-from .models import Giveaway, PendingGiveaway, Requirements, SafeMember
+from .models import EndedGiveaway, Giveaway, PendingGiveaway, Requirements, SafeMember
 from .util import (
     Coordinate,
     Flags,
+    GiveawayMessageConverter,
     TimeConverter,
     WinnerConverter,
     ask_for_answers,
     channel_conv,
     datetime_conv,
     flags_conv,
+    group_embeds_by_fields,
     is_gwmanager,
     is_lt,
     prizeconverter,
@@ -38,10 +39,11 @@ class giveaways(gsettings, name="Giveaways"):
     with advanced requirements, customizable embeds
     and much more."""
 
-    __version__ = "1.6.2"
+    __version__ = "1.7.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot):
+        self.converter = GiveawayMessageConverter()
         super().__init__(bot)
 
     async def red_delete_data_for_user(self, *, requester, user_id: int):
@@ -338,18 +340,16 @@ class giveaways(gsettings, name="Giveaways"):
         except:
             return message.reference.resolved
 
-    async def giveaway_from_message_reply(self, message: discord.Message):
-        msg = await self.message_reply(message)
+    async def giveaway_from_message_reply(self, ctx):
+        msg = await self.message_reply(ctx.message)
 
         if msg:
-            e = list(
-                filter(
-                    lambda x: x.message_id == msg.id and x.guild == message.guild,
-                    self.giveaway_cache.copy(),
-                )
-            )
-            if not e:
-                return
+            try:
+                msg = await self.converter.convert(ctx, str(msg.id))
+            except Exception as e:
+                print(e)
+                msg = None
+
         return msg
 
     @giveaway.command(name="end")
@@ -362,47 +362,71 @@ class giveaways(gsettings, name="Giveaways"):
 
         This will end the giveaway before its original time.
         You can also reply to the giveaway message instead of passing its id"""
-        gmsg = giveaway_id or await self.giveaway_from_message_reply(ctx.message)
-        if not gmsg:
-            return await ctx.send_help("giveaway end")
+
         activegaw = self.giveaway_cache.copy()
         if not activegaw:
             return await ctx.send("There are no active giveaways.")
-
+        gmsg = giveaway_id
         if await self.config.get_guild_autodel(ctx.guild):
             await ctx.message.delete()
+        if gmsg:
+            if not isinstance(gmsg, str):
+                try:
+                    gmsg = await self.converter.convert(ctx, str(gmsg.id))
+                except Exception as e:
+                    return await ctx.send(f"{e}")
 
-        if isinstance(gmsg, str) and gmsg.lower() == "all":
-            msg = await ctx.send(
-                "Are you sure you want to end all giveaways in your server? This action is irreversible."
-            )
-            start_adding_reactions(msg, ReactionPredicate.YES_OR_NO_EMOJIS)
-            pred = ReactionPredicate.yes_or_no(msg, ctx.author)
-            try:
-                await self.bot.wait_for("reaction_add", check=pred, timeout=30)
-            except asyncio.TimeoutError:
-                return await ctx.send("No thank you for wasting my time :/")
-
-            if pred.result:
-                for i in activegaw.copy():
-                    if i.guild == ctx.guild:
-                        await i.end()
-                return await ctx.send("All giveaways have been ended.")
+                await ctx.tick()
+                if isinstance(gmsg, Giveaway):
+                    await gmsg.end(ctx.author)
+                else:
+                    await ctx.send("That giveaway has already ended tho.")
+                return
 
             else:
-                return await ctx.send("Thanks for saving me from all that hard work lmao :weary:")
+                msg = await ctx.send(
+                    "Are you sure you want to end all giveaways in your server? This action is irreversible."
+                )
+                await start_adding_reactions(msg, ReactionPredicate.YES_OR_NO_EMOJIS)
+                pred = ReactionPredicate.yes_or_no(msg, ctx.author)
+                try:
+                    await ctx.bot.wait_for("reaction_add", check=pred, timeout=30)
+                except asyncio.TimeoutError:
+                    return await ctx.send("No thank you for wasting my time :/")
 
-        e = list(filter(lambda x: x.message_id == gmsg.id and x.guild == ctx.guild, activegaw))
-        if len(e) == 0:
-            return await ctx.send("There is no active giveaway with that ID.")
+                if pred.result:
+                    active, failed = await self.get_active_giveaways(ctx.guild)
+                    for i in active:
+                        await i.end(canceller=ctx.author)
+                    return await ctx.send("All giveaways have been ended.")
+
+                else:
+                    return await ctx.send(
+                        "Thanks for saving me from all that hard work lmao :weary:"
+                    )
 
         else:
-            await e[0].end()
+            message = await self.giveaway_from_message_reply(ctx)
+            if not message:
+                return await ctx.send(
+                    "You either didn't reply to a message or the replied message isn't a giveaway."
+                )
+
+            if isinstance(message, Giveaway):
+                await ctx.tick()
+                await message.end(ctx.author)
+            else:
+                await ctx.send("That giveaway seems to have ended already.")
 
     @giveaway.command(name="reroll")
     @is_gwmanager()
     @commands.guild_only()
-    async def reroll(self, ctx, giveaway_id: discord.Message = None, winners: WinnerConverter = 1):
+    async def reroll(
+        self,
+        ctx: commands.Context,
+        giveaway_id: discord.Message = None,
+        winners: WinnerConverter = 1,
+    ):
         """Reroll the winners of a giveaway
 
         This requires for the giveaway to already have ended.
@@ -411,45 +435,32 @@ class giveaways(gsettings, name="Giveaways"):
         You can also reply to the giveaway message instead of passing its id.
 
         [winners] is the amount of winners to pick. Defaults to 1"""
-        gmsg = giveaway_id or await self.message_reply(ctx.message)
-        if not gmsg:
-            return await ctx.send_help("giveaway reroll")
-
-        if e := list(
-            filter(
-                lambda x: x.message_id == gmsg.id and x.guild == ctx.guild,
-                self.giveaway_cache.copy(),
-            )
-        ):
-            return await ctx.send(
-                "That giveaway is currently active. Can't reroll an already active giveaway."
-            )
-
+        gmsg = giveaway_id
         if await self.config.get_guild_autodel(ctx.guild):
             await ctx.message.delete()
 
-        entrants = await gmsg.reactions[0].users().flatten()
-        try:
-            entrants.pop(entrants.index(ctx.guild.me))
-        except:
-            pass
-        entrants = await self.config.get_list_multi(ctx.guild, entrants)
-        link = gmsg.jump_url
-
-        if winners == 0:
-            return await ctx.reply("You cant have 0 winners for a giveaway 🤦‍♂️")
-
-        if len(entrants) == 0:
-            await gmsg.reply(
-                f"There weren't enough entrants to determine a winner.\nClick on my replied message to jump to the giveaway."
+        if not self.ended_cache:
+            return await ctx.send(
+                "The ended giveaways cache seems to be empty. Wait for a giveaway to end before rerolling it LOL."
             )
-            return
+        if gmsg:
+            try:
+                gmsg = await self.converter.convert(ctx, str(gmsg.id))
 
-        winner = {random.choice(entrants).mention for i in range(winners)}
+            except Exception as e:
+                return await ctx.send(e)
 
-        await gmsg.reply(
-            f"Congratulations :tada:{humanize_list(list(winner))}:tada:. You are the new winners for the giveaway below.\n{link}"
-        )
+        else:
+            gmsg = await self.giveaway_from_message_reply(ctx)
+            if not gmsg:
+                return await ctx.send_help()
+
+        if not isinstance(gmsg, EndedGiveaway):
+            return await ctx.send(
+                "That giveaway hasn't ended yet. Wait for it to end before rerolling it."
+            )
+
+        await gmsg.reroll(ctx, winners)
 
     @giveaway.command(name="clear", hidden=True)
     @commands.is_owner()
@@ -462,144 +473,142 @@ class giveaways(gsettings, name="Giveaways"):
 
         await ctx.send("Cleared all giveaway data.")
 
-    async def active_giveaways(self, ctx, per_guild: bool = False):
+    async def get_active_giveaways(
+        self, guild: discord.Guild = None
+    ) -> typing.Tuple[typing.List[Giveaway], typing.List[EndedGiveaway]]:
         data = self.giveaway_cache.copy()
-        failed = ""
-        final = ""
-        for index, i in enumerate(data, 1):
-            channel = i.channel
-            if per_guild and i.guild != ctx.guild:
-                continue
+        active = []
+        failed = []
+        for i in data:
+            if guild is not None:
+                if i.guild != guild:
+                    continue
+            if await i.get_message() is None:
+                failed.append(await i.end())
+            else:
+                active.append(i)
 
-            msg = await i.get_message()
+        return active, failed
 
-            if not msg:
-                failed += f"\nMessage with id `{i.message_id}` was not found. Removing from cache."
-                self.giveaway_cache.remove(i)
-                continue
-
-            try:
-                final += f"""
-    {index}. **[{i.prize}]({msg.jump_url})**
-    Hosted by <@{i.host.id}> with {i.winners} winners(s)
-    in {f'guild {i.guild} ({i.guild.id})' if not per_guild else f'{channel.mention}'}
-    Ends <t:{int(i._time)}:R> ({humanize_timedelta(seconds=i.remaining_time)})
-    """
-            except Exception as e:
-                failed += f"There was an error with the giveaway `{i.message_id}` so it was removed:\n{e}\n"
-                self.giveaway_cache.remove(i)
-                continue
-
-        return final, failed
-
-    @giveaway.command(name="list")
-    @commands.cooldown(1, 30, commands.BucketType.guild)
+    @giveaway.command(name="list", usage="")
+    @commands.cooldown(1, 30, commands.BucketType.member)
     @commands.max_concurrency(3, commands.BucketType.default, wait=True)
     @commands.bot_has_permissions(embed_links=True)
-    async def glist(self, ctx: commands.Context):
+    async def glist(self, ctx: commands.Context, globally: bool = False):
         """
         See a list of active giveaway in your server.
 
-        This is a pretty laggy command and can take a while to show the results so please have patience."""
-        data = self.giveaway_cache.copy()
-        if not data:
+        This can be a pretty laggy command and can take a while to show the results so please have patience."""
+        if globally and not ctx.author.id in ctx.bot.owner_ids:
+            return await ctx.send("That option is for bot owners only.")
+
+        if not self.giveaway_cache:
             ctx.command.reset_cooldown(ctx)
             return await ctx.send("No active giveaways currently")
 
-        embeds = []
-        final, failed = await self.active_giveaways(ctx, per_guild=True)
+        active, failed = await self.get_active_giveaways(ctx.guild if not globally else None)
+        if not active:
+            return await ctx.send("There are no active giveaways in this server.")
 
-        for page in pagify(final, page_length=2048):
-            embed = discord.Embed(
-                title="Currently Active Giveaways!", color=discord.Color.blurple()
+        fields = []
+        for i in active:
+            value = (
+                f"***[{i.prize}]({(await i.get_message()).jump_url})***\n"
+                f"> Guild: **{i.guild}**\n"
+                f"> Host: **{i.host}**\n"
+                f"> Message id: **{i.message_id}**\n"
+                f"> Amount of winners: **{i.winners}**\n"
+                f"> Ends in: **{humanize_timedelta(seconds=i.remaining_time)}**\n"
             )
-            embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon_url)
-            embed.description = page
-            embeds.append(embed)
-
-        if embeds:
-            embeds = [
-                embed.set_footer(text=f"Page {embeds.index(embed)+1}/{len(embeds)}")
-                for embed in embeds
-            ]
-
-            if len(embeds) == 1:
-                return await ctx.send(embed=embeds[0])
-            else:
-                await menu(ctx, embeds, DEFAULT_CONTROLS)
-
-        else:
-            await ctx.send("No active giveaways in this server.")
+            fields.append({"name": "\u200b", "value": value, "inline": False})
 
         if failed:
-            await ctx.send(failed)
-            log.warning(f"{failed}")
+            for i in failed:
+                value = (
+                    f"***{i.prize}***\n"
+                    f"> Guild: **{i.guild}**\n"
+                    f"> Host: **{i.host}**\n"
+                    f"> Message id: **{i.message_id}**\n"
+                    f"> Amount of winners: **{i.winners}**\n"
+                    f"> Reason for failure: {i.reason}"
+                )
+
+                fields.append({"name": "\u200b", "value": value, "inline": False})
+
+        embeds = group_embeds_by_fields(
+            *fields,
+            per_embed=5,
+            title=f"Active giveaways in **{ctx.guild}**"
+            if not globally
+            else "Active giveaways **globally**",
+            color=await self.get_embed_color(ctx),
+        )
+
+        embeds = [
+            embed.set_footer(text=f"Page {embeds.index(embed)+1}/{len(embeds)}").set_thumbnail(
+                url=ctx.guild.icon_url if not globally else ctx.bot.user.avatar_url
+            )
+            for embed in embeds
+        ]
+
+        if len(embeds) == 1:
+            return await ctx.send(embed=embeds[0])
+        else:
+            await menu(ctx, embeds, DEFAULT_CONTROLS)
 
     @giveaway.command(name="show")
-    @commands.is_owner()
     @commands.bot_has_permissions(embed_links=True)
-    async def gshow(self, ctx, giveaway: discord.Message = None):
+    async def gshow(self, ctx: commands.Context, giveaway: discord.Message = None):
         """
-        Shows all active giveaways in all servers.
-        You can also check details for a single giveaway by passing a message id.
+        See the details of a giveaway.
 
-        This commands is for owners only."""
-        data = self.giveaway_cache.copy()
-        if not data:
-            return await ctx.send("No active giveaways currently")
-        if not giveaway and not await self.giveaway_from_message_reply(ctx.message):
-
-            embeds = []
-            final, failed = await self.active_giveaways(ctx)
-            for page in pagify(final, page_length=2048):
-                embed = discord.Embed(
-                    title="Currently Active Giveaways!", color=discord.Color.blurple()
-                )
-                embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon_url)
-                embed.description = page
-                embeds.append(embed)
-
-            if failed:
-                await ctx.send("Failed giveaways have been logged to your console.")
-                log.warning(f"{failed}")
-
-            if embeds:
-                embeds = [
-                    embed.set_footer(text=f"Page {embeds.index(embed)+1}/{len(embeds)}")
-                    for embed in embeds
-                ]
-
-                if len(embeds) == 1:
-                    return await ctx.send(embed=embeds[0])
-                else:
-                    await menu(ctx, embeds, DEFAULT_CONTROLS)
+        The giveaway can be an ended giveaway or a curretly active one.
+        You can also reply to a giveaway message to see its details instead of passing a message id."""
+        if giveaway:
+            try:
+                gmsg = await self.converter.convert(ctx, str(giveaway.id))
+            except Exception as e:
+                return await ctx.send(e)
 
         else:
-            gaw = list(filter(lambda x: x.message_id == giveaway.id, data))
-            if not gaw:
-                return await ctx.send("not a valid giveaway.")
+            gmsg = await self.giveaway_from_message_reply(ctx)
+            if not gmsg:
+                return await ctx.send_help()
 
+        gmsg: typing.Union[Giveaway, EndedGiveaway]
+        title = (
+            f"***[{gmsg.prize}]({(await gmsg.get_message()).jump_url})***\n"
+            if await gmsg.get_message()
+            else f"***{gmsg.prize}***\n"
+        )
+        if isinstance(gmsg, EndedGiveaway):
+            winners = typing.Counter(gmsg.winnerslist)  # too lazy for a separate import?
+            if winners:
+                winners = "".join([f"{k} x{v}\n" for k, v in winners.items()])
             else:
-                gaw = gaw[0]
-                channel = gaw["channel"]
-                host = gaw["host"]
-                requirements = gaw["requirements"]
-                prize = gaw["prize"]
-                winners = gaw["winners"]
-                endsat = gaw.remaining_time
-                endsat = humanize_timedelta(seconds=endsat)
-                embed = discord.Embed(title="Giveaway Details: ")
-                embed.description = f"""
-Giveaway Channel: {channel.mention} (`{channel.name}`)
-Host: {host} (<@!{host}>)
-Requirements: {requirements}
-prize: {prize}
-Amount of winners: {winners}
-Ends at: {endsat}
-				"""
-                embed.set_thumbnail(url=channel.guild.icon_url)
+                winners = None
+        details = (
+            f"> Guild: **{gmsg.guild}**\n"
+            + f"> Host: **{gmsg.host}**\n"
+            + f"> Message id: **{gmsg.message_id}**\n"
+            + f"> Amount of winners: **{gmsg.winners}**\n"
+            + (
+                f"> Donor: **{gmsg.donor}**\n"
+                if isinstance(gmsg, Giveaway)
+                else f"> Reasion for ending:\n> **{gmsg.reason}**\n"
+            )
+            + (
+                f"> Ends in: **{humanize_timedelta(seconds=gmsg.remaining_time)}**\n"
+                if isinstance(gmsg, Giveaway)
+                else f"> Winners: {winners}"
+            )
+        )
 
-                await ctx.send(embed=embed)
+        embed = discord.Embed(
+            title="Giveaway details!", color=await self.get_embed_color(ctx)
+        ).add_field(name="\u200b", value=title + details, inline=False)
+
+        await ctx.send(embed=embed)
 
     @giveaway.command(name="top")
     @commands.cooldown(1, 10, commands.BucketType.guild)

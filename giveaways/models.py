@@ -387,7 +387,7 @@ class Giveaway(BaseGiveaway):
         await message.edit(embed=embed)
         self.next_edit = self.get_next_edit_time()
 
-    async def end(self, canceller=None) -> None:
+    async def end(self, canceller=None) -> "EndedGiveaway":
         end_data = {
             "bot": self.bot,
             "cog": self.cog,
@@ -412,8 +412,9 @@ class Giveaway(BaseGiveaway):
                     ),
                 }
             )
-            self.cog.ended_cache.append(EndedGiveaway(**end_data))
-            return
+            ended = EndedGiveaway(**end_data)
+            self.cog.ended_cache.append(ended)
+            return ended
         guild = self.guild
         winners = self.winners
         embed = msg.embeds[0]
@@ -459,7 +460,7 @@ class Giveaway(BaseGiveaway):
             await gmsg.edit(embed=embed)
 
             await gmsg.reply(
-                f"The giveaway for ***{prize}*** has ended. There were 0 winners.\nClick on my replied message to jump to the giveaway."
+                f"The giveaway for ***{prize}*** has ended. There were 0 winners.\nClick on my replied message to jump to the giveaway.\n"
                 f"Or click on this link: {gmsg.jump_url}"
             )
             if hostdm == True:
@@ -472,8 +473,9 @@ class Giveaway(BaseGiveaway):
                 end_data.update({"reason": EndReason.CANCELLED.value.format(canceller)})
 
             self.cog.giveaway_cache.remove(self)
-            self.cog.ended_cache.append(EndedGiveaway(**end_data))
-            return True
+            ended = EndedGiveaway(**end_data)
+            self.cog.ended_cache.append(ended)
+            return ended
 
         w = ""
         w_list = [random.choice(entrants) for i in range(winners)]
@@ -505,8 +507,9 @@ class Giveaway(BaseGiveaway):
             end_data.update({"reason": EndReason.SUCCESS.value})
         else:
             end_data.update({"reason": EndReason.CANCELLED.value.format(canceller)})
-        self.cog.ended_cache.append(EndedGiveaway(**end_data))
-        return True
+        ended = EndedGiveaway(**end_data)
+        self.cog.ended_cache.append(ended)
+        return ended
 
     def to_dict(self) -> dict:
         data = {
@@ -540,7 +543,7 @@ class EndedGiveaway(BaseGiveaway):
     def __hash__(self) -> int:
         return hash(self.message_id)
 
-    async def get_message(self):
+    async def get_message(self) -> Optional[discord.Message]:
         msg = self.bot._connection._get_message(
             self.message_id
         )  # i mean, if its cached, why waste an api request right?
@@ -550,6 +553,45 @@ class EndedGiveaway(BaseGiveaway):
             except Exception:
                 msg = None
         return msg
+
+    async def reroll(self, ctx: commands.Context, winners: int = 1):
+        gmsg = await self.get_message()
+        if not gmsg:
+            return await ctx.send("I couldn't find the giveaway message.")
+        entrants = (
+            await gmsg.reactions[
+                gmsg.reactions.index(
+                    reduce(
+                        lambda x, y: x
+                        if str(x.emoji) == self.emoji
+                        else y
+                        if str(y.emoji) == self.emoji
+                        else None,
+                        gmsg.reactions,
+                    )
+                )
+            ]
+            .users()
+            .flatten()
+        )
+        try:
+            entrants.pop(entrants.index(ctx.guild.me))
+        except:
+            pass
+        entrants = await self.cog.config.get_list_multi(ctx.guild, entrants)
+        link = gmsg.jump_url
+
+        if len(entrants) == 0:
+            await gmsg.reply(
+                f"There weren't enough entrants to determine a winner.\nClick on my replied message to jump to the giveaway."
+            )
+            return
+
+        winner = {random.choice(entrants).mention for i in range(winners)}
+
+        await gmsg.reply(
+            f"Congratulations :tada:{humanize_list(list(winner))}:tada:. You are the new winners for the giveaway below.\n{link}"
+        )
 
     @property
     def winnerslist(self):

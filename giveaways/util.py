@@ -3,16 +3,38 @@ import datetime
 import re
 import time
 from argparse import ArgumentParser
-from typing import Any, Awaitable, Callable, Dict, List, Tuple
+from typing import Any, Awaitable, Callable, Dict, List, Tuple, Union
 
 import discord
 from dateparser import parse
-from discord.ext.commands.converter import MemberConverter, TextChannelConverter
+from discord.ext.commands.converter import MemberConverter, MessageConverter, TextChannelConverter
 from discord.ext.commands.errors import BadArgument
 from redbot.core import commands
 from redbot.core.utils import mod
 from redbot.core.utils.chat_formatting import box
 from redbot.core.utils.predicates import MessagePredicate
+
+
+def group_embeds_by_fields(
+    *fields: Dict[str, Union[str, bool]], per_embed: int = 3, **kwargs
+) -> List[discord.Embed]:
+    """
+    This was the result of a big brain moment i had
+
+    This method takes dicts of fields and groups them into separate embeds
+    keeping `per_embed` number of fields per embed.
+
+    Extra kwargs can be passed to create embeds off of.
+    """
+    groups = []
+    for ind, i in enumerate(range(1, len(fields), per_embed)):
+        groups.append(
+            discord.Embed(**kwargs)
+        )  # append embeds in the loop to prevent incorrect embed count
+        fields_to_add = fields[i : i + per_embed]
+        for field in fields_to_add:
+            groups[ind].add_field(**field)
+    return groups
 
 
 def is_gwmanager():
@@ -81,6 +103,34 @@ class WinnerConverter(commands.Converter):
 
         except Exception as e:
             raise BadArgument(str(e))
+
+
+class GiveawayMessageConverter(MessageConverter):
+    async def convert(self, ctx, argument):
+        message = await super().convert(ctx, argument)
+        active_cache = ctx.cog.giveaway_cache.copy()
+        msg = list(
+            filter(
+                lambda x: x.message_id == message.id and x.guild.id == message.guild.id,
+                active_cache,
+            )
+        )
+        if not msg:
+            ended_cache = ctx.cog.ended_cache.copy()
+            msg = list(
+                filter(
+                    lambda x: x.message_id == message.id and x.guild.id == message.guild.id,
+                    ended_cache,
+                )
+            )
+
+        try:
+            msg = msg[0]
+
+        except IndexError:
+            raise BadArgument("That message is not a giveaway message.")
+
+        return msg
 
 
 def readabletimer(seconds):

@@ -81,8 +81,9 @@ class HitOrMiss(commands.Cog):
         totalembeds = math.floor(
             len(fields) / per_embed
         )  # could've rounded up with ceil() but that often creates an extra empty embed.
-        groups = [discord.Embed() for i in range(totalembeds)]
+        groups = []
         for ind, i in enumerate(range(1, len(fields), per_embed)):
+            groups.append(embed=discord.Embed())
             fields_to_add = fields[i : i + per_embed]
             for field in fields_to_add:
                 groups[ind].add_field(**field)
