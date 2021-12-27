@@ -441,7 +441,7 @@ class giveaways(gsettings, name="Giveaways"):
         winner = {random.choice(entrants).mention for i in range(winners)}
 
         await gmsg.reply(
-            f"Congratulations :tada:{humanize_list(winner)}:tada:. You are the new winners for the giveaway below.\n{link}"
+            f"Congratulations :tada:{humanize_list(list(winner))}:tada:. You are the new winners for the giveaway below.\n{link}"
         )
 
     @giveaway.command(name="clear", hidden=True)
