@@ -61,9 +61,12 @@ class Requirements(commands.Converter):
         items = self.as_dict()
         if not show_defaults:
             default_by, default_bl = set(self.default_by), set(self.default_bl)
-            items["blacklist"] = set(items["blacklist"]).difference_update(default_bl)
-            items["bypass"] = set(items["bypass"]).difference_update(default_by)
-
+            bl = set(items["blacklist"])
+            bl.difference_update(default_bl)
+            by = set(items["bypass"])
+            by.difference_update(default_by)
+            items["blacklist"] = bl
+            items["bypass"] = by
         for key, value in items.items():
             if value:
                 if isinstance(value, int):
