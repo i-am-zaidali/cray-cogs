@@ -32,6 +32,8 @@ class conf:
             "blacklist": [],
             "bypass": [],
             "top_managers": {},
+            "color": None,
+            "show_defaults": True,
         }
 
         default_role = {"multi": 0}
@@ -46,6 +48,13 @@ class conf:
         self.config.register_guild(**default_guild)
         self.config.register_global(**default_global)
         self.config.register_role(**default_role)
+
+    async def get_guild(self, guild: discord.Guild, attribute: str):
+        # i was tired of having to create a new method for whenever i needed a new setting, so here this is.
+        return await self.config.guild(guild).get_attr(attribute)()
+
+    async def set_guild(self, guild: discord.Guild, attribute: str, value):
+        return await self.config.guild(guild).get_attr(attribute).set(value)
 
     async def _sent_message(self, b: bool = None):
         if not b:

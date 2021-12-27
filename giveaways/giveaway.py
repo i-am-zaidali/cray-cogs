@@ -61,6 +61,11 @@ class giveaways(gsettings, name="Giveaways"):
         ]
         return "\n".join(text)
 
+    async def get_embed_color(self, ctx: commands.Context) -> discord.Color:
+        if not (color := await self.config.get_guild(ctx.guild, "color")):
+            return await ctx.embed_color()
+        return discord.Color(color)
+
     @commands.Cog.listener()
     async def on_command_completion(self, ctx):
         if ctx.command.qualified_name.lower() == "giveaway start":
@@ -242,6 +247,7 @@ class giveaways(gsettings, name="Giveaways"):
                 f"Ends {f'<t:{int(_time.time()+time)}:R>' if not await self.config.get_guild_timer(ctx.guild) else f'in {humanize_timedelta(seconds=time)}'}\n"
             ),
             timestamp=endtime,
+            color=await self.get_embed_color(ctx),
         ).set_footer(text=f"Winners: {winners} | ends : ", icon_url=ctx.guild.icon_url)
 
         message = await self.config.get_guild_msg(ctx.guild)
@@ -262,8 +268,9 @@ class giveaways(gsettings, name="Giveaways"):
         if not no_defaults:
             requirements = requirements.no_defaults()  # defaults will be used!!!
 
-        if not requirements.null:
-            embed.add_field(name="Requirements:", value=str(requirements), inline=False)
+        req_str = await requirements.get_str(ctx)
+        if not requirements.null and not req_str == "":
+            embed.add_field(name="Requirements:", value=req_str, inline=False)
 
         gembed = await messagable.send(message, embed=embed)
         await gembed.add_reaction(emoji)
@@ -278,7 +285,7 @@ class giveaways(gsettings, name="Giveaways"):
 
         if msg and ping:
             membed = discord.Embed(
-                description=f"***Message***: {msg}", color=discord.Color.random()
+                description=f"***Message***: {msg}", color=await self.get_embed_color(ctx)
             )
             await messagable.send(
                 ping, embed=membed, allowed_mentions=discord.AllowedMentions(roles=True)
@@ -287,7 +294,7 @@ class giveaways(gsettings, name="Giveaways"):
             await messagable.send(ping)
         elif msg and not ping:
             membed = discord.Embed(
-                description=f"***Message***: {msg}", color=discord.Color.random()
+                description=f"***Message***: {msg}", color=await self.get_embed_color(ctx)
             )
             await messagable.send(embed=membed)
         if thank:
@@ -299,7 +306,7 @@ class giveaways(gsettings, name="Giveaways"):
                         prize=prize,
                     )
                 ),
-                color=0x303036,
+                color=await self.get_embed_color(ctx),
             )
             await messagable.send(embed=embed)
 
@@ -623,7 +630,8 @@ Ends at: {endsat}
         """Start a paginated embeds session explaining how
         to use the commands of this cog and how it works."""
         embeds = []
-        something = f"""
+        something = (
+            f"""
 ***__Basics:__ ***
     > You can host giveaways with the bot. What this is,
     > is that the bot sends an embed containing information such as the prize,
@@ -717,9 +725,9 @@ Ends at: {endsat}
 
     > *--channel*/*--chan*
         This redirects the giveaway to the provided channel after the flag.
-
-    **NOTE: The below flags will only work if the DonationLogging cog has been loaded!!**
-
+"""
+            + (
+                """
     > *--amt*
         This adds the given amount to the donor's (or the command author if donor is not provided) donation balance.
 
@@ -727,6 +735,11 @@ Ends at: {endsat}
         This flag followed with a category name, uses the given category to to add the amount to.
         If not given, the default category, if set, will be used.
         This flag can not be used without using the *--amt* flag.
+"""
+                if self.bot.get_cog("DonationLogging")
+                else ""
+            )
+            + """
 
 ***__Customization:__ ***
     > Giveaways can be customized to your liking but under a certain limit.
@@ -755,8 +768,17 @@ Ends at: {endsat}
 
     > **Default bypass**
         The roles that are by default able to bypass requirements in giveaways. `{ctx.prefix}gset bypass`
+
+    > **Show defaults in giveaway embed**
+        It gets kinda janky when you ahve multiple defaults set and the giveaway embed becomes too long.
+        Easy way out, is to simply disable showing the defaults in the embed ;) `{ctx.prefix}gset showdefaults`
+
+    > **Embed Color**
+        The default embed color doesn't look good to you? now worries, you can now customize the color for your server.
+        `{ctx.prefix}gset color`
         """
-        pages = list(pagify(something, delims=["\n***"], page_length=2000))
+        )
+        pages = list(pagify(something, delims=["\n***"], page_length=2500))
         for page in pages:
             embed = discord.Embed(title="Giveaway Explanation!", description=page, color=0x303036)
             embed.set_footer(text=f"Page {pages.index(page) + 1} out of {len(pages)}")

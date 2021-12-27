@@ -71,14 +71,16 @@ class WinnerConverter(commands.Converter):
     async def convert(self, ctx, argument):
         winner = 0
         try:
-            match = re.findall("^\d+", argument)
+            match = re.findall(r"^\d+", argument)
             if not match:
                 raise BadArgument(f"{argument} is not a valid number for winners.")
             winner = int(match[0])
+            if winner > 20:
+                raise BadArgument("You can't have more than 20 winners.")
             return winner
 
         except Exception as e:
-            raise BadArgument(e) from e
+            raise BadArgument(str(e))
 
 
 def readabletimer(seconds):

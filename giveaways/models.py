@@ -55,9 +55,16 @@ class Requirements(commands.Converter):
         self.default_bl = default_bl
         self.default_by = default_by
 
-    def __str__(self):
+    async def get_str(self, ctx):
         final = ""
-        for key, value in self.items():
+        show_defaults = await ctx.cog.config.get_guild(ctx.guild, "show_defaults")
+        items = self.as_dict()
+        if not show_defaults:
+            default_by, default_bl = set(self.default_by), set(self.default_bl)
+            items["blacklist"] = set(items["blacklist"]).difference_update(default_bl)
+            items["bypass"] = set(items["bypass"]).difference_update(default_by)
+
+        for key, value in items.items():
             if value:
                 if isinstance(value, int):
                     final += f"Required {key.replace('_', ' ').capitalize()}: {value:>4}"
@@ -77,8 +84,8 @@ class Requirements(commands.Converter):
         if not stat:
             self.blacklist += self.default_bl
             self.bypass += self.default_by
-            del self.default_by
-            del self.default_bl
+            # del self.default_by
+            # del self.default_bl lets not delete them now
             return self  # return self because nothing needs to be modified
 
         d = self.as_dict()
@@ -194,12 +201,18 @@ class Requirements(commands.Converter):
                         role = await RoleConverter().convert(ctx, _list[0])
                     except RoleNotFound:
                         raise BadArgument(f"Role with id: {_list[0]} was not found.")
+                    if role.id in roles["default_bl"]:
+                        raise BadArgument(
+                            f"Role `@{role.name}` is already blacklisted by default."
+                        )
                     roles["blacklist"].append(role.id)
                 elif "bypass" in _list[1]:
                     try:
                         role = await RoleConverter().convert(ctx, _list[0])
                     except RoleNotFound:
                         raise BadArgument(f"Role with id: {_list[0]} was not found.")
+                    if role.id in roles["default_by"]:
+                        raise BadArgument(f"Role `@{role.name}` is already bypassing by default.")
                     roles["bypass"].append(role.id)
                 elif "alevel" in _list[1] or "alvl" in _list[1]:
                     roles["amari_level"] = int(_list[0])

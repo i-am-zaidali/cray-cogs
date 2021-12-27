@@ -291,6 +291,34 @@ class gsettings(main):
             f"Editing timers for giveaways has been {'enabled' if enable_or_disable else 'disabled'}."
         )
 
+    @gset.command(name="color", aliases=["colour"])
+    @commands.admin_or_permissions(administrator=True)
+    async def gset_colour(self, ctx, colour: discord.Colour = discord.Color(0x303036)):
+        """
+        Set the colour of giveaways embeds.
+
+        if color is not passed, it will default to invisible embeds.
+        Before this command is used, the global bot color will be used.
+        Default is invisible (0x303036)."""
+        await self.config.set_guild(ctx.guild, "color", colour.value)
+        embed = discord.Embed(
+            title="Color successfully set!",
+            description=f"Embed colors for giveaways will now be set to `{colour.value}`",
+            color=colour,
+        ).set_image(
+            url=f"https://singlecolorimage.com/get/{str(colour)[1:]}/400x100.png"
+        )  # i love this api *chef kiss*
+        return await ctx.send(embed=embed)
+
+    @gset.command(name="sdr", aliases=["show_default_requirements", "showdefault", "showdefaults"])
+    @commands.admin_or_permissions(administrator=True)
+    async def gset_sdr(self, ctx):
+        current = await self.config.get_guild(ctx.guild, "show_defaults")
+        await self.config.set_guild(ctx.guild, "show_defaults", not current)
+        return await ctx.send(
+            f"Showing default requirements in giveaway embeds has been {'enabled' if not current else 'disabled'}."
+        )
+
     @gset.command(name="showsettings", aliases=["ss", "show", "showset"])
     @commands.admin_or_permissions(administrator=True)
     @commands.bot_has_permissions(embed_links=True)
@@ -315,10 +343,12 @@ class gsettings(main):
 **Will the winner be dm'ed?:** {winnerdm}
 **Will the host be dm'ed?:** {hostdm}
 **Auto delete Giveaway Commands?:** {autodelete}
+**Embed color: **{await self.get_embed_color(ctx)}
+**Show defaults in giveaway embed?: **{await self.config.get_guild(ctx.guild, "show_defaults")}
 **Giveaway Thank message:** {box(tmsg)}
 **Giveaway Ending message:** {box(endmsg)}
 			""",
-            color=discord.Color.green(),
+            color=await self.get_embed_color(ctx),
         )
 
         embed.set_footer(text=ctx.guild.name, icon_url=ctx.guild.icon_url)
