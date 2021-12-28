@@ -3,6 +3,9 @@
   <a href="https://www.python.org/downloads/">
     <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/Red-Discordbot">
   </a>
+  <a href="https://github.com/i-am-zaidali/cray-cogs">
+    <img alt="cray-cogs" src="https://img.shields.io/badge/cray--cogs-Badly%20coded%20cogs%20for%20Red-black">
+  </a>
   <a href="https://github.com/Rapptz/discord.py/">
      <img src="https://img.shields.io/badge/discord-py-blue.svg" alt="discord.py">
   </a>
