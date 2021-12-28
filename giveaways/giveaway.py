@@ -424,7 +424,7 @@ class giveaways(gsettings, name="Giveaways"):
     async def reroll(
         self,
         ctx: commands.Context,
-        giveaway_id: discord.Message = None,
+        giveaway_id: typing.Optional[discord.Message] = None,
         winners: WinnerConverter = 1,
     ):
         """Reroll the winners of a giveaway
@@ -550,6 +550,8 @@ class giveaways(gsettings, name="Giveaways"):
             )
             for embed in embeds
         ]
+
+        print(embeds)
 
         if len(embeds) == 1:
             return await ctx.send(embed=embeds[0])

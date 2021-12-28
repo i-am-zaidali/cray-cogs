@@ -255,6 +255,12 @@ class BaseGiveaway:
 
         return attr
 
+    def __str__(self):
+        return f"<{self.__class__.__name__} Prize={self.prize} Host={self.host} Message={getattr(self, 'message_id', None)} >"
+
+    def __repr__(self):
+        return str(self)
+
     @property
     def host(self) -> discord.User:
         return self.bot.get_user(self._host)
@@ -558,6 +564,7 @@ class EndedGiveaway(BaseGiveaway):
         return msg
 
     async def reroll(self, ctx: commands.Context, winners: int = 1):
+        emoji = await self.cog.config.get_guild_emoji(ctx.guild)
         gmsg = await self.get_message()
         if not gmsg:
             return await ctx.send("I couldn't find the giveaway message.")
@@ -566,9 +573,9 @@ class EndedGiveaway(BaseGiveaway):
                 gmsg.reactions.index(
                     reduce(
                         lambda x, y: x
-                        if str(x.emoji) == self.emoji
+                        if str(x.emoji) == emoji
                         else y
-                        if str(y.emoji) == self.emoji
+                        if str(y.emoji) == emoji
                         else None,
                         gmsg.reactions,
                     )

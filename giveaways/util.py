@@ -27,7 +27,7 @@ def group_embeds_by_fields(
     Extra kwargs can be passed to create embeds off of.
     """
     groups = []
-    for ind, i in enumerate(range(1, len(fields), per_embed)):
+    for ind, i in enumerate(range(0, len(fields), per_embed)):
         groups.append(
             discord.Embed(**kwargs)
         )  # append embeds in the loop to prevent incorrect embed count
