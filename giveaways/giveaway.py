@@ -293,7 +293,7 @@ class giveaways(gsettings, name="Giveaways"):
                 ping, embed=membed, allowed_mentions=discord.AllowedMentions(roles=True)
             )
         elif ping and not msg:
-            await messagable.send(ping)
+            await messagable.send(ping, allowed_mentions=discord.AllowedMentions(roles=True))
         elif msg and not ping:
             membed = discord.Embed(
                 description=f"***Message***: {msg}", color=await self.get_embed_color(ctx)
