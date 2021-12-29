@@ -349,7 +349,7 @@ class Giveaway(BaseGiveaway):
                 time.time() + 60
             )  # middle case, its not greater than 5 minutes but greater than a minute.
 
-    async def hdm(self, host, jump_url, prize, winners):
+    async def hdm(self, host, jump_url, prize, winners, guild):
         member = await self.bot.fetch_user(host)
         if member:
             try:
@@ -358,7 +358,7 @@ class Giveaway(BaseGiveaway):
                     description=f"Your giveaway for {prize} has ended.\n{f'The winners are: {winners}' if winners != 'None' else 'There are no winners'}\n\nClick [here]({jump_url}) to jump to the giveaway.",
                     color=discord.Color.random(),
                 )
-                embed.set_thumbnail(url=member.avatar_url)
+                embed.set_thumbnail(url=guild.icon_url)
                 await member.send(embed=embed)
 
             except discord.HTTPException:
@@ -374,7 +374,7 @@ class Giveaway(BaseGiveaway):
                         title="Congratulations!",
                         description=f"You have won a giveaway for `{prize}` in **__{guild}__**.\nClick [here]({jump_url}) to jump to the giveaway.",
                         color=discord.Color.random(),
-                    ).set_thumbnail(url=winner.avatar_url)
+                    ).set_thumbnail(url=guild.icon_url)
                     await winner.send(embed=embed)
 
                 except discord.HTTPException:
@@ -473,7 +473,7 @@ class Giveaway(BaseGiveaway):
                 f"Or click on this link: {gmsg.jump_url}"
             )
             if hostdm == True:
-                await self.hdm(host, gmsg.jump_url, prize, "None")
+                await self.hdm(host, gmsg.jump_url, prize, "None", channel.guild)
 
             end_data.update({"winnerslist": []})
             if not canceller:
@@ -508,7 +508,7 @@ class Giveaway(BaseGiveaway):
             await self.wdm(w_list, gmsg.jump_url, prize, channel.guild)
 
         if hostdm == True:
-            await self.hdm(host, gmsg.jump_url, prize, w)
+            await self.hdm(host, gmsg.jump_url, prize, w, channel.guild)
 
         self.cog.giveaway_cache.remove(self)
         end_data.update({"winnerslist": [i.id for i in w_list]})
