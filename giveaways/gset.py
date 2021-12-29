@@ -352,6 +352,6 @@ class gsettings(main):
         )
 
         embed.set_footer(text=ctx.guild.name, icon_url=ctx.guild.icon_url)
-        embed.set_thumbnail(url=ctx.author.avatar_url)
+        embed.set_thumbnail(url=ctx.guild.icon_url)
 
         await ctx.send(embed=embed)
