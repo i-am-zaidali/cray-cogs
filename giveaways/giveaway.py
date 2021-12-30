@@ -39,7 +39,7 @@ class giveaways(gsettings, name="Giveaways"):
     with advanced requirements, customizable embeds
     and much more."""
 
-    __version__ = "1.7.0"
+    __version__ = "1.7.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot):
@@ -70,11 +70,10 @@ class giveaways(gsettings, name="Giveaways"):
 
     @commands.Cog.listener()
     async def on_command_completion(self, ctx):
-        if ctx.command.qualified_name.lower() == "giveaway start":
+        if ctx.command.qualified_name.lower() in ["giveaway start", "giveaway create"]:
             async with self.config.config.guild(ctx.guild).top_managers() as top:
-                top[str(ctx.author.id)] = (
-                    1 if not str(ctx.author.id) in top else top[str(ctx.author.id)] + 1
-                )
+                top.setdefault(str(ctx.author.id), 0)
+                top[str(ctx.author.id)] += 1
 
     @commands.group(name="giveaway", aliases=["g"], invoke_without_command=True)
     @commands.guild_only()
@@ -103,6 +102,7 @@ class giveaways(gsettings, name="Giveaways"):
         await ctx.send(
             "The giveaway creation process will start now. If you ever wanna quit just send a `cancel` to end the process."
         )
+        await asyncio.sleep(3)  # delay the questionnaire so people can read the above message
         questions = [
             (
                 "What is the prize for this giveaway?",
@@ -177,7 +177,7 @@ class giveaways(gsettings, name="Giveaways"):
         *,
         flags: Flags = {},
     ):
-        """Start a giveaway in the current channel with a prize
+        """Start a giveaway with a prize
 
         The time argument is optional, you can instead use the `--ends-at` flag to
         specify a more accurate time span.
@@ -185,6 +185,8 @@ class giveaways(gsettings, name="Giveaways"):
         Requires a manager role set with `[p]gset manager` or
         The bot mod role set with `[p]set addmodrole`
         or manage messages permissions.
+
+        Use `[p]g create` instead if you want a step by step process.
 
         Example:
             `[p]g start 30s 1 my soul`
