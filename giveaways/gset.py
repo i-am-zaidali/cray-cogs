@@ -2,7 +2,7 @@ import discord
 from redbot.core import commands
 from redbot.core.utils.chat_formatting import box, humanize_list, humanize_timedelta
 
-from .events import main
+from .events import main, log
 from .util import TimeConverter
 
 
