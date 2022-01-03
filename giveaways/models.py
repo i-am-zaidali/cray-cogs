@@ -358,7 +358,7 @@ class Giveaway(BaseGiveaway):
                     description=f"Your giveaway for {prize} has ended.\n{f'The winners are: {winners}' if winners != 'None' else 'There are no winners'}\n\nClick [here]({jump_url}) to jump to the giveaway.",
                     color=discord.Color.random(),
                 )
-                embed.set_thumbnail(url=member.avatar_url)
+                embed.set_thumbnail(url=self.guild.icon_url)
                 await member.send(embed=embed)
 
             except discord.HTTPException:
@@ -374,7 +374,7 @@ class Giveaway(BaseGiveaway):
                         title="Congratulations!",
                         description=f"You have won a giveaway for `{prize}` in **__{self.guild}__**.\nClick [here]({jump_url}) to jump to the giveaway.",
                         color=discord.Color.random(),
-                    ).set_thumbnail(url=winner.avatar_url)
+                    ).set_thumbnail(url=self.guild.icon_url)
                     await winner.send(embed=embed)
 
                 except discord.HTTPException:
