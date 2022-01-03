@@ -1,7 +1,6 @@
 import asyncio
 import functools
 import logging
-import math
 import random
 from dataclasses import make_dataclass
 from typing import Dict, List, Literal, Optional, Tuple, Type, Union
@@ -33,7 +32,7 @@ class HitOrMiss(commands.Cog):
     *Yet*."""
 
     __author__ = ["crayyy_zee#2900"]
-    __version__ = "1.2.0"
+    __version__ = "1.2.1"
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -71,6 +70,7 @@ class HitOrMiss(commands.Cog):
         ]
         return "\n".join(text)
 
+    @staticmethod
     def group_embeds_by_fields(*fields: Dict[str, Union[str, bool]], per_embed: int = 3):
         """
         This was the result of a big brain moment i had
@@ -78,12 +78,9 @@ class HitOrMiss(commands.Cog):
         This method takes dicts of fields and groups them into separate embeds
         keeping `per_embed` number of fields per embed.
         """
-        totalembeds = math.floor(
-            len(fields) / per_embed
-        )  # could've rounded up with ceil() but that often creates an extra empty embed.
-        groups = []
-        for ind, i in enumerate(range(1, len(fields), per_embed)):
-            groups.append(embed=discord.Embed())
+        groups: list[discord.Embed] = []
+        for ind, i in enumerate(range(0, len(fields), per_embed)):
+            groups.append(discord.Embed())
             fields_to_add = fields[i : i + per_embed]
             for field in fields_to_add:
                 groups[ind].add_field(**field)
