@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import logging
 import re
 import time
 from argparse import ArgumentParser
@@ -13,6 +14,8 @@ from redbot.core import commands
 from redbot.core.utils import mod
 from redbot.core.utils.chat_formatting import box
 from redbot.core.utils.predicates import MessagePredicate
+
+log = logging.getLogger("red.craycogs.giveaways.util")
 
 
 def group_embeds_by_fields(
@@ -195,7 +198,7 @@ class Flags(commands.Converter):
         try:
             flags = vars(parser.parse_args(argument.split(" ")))
         except Exception as e:
-            raise BadArgument(e)
+            raise BadArgument(str(e))
 
         if msg := flags.get("msg"):
             flags["msg"] = " ".join(msg)
@@ -321,7 +324,7 @@ async def ask_for_answers(
         title, description, key, check = question
         answer = None
         sent = False
-        while not answer:
+        while answer is None:
             if not sent:
                 embed = discord.Embed(
                     title=title,
@@ -348,6 +351,9 @@ async def ask_for_answers(
             except Exception as e:
                 await ctx.send(
                     f"The following error has occurred:\n{box(e, lang='py')}\nPlease try again. (The process has not stopped. Send your answer again)"
+                )
+                log.exception(
+                    "An exception occurred during hte step by step process:\n", exc_info=e
                 )
                 continue
 
@@ -380,14 +386,25 @@ def datetime_conv(ctx):
             except Exception:
                 raise BadArgument(f"`{message.content}` is not a valid date/time.")
 
-            # thanks to flare for the replacing idea :p
-
             if not t.tzinfo:
-                t = t.replace(tzinfo=datetime.timezone.utc)
+                # honestly idk how this works but it does and tbf idk how to work with times so bare with me pls-
+                _ = datetime.datetime.now()
+                if t < _:
+                    raise BadArgument(f"1 Given date/time for `--ends-at` is in the past!")
+                _ = t - _
+                t = end_t = datetime.datetime.now(tz=datetime.timezone.utc) + _
+                # t = t.replace(tzinfo=datetime.timezone.utc)
+
+                # i couldve just done this but it gets messed up with the system time
+                # when the user passes a *duration* and not a date/time
+                # so for example user says "30 minutes" and the system time is 1:00pm in a UTC-5 timezone
+                # dateparser will give us 1:30pm (no timezone) and converting it to utc gives us 1:30pm UTC
+                # which is 5 hours ahead of current time and not 30 minutes.
 
             current = datetime.datetime.now(tz=datetime.timezone.utc)
             if t < current:
                 raise BadArgument("Given date/time is in the past.")
+
             t = int(t.timestamp() - current.timestamp())
 
         return t
