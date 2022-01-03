@@ -364,7 +364,7 @@ class Giveaway(BaseGiveaway):
             except discord.HTTPException:
                 return False
 
-    async def wdm(self, winners, jump_url, prize, guild):
+    async def wdm(self, winners, jump_url, prize):
         winners = Counter(winners)
         # winners = [k for k, v in winners.items()]
         for winner in winners.keys():
@@ -372,7 +372,7 @@ class Giveaway(BaseGiveaway):
                 try:
                     embed = discord.Embed(
                         title="Congratulations!",
-                        description=f"You have won a giveaway for `{prize}` in **__{guild}__**.\nClick [here]({jump_url}) to jump to the giveaway.",
+                        description=f"You have won a giveaway for `{prize}` in **__{self.guild}__**.\nClick [here]({jump_url}) to jump to the giveaway.",
                         color=discord.Color.random(),
                     ).set_thumbnail(url=winner.avatar_url)
                     await winner.send(embed=embed)
@@ -505,7 +505,7 @@ class Giveaway(BaseGiveaway):
         await gmsg.reply(endmsg.format_map(formatdict))
 
         if winnerdm == True:
-            await self.wdm(w_list, gmsg.jump_url, prize, channel.guild)
+            await self.wdm(w_list, gmsg.jump_url, prize)
 
         if hostdm == True:
             await self.hdm(host, gmsg.jump_url, prize, w)

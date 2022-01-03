@@ -1,7 +1,6 @@
 import asyncio
 import contextlib
 import datetime
-import logging
 import time as _time
 import typing
 
@@ -11,7 +10,7 @@ from redbot.core.utils.chat_formatting import humanize_list, humanize_timedelta,
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu, start_adding_reactions
 from redbot.core.utils.predicates import ReactionPredicate
 
-from .gset import gsettings
+from .gset import gsettings, log
 from .models import EndedGiveaway, Giveaway, PendingGiveaway, Requirements, SafeMember
 from .util import (
     Coordinate,
@@ -29,8 +28,6 @@ from .util import (
     prizeconverter,
     requirement_conv,
 )
-
-log = logging.getLogger("red.ashcogs.giveaways")
 
 
 class giveaways(gsettings, name="Giveaways"):
@@ -221,7 +218,7 @@ class giveaways(gsettings, name="Giveaways"):
             with contextlib.suppress(Exception):
                 await ctx.message.delete()
 
-        messagable = ctx.channel
+        messagable: discord.TextChannel = ctx.channel
         if channel := flags.get("channel"):
             messagable = channel
 
@@ -320,7 +317,7 @@ class giveaways(gsettings, name="Giveaways"):
             "use_multi": not no_multi,
             "message": gembed.id,
             "emoji": emoji,
-            "channel": channel.id if channel else ctx.channel.id,
+            "channel": messagable.id,
             "cog": self,
             "time": _time.time() + time,
             "winners": winners,
@@ -331,6 +328,9 @@ class giveaways(gsettings, name="Giveaways"):
         }
         giveaway = Giveaway(**data)
         self.giveaway_cache.append(giveaway)
+        log.info(
+            f"{ctx.author} created a giveaway for {prize} with {winners} winners in channel: {messagable.name} (guild: {messagable.guild})."
+        )
 
     async def message_reply(self, message: discord.Message) -> discord.Message:
         if not message.reference:

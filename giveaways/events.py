@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import datetime
 from typing import List
 
@@ -6,19 +7,30 @@ import discord
 from amari import AmariClient
 from discord.ext import tasks
 from redbot.core import commands
+from redbot.core.bot import Red
+from redbot.core.utils.chat_formatting import humanize_timedelta
 
 from .confhandler import conf
 from .models import EndedGiveaway, Giveaway, PendingGiveaway
 
+log = logging.getLogger("red.craycogs.giveaways")
+
 
 class main(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         self.bot = bot
         self.config = conf(bot)
         self.edit_minutes_task = self.end_giveaways.start()
         self.giveaway_cache: List[Giveaway] = []
         self.ended_cache: List[EndedGiveaway] = []
         self.pending_cache: List[PendingGiveaway] = []
+        self.backup_task: asyncio.Task = None
+
+    async def backup_cache(self, interval: int):
+        while True:
+            await asyncio.sleep(interval)
+            await self.config.cache_to_config()
+            log.debug(f"Backing up cache every {humanize_timedelta(seconds=interval)}!")
 
     def cog_unload(self):
         async def stop() -> asyncio.Task:
@@ -26,11 +38,13 @@ class main(commands.Cog):
             self.config.cache = self.giveaway_cache
             self.config.ended_cache = self.ended_cache
             self.config.pending_cache = self.pending_cache
+            if self.backup_task:
+                self.backup_task.cancel()
             await self.config.cache_to_config()
             if getattr(self.bot, "amari", None):
                 await self.bot.amari.close()
 
-        asyncio.create_task(stop())
+        self.bot.loop.create_task(stop())
         return
 
     @classmethod
@@ -66,6 +80,9 @@ You can then set the amari api key with the `[p]set api amari auth,<api key>` co
         s.giveaway_cache = s.config.cache
         s.ended_cache = s.config.ended_cache
         s.pending_cache = s.config.pending_cache
+
+        if interval := await s.config.config.backup():
+            s.backup_task = s.bot.loop.create_task(s.backup_cache(interval))
         return s
 
     @commands.Cog.listener()

@@ -1,8 +1,9 @@
 import discord
 from redbot.core import commands
-from redbot.core.utils.chat_formatting import box, humanize_list
+from redbot.core.utils.chat_formatting import box, humanize_list, humanize_timedelta
 
 from .events import main
+from .util import TimeConverter
 
 
 class gsettings(main):
@@ -313,11 +314,27 @@ class gsettings(main):
     @gset.command(name="sdr", aliases=["show_default_requirements", "showdefault", "showdefaults"])
     @commands.admin_or_permissions(administrator=True)
     async def gset_sdr(self, ctx):
+        """
+        Set whether the default requirements set through `[p]gset bypass/blacklist` should be shown in the giveaway embed.
+
+        If set to False, the requirements would still be applied but not shown in the embed itself."""
         current = await self.config.get_guild(ctx.guild, "show_defaults")
         await self.config.set_guild(ctx.guild, "show_defaults", not current)
         return await ctx.send(
             f"Showing default requirements in giveaway embeds has been {'enabled' if not current else 'disabled'}."
         )
+
+    @gset.command(name="backup")
+    @commands.is_owner()
+    async def gset_backup(self, ctx: commands.Converter, time: TimeConverter):
+        if time < 60 * 10:
+            return await ctx.send("Backup interval must be at least 10 minutes.")
+
+        elif time > 60 * 60 * 3:
+            return await ctx.send("Backup interval must be at most 3 hours.")
+
+        await self.config.config.backup.set(time)
+        return await ctx.send(f"Backup interval set to every {humanize_timedelta(seconds=time)}.")
 
     @gset.command(name="showsettings", aliases=["ss", "show", "showset"])
     @commands.admin_or_permissions(administrator=True)

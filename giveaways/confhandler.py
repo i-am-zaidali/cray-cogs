@@ -43,6 +43,7 @@ class conf:
             "endedgaws": [],
             "pendinggaws": [],
             "already_sent": False,
+            "backup": None,
         }
 
         self.config.register_guild(**default_guild)
