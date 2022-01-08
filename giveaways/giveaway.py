@@ -10,7 +10,8 @@ from redbot.core.utils.chat_formatting import humanize_list, humanize_timedelta,
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu, start_adding_reactions
 from redbot.core.utils.predicates import ReactionPredicate
 
-from .gset import gsettings, log
+from .events import log
+from .gset import gsettings
 from .models import EndedGiveaway, Giveaway, PendingGiveaway, Requirements, SafeMember
 from .util import (
     Coordinate,
