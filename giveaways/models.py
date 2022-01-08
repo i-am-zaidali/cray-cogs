@@ -333,7 +333,6 @@ class BaseGiveaway:
                                 )
 
                     else:
-                        user = None
                         if key == "amari_level":
                             try:
                                 user = await self.cog.amari.getGuildUser(entry.id, entry.guild.id)
@@ -556,7 +555,7 @@ class Giveaway(BaseGiveaway):
         w_list = []
         for i in entrants:
             i = guild.get_member(i.id)
-            if not len(w_list) == winners and await self.verify_entry(i):
+            if not len(w_list) == winners and not isinstance(await self.verify_entry(i), tuple):
                 w_list.append(i)
 
         if len(w_list) == 0 or winners == 0:
