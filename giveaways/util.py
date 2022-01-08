@@ -79,7 +79,7 @@ class TimeConverter(commands.Converter):
         matches = re.findall(time_regex, args)
         time = 0
         if not matches:
-            raise commands.BadArgument("Invalid time format.")
+            raise commands.BadArgument("Invalid time format. h|m|s|d are valid arguments.")
         for key, value in matches:
             try:
                 time += time_dict[value] * float(key)
@@ -136,22 +136,6 @@ class GiveawayMessageConverter(MessageConverter):
         return msg
 
 
-def readabletimer(seconds):
-    m, s = divmod(seconds, 60)
-    h, m = divmod(m, 60)
-    d, h = divmod(h, 24)
-    if int(d) == 0 and int(h) == 0 and int(m) == 0:
-        sentence = f"**{int(s)}** seconds "
-    elif int(d) == 0 and int(h) == 0 and int(m) != 0:
-        sentence = f"**{int(m)}** minutes and **{int(s)}** seconds"
-    elif int(d) != 0:
-        sentence = f"**{int(d)}** days, **{int(h)}** hours and **{int(m)}** minutes"
-    else:
-        sentence = f"**{int(h)}** hours, **{int(m)}** minutes and **{int(s)}** seconds"
-
-    return sentence
-
-
 # Thanks neuroassassin and flare for the inspiration :p
 
 
@@ -194,6 +178,21 @@ class Flags(commands.Converter):
         donolog = parser.add_argument_group()
         donolog.add_argument("--amount", "--amt", nargs="?", dest="amount", default=None)
         donolog.add_argument("--bank", "--category", nargs="?", dest="bank", default=None)
+
+        msg_req = parser.add_argument_group()
+        msg_req.add_argument(
+            "--messages",
+            "--msgs",
+            "--msg-req",
+            "--msg-count",
+            nargs="?",
+            default=0,
+            type=int,
+            dest="message_count",
+        )
+        msg_req.add_argument(
+            "--cooldown", "--cd", nargs="?", default=0, dest="message_cooldown", type=int
+        )
 
         try:
             flags = vars(parser.parse_args(argument.split(" ")))
@@ -310,6 +309,15 @@ class Flags(commands.Converter):
                     "You do not have the required permissions to add to a user's donations."
                 )
 
+        if message_count := flags.get("message_count"):
+            flags["message_count"] = abs(message_count)
+
+        if msg_cd := flags.get("message_cooldown"):
+            if msg_cd > 60:
+                raise BadArgument("The cooldown can not be greater than 60 seconds.")
+
+            flags["message_cooldown"] = abs(msg_cd)
+
         return flags
 
 
@@ -352,9 +360,9 @@ async def ask_for_answers(
                 await ctx.send(
                     f"The following error has occurred:\n{box(e, lang='py')}\nPlease try again. (The process has not stopped. Send your answer again)"
                 )
-                log.exception(
-                    "An exception occurred during hte step by step process:\n", exc_info=e
-                )
+                # log.exception(
+                #     "An exception occurred during hte step by step process:\n", exc_info=e
+                # )
                 continue
 
             answer = result

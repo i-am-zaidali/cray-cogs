@@ -6,7 +6,7 @@ import typing
 
 import discord
 from redbot.core import commands
-from redbot.core.utils.chat_formatting import humanize_list, humanize_timedelta, pagify
+from redbot.core.utils.chat_formatting import humanize_list, humanize_timedelta, pagify, warning
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu, start_adding_reactions
 from redbot.core.utils.predicates import ReactionPredicate
 
@@ -36,7 +36,7 @@ class giveaways(gsettings, name="Giveaways"):
     with advanced requirements, customizable embeds
     and much more."""
 
-    __version__ = "1.7.1"
+    __version__ = "1.7.5"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot):
@@ -206,6 +206,15 @@ class giveaways(gsettings, name="Giveaways"):
                 ctx, "none"
             )  # requirements weren't provided, they are now null
 
+        if not ctx.channel.permissions_for(ctx.me).manage_messages and not requirements.null:
+            await ctx.send(
+                warning(
+                    "I will not be able to enforce the requirements "
+                    "on the giveaway since I am missing the `Manage Messages` permission. "
+                    "But the giveaway will start as intended."
+                )
+            )
+
         prize = " ".join(prize)
 
         if not getattr(self, "amari", None):  # amari token wasn't available.
@@ -263,11 +272,16 @@ class giveaways(gsettings, name="Giveaways"):
         donor_join = not flags.get("no_donor")
         msg = flags.get("msg")
         thank = flags.get("thank")
+        message_count = flags.get("message_count", 0)
+        message_cooldown = flags.get("message_cooldown", 0)
         if no_defaults:
             requirements = requirements.no_defaults(True)  # ignore defaults.
 
         if not no_defaults:
             requirements = requirements.no_defaults()  # defaults will be used!!!
+
+        if message_count != 0:
+            requirements.messages = message_count
 
         req_str = await requirements.get_str(ctx)
         if not requirements.null and not req_str == "":
@@ -303,7 +317,7 @@ class giveaways(gsettings, name="Giveaways"):
             embed = discord.Embed(
                 description=tmsg.format_map(
                     Coordinate(
-                        donor=SafeMember(donor) if donor else SafeMember(ctx.author),
+                        donor=SafeMember(donor or ctx.author),
                         prize=prize,
                     )
                 ),
@@ -325,6 +339,7 @@ class giveaways(gsettings, name="Giveaways"):
             "prize": prize,
             "host": ctx.author.id,
             "bot": self.bot,
+            "message_cooldown": message_cooldown,
         }
         giveaway = Giveaway(**data)
         self.giveaway_cache.append(giveaway)
@@ -475,23 +490,6 @@ class giveaways(gsettings, name="Giveaways"):
 
         await ctx.send("Cleared all giveaway data.")
 
-    async def get_active_giveaways(
-        self, guild: discord.Guild = None
-    ) -> typing.Tuple[typing.List[Giveaway], typing.List[EndedGiveaway]]:
-        data = self.giveaway_cache.copy()
-        active = []
-        failed = []
-        for i in data:
-            if guild is not None:
-                if i.guild != guild:
-                    continue
-            if await i.get_message() is None:
-                failed.append(await i.end())
-            else:
-                active.append(i)
-
-        return active, failed
-
     @giveaway.command(name="list", usage="")
     @commands.cooldown(1, 30, commands.BucketType.member)
     @commands.max_concurrency(3, commands.BucketType.default, wait=True)
@@ -540,7 +538,7 @@ class giveaways(gsettings, name="Giveaways"):
         embeds = group_embeds_by_fields(
             *fields,
             per_embed=5,
-            title=f"Active giveaways in **{ctx.guild}**"
+            title=f"Active giveaways in **{ctx.guild.name}**"
             if not globally
             else "Active giveaways **globally**",
             color=await self.get_embed_color(ctx),
@@ -552,8 +550,6 @@ class giveaways(gsettings, name="Giveaways"):
             )
             for embed in embeds
         ]
-
-        print(embeds)
 
         if len(embeds) == 1:
             return await ctx.send(embed=embeds[0])
@@ -677,11 +673,23 @@ class giveaways(gsettings, name="Giveaways"):
     > `argument[requirements_type]`
 
     > The requirements_type are below with their argument types specified in () brackets:
-        • required (role) `(role) means either a role name or id or mention`
+        • required (role)
+        `The role required for the giveaway`
+
         • blacklist (role)
+        `The role blacklisted from the giveaway`
+
         • bypass (role)
+        `The role that bypasses the requirements`
+
         • amari level (number)
+        `The minimum AmariBot level required for the giveaway`
+
         • amari weekly (number)
+        `The minimum weekly AmariBot XP required for the giveaway`
+
+        • messages (number)
+        `The minimum amount of messages sent by the user after the giveaway started`
 
     > For the required roles, you dont need to use brackets. You can just type a role and it will work.
 
@@ -694,7 +702,7 @@ class giveaways(gsettings, name="Giveaways"):
 
     > Here's another more complicated example:
 
-    >    **{ctx.prefix}g start 1h30m 1 somerolemention[bypass];;123456789[blacklist];;12[alvl] [alevel]**
+    >    **{ctx.prefix}g start 1h30m 1 somerolemention[bypass];;123456789[blacklist];;12[alvl]**
 
     ***NOTE***:
         Bypass overrides blacklist, so users with even one bypass role specified
@@ -738,6 +746,13 @@ class giveaways(gsettings, name="Giveaways"):
 
     > *--channel*/*--chan*
         This redirects the giveaway to the provided channel after the flag.
+
+    > *--messages*/*--msgs*
+        This sets the minimum amount of messages a user must send after the giveaway to join. This will override the requirement if passed.
+
+    > *--cooldown*
+        This adds a cooldown to the message tracking for the requirement.
+        This is useful if people will spam messages to fulfil the requirements.
 """
             + (
                 """
@@ -791,7 +806,7 @@ class giveaways(gsettings, name="Giveaways"):
         `{ctx.prefix}gset color`
         """
         )
-        pages = list(pagify(something, delims=["\n***"], page_length=2500))
+        pages = list(pagify(something, delims=["\n***"], page_length=2800))
         for page in pages:
             embed = discord.Embed(title="Giveaway Explanation!", description=page, color=0x303036)
             embed.set_footer(text=f"Page {pages.index(page) + 1} out of {len(pages)}")

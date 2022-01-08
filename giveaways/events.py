@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from datetime import datetime
-from typing import List
+from typing import List, Tuple
 
 import discord
 from amari import AmariClient
@@ -85,6 +85,23 @@ You can then set the amari api key with the `[p]set api amari auth,<api key>` co
             s.backup_task = s.bot.loop.create_task(s.backup_cache(interval))
         return s
 
+    async def get_active_giveaways(
+        self, guild: discord.Guild = None
+    ) -> Tuple[List[Giveaway], List[EndedGiveaway]]:
+        data = self.giveaway_cache.copy()
+        active = []
+        failed = []
+        for i in data:
+            if guild is not None:
+                if i.guild != guild:
+                    continue
+            if await i.get_message() is None:
+                failed.append(await i.end())
+            else:
+                active.append(i)
+
+        return active, failed
+
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         data = self.giveaway_cache
@@ -92,133 +109,69 @@ You can then set the amari api key with the `[p]set api amari auth,<api key>` co
             return
         if payload.message_id in (e := [i.message_id for i in data]):
             if str(payload.emoji) == (emoji := (ind := data[e.index(payload.message_id)]).emoji):
-                message = await ind.get_message()
-                if not ind.donor_can_join and payload.member.id == ind._donor:
-                    await message.remove_reaction(emoji, payload.member)
+                results = await ind.verify_entry(payload.member)
+                if results is True:
+                    return
+                elif isinstance(results, tuple):
+                    message = await ind.get_message()
+                    description = results[1]
+                    try:
+                        await message.remove_reaction(emoji, payload.member)
+                    except discord.Forbidden:
+                        pass
                     embed = discord.Embed(
                         title="Entry Invalidated!",
-                        description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
-                        f"This giveaway used the `--no-donor` flag which disallows the donor/host to join  the giveaway.",
+                        description=description,
                         color=discord.Color.red(),
                         timestamp=datetime.utcnow(),
-                    )
+                    ).set_thumbnail(url=message.guild.icon_url)
                     try:
-                        return await ind.donor.send(embed=embed)
+                        return await payload.member.send(embed=embed)
                     except Exception:
                         return
 
-                if ind.requirements.null:
-                    return
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if not message.guild:
+            return
 
-                else:
-                    requirements = ind.requirements.as_role_dict()
+        if message.author.bot:
+            return
 
-                    if requirements["bypass"]:
-                        maybe_bypass = any(
-                            [role in payload.member.roles for role in requirements["bypass"]]
-                        )
-                        if maybe_bypass:
-                            return  # All the below requirements can be overlooked if user has bypass role.
+        giveaways = list(
+            filter(
+                lambda x: x.requirements.messages != 0,
+                (await self.get_active_giveaways(message.guild))[0],
+            )
+        )
 
-                    for key, value in requirements.items():
-                        if value:
-                            if isinstance(value, list):
-                                for i in value:
-                                    if key == "blacklist" and i in payload.member.roles:
-                                        await message.remove_reaction(emoji, payload.member)
-                                        embed = discord.Embed(
-                                            title="Entry Invalidated!",
-                                            description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
-                                            "You had a role that was blacklisted from this giveaway.\n"
-                                            f"Blacklisted role: `{i.name}`",
-                                            color=discord.Color.random(),
-                                            timestamp=message.created_at,
-                                        )
+        if not giveaways:
+            return
 
-                                        try:
-                                            await payload.member.send(embed=embed)
-                                        except discord.HTTPException:
-                                            pass
-                                        continue
-
-                                    elif key == "required" and i not in payload.member.roles:
-                                        await message.remove_reaction(emoji, payload.member)
-                                        embed = discord.Embed(
-                                            title="Entry Invalidated!",
-                                            description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
-                                            "You did not have the required role to join it.\n"
-                                            f"Required role: `{i.name}`",
-                                            color=discord.Color.random(),
-                                            timestamp=message.created_at,
-                                        )
-                                        embed.set_thumbnail(url=message.guild.icon_url)
-                                        try:
-                                            await payload.member.send(embed=embed)
-                                        except discord.HTTPException:
-                                            pass
-                                        continue
-
-                            else:
-                                user = None
-                                if key == "amari_level":
-                                    try:
-                                        user = await self.amari.getGuildUser(
-                                            payload.member.id, payload.member.guild.id
-                                        )
-                                    except:
-                                        pass
-                                    level = int(user.level) if user else 0
-                                    if int(level) < int(value):
-                                        await message.remove_reaction(emoji, payload.member)
-                                        embed = discord.Embed(
-                                            title="Entry Invalidated!",
-                                            description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
-                                            f"You are amari level `{level}` which is `{value - level}` levels fewer than the required `{value}`.",
-                                            color=discord.Color.random(),
-                                            timestamp=message.created_at,
-                                        )
-                                        embed.set_thumbnail(url=message.guild.icon_url)
-                                        try:
-                                            await payload.member.send(embed=embed)
-                                        except discord.HTTPException:
-                                            pass
-                                        continue
-
-                                elif key == "amari_weekly":
-                                    try:
-                                        user = await self.amari.getGuildUser(
-                                            payload.member.id, payload.member.guild.id
-                                        )
-                                    except:
-                                        pass
-                                    weeklyxp = int(user.weeklyxp) if user else 0
-                                    if int(weeklyxp) < int(value):
-                                        await message.remove_reaction(emoji, payload.member)
-                                        embed = discord.Embed(
-                                            title="Entry Invalidated!",
-                                            description=f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
-                                            f"You have `{weeklyxp}` weekly amari xp which is `{value - weeklyxp}` xp fewer than the required `{value}`.",
-                                            color=discord.Color.random(),
-                                            timestamp=message.created_at,
-                                        )
-                                        embed.set_thumbnail(url=message.guild.icon_url)
-                                        try:
-                                            await payload.member.send(embed=embed)
-                                        except discord.HTTPException:
-                                            pass
-                                        continue
+        for i in giveaways:
+            bucket = i._message_cooldown.get_bucket(message)
+            retry_after = bucket.update_rate_limit()
+            if not retry_after:
+                i._message_cache.setdefault(message.author.id, 0)
+                i._message_cache[message.author.id] += 1
 
     @tasks.loop(seconds=5)
     async def end_giveaways(self):
-        await self.bot.wait_until_red_ready()
         active_data = self.giveaway_cache.copy()
         pending_data = self.pending_cache.copy()
         for i in active_data:
             await i.edit_timer()
             if i.remaining_time == 0:
-                await i.end()
+                try:
+                    await i.end()
+                except Exception as e:
+                    log.exception("There was an exception while ending giveaways: \n", exc_info=e)
 
         for i in pending_data:
             if i.remaining_time_to_start == 0:
                 await i.start_giveaway()
                 self.pending_cache.remove(i)
+
+    @end_giveaways.before_loop
+    async def end_giveaways_after(self):
+        await self.bot.wait_until_red_ready()

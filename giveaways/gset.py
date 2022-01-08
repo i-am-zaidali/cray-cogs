@@ -2,7 +2,7 @@ import discord
 from redbot.core import commands
 from redbot.core.utils.chat_formatting import box, humanize_list, humanize_timedelta
 
-from .events import log, main
+from .events import main
 from .util import TimeConverter
 
 
@@ -363,8 +363,13 @@ class gsettings(main):
 **Embed color: **{await self.get_embed_color(ctx)}
 **Show defaults in giveaway embed?: **{await self.config.get_guild(ctx.guild, "show_defaults")}
 **Giveaway Thank message:** {box(tmsg)}
-**Giveaway Ending message:** {box(endmsg)}
-			""",
+**Giveaway Ending message:** {box(endmsg)}\n
+			"""
+            + (
+                f"**Backup Interval:** {humanize_timedelta(seconds=await self.config.config.backup()) if await self.config.config.backup() else 'disabled'}"
+                if ctx.author.id in ctx.bot.owner_ids
+                else ""
+            ),
             color=await self.get_embed_color(ctx),
         )
 

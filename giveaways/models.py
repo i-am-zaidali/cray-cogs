@@ -30,7 +30,7 @@ class Requirements(commands.Converter):
     """
     A wrapper for giveaway requirements."""
 
-    __slots__ = ["required", "blacklist", "bypass", "amari_level", "amari_weekly"]
+    __slots__ = ["required", "blacklist", "bypass", "amari_level", "amari_weekly", "messages"]
 
     def __init__(
         self,
@@ -43,6 +43,7 @@ class Requirements(commands.Converter):
         default_by: List[int] = [],
         amari_level: int = None,
         amari_weekly: int = None,
+        messages: int = None,
     ):
 
         self.guild = guild  # guild object for role fetching
@@ -51,6 +52,9 @@ class Requirements(commands.Converter):
         self.bypass = bypass  # list of roles bypassing this giveaway
         self.amari_level = amari_level  # amari level required for this giveaway
         self.amari_weekly = amari_weekly  # amari weekly required for this giveaway
+        self.messages = (
+            messages or 0
+        )  # messages to be sent after the giveaway has started required for this giveaway
 
         self.default_bl = default_bl
         self.default_by = default_by
@@ -145,7 +149,7 @@ class Requirements(commands.Converter):
         except:
             maybeid = arg
 
-        roles = {
+        data = {
             "blacklist": [],
             "bypass": [],
             "required": [],
@@ -153,14 +157,15 @@ class Requirements(commands.Converter):
             "default_bl": [],
             "amari_level": None,
             "amari_weekly": None,
+            "messages": 0,
         }
         new_bl = await ctx.command.cog.config.all_blacklisted_roles(ctx.guild)
         new_by = await ctx.command.cog.config.all_bypass_roles(ctx.guild)
-        roles["default_bl"] += new_bl
-        roles["default_by"] += new_by
+        data["default_bl"] += new_bl
+        data["default_by"] += new_by
 
         if isinstance(maybeid, str) and maybeid.lower() == "none":
-            return cls(guild=ctx.guild, **roles)
+            return cls(guild=ctx.guild, **data)
 
         if isinstance(maybeid, list):
             for i in maybeid:
@@ -169,7 +174,7 @@ class Requirements(commands.Converter):
                         role = await RoleConverter().convert(ctx, i)
                     except RoleNotFound:
                         raise BadArgument("Role with id: {} not found.".format(i))
-                    roles["required"].append(role.id)
+                    data["required"].append(role.id)
 
                 else:
                     _list = i.split("[")
@@ -178,24 +183,24 @@ class Requirements(commands.Converter):
                             role = await RoleConverter().convert(ctx, _list[0])
                         except RoleNotFound:
                             raise BadArgument(f"Role with id: {_list[0]} was not found.")
-                        roles["blacklist"].append(role.id)
+                        data["blacklist"].append(role.id)
                     elif "bypass" in _list[1]:
                         try:
                             role = await RoleConverter().convert(ctx, _list[0])
                         except RoleNotFound:
                             raise BadArgument(f"Role with id: {_list[0]} was not found.")
-                        roles["bypass"].append(role.id)
+                        data["bypass"].append(role.id)
                     elif "alevel" in _list[1] or "alvl" in _list[1]:
-                        roles["amari_level"] = int(_list[0])
+                        data["amari_level"] = int(_list[0])
                     elif "aweekly" in _list[1] or "aw" in _list[1]:
-                        roles["amari_weekly"] = int(_list[0])
+                        data["amari_weekly"] = int(_list[0])
 
         else:
             if not "[" in maybeid:
                 role = await RoleConverter().convert(ctx, maybeid)
                 if not role:
                     raise BadArgument("Role with id: {} not found.".format(maybeid))
-                roles["required"].append(role.id)
+                data["required"].append(role.id)
 
             else:
                 _list = maybeid.split("[")
@@ -204,24 +209,26 @@ class Requirements(commands.Converter):
                         role = await RoleConverter().convert(ctx, _list[0])
                     except RoleNotFound:
                         raise BadArgument(f"Role with id: {_list[0]} was not found.")
-                    if role.id in roles["default_bl"]:
+                    if role.id in data["default_bl"]:
                         raise BadArgument(
                             f"Role `@{role.name}` is already blacklisted by default."
                         )
-                    roles["blacklist"].append(role.id)
+                    data["blacklist"].append(role.id)
                 elif "bypass" in _list[1]:
                     try:
                         role = await RoleConverter().convert(ctx, _list[0])
                     except RoleNotFound:
                         raise BadArgument(f"Role with id: {_list[0]} was not found.")
-                    if role.id in roles["default_by"]:
+                    if role.id in data["default_by"]:
                         raise BadArgument(f"Role `@{role.name}` is already bypassing by default.")
-                    roles["bypass"].append(role.id)
-                elif "alevel" in _list[1] or "alvl" in _list[1]:
-                    roles["amari_level"] = int(_list[0])
-                elif "aweekly" in _list[1] or "aw" in _list[1]:
-                    roles["amari_weekly"] = int(_list[0])
-        return cls(guild=ctx.guild, **roles)
+                    data["bypass"].append(role.id)
+                elif "alevel" in _list[1] or "alvl" in _list[1] or "amarilevel" in _list[1]:
+                    data["amari_level"] = int(_list[0])
+                elif "aweekly" in _list[1] or "aw" in _list[1] or "amariweekly" in _list[1]:
+                    data["amari_weekly"] = int(_list[0])
+                elif "messages" in _list[1] or "msgs" in _list[1]:
+                    data["messages"] = int(_list[0])
+        return cls(guild=ctx.guild, **data)
 
 
 class BaseGiveaway:
@@ -238,6 +245,7 @@ class BaseGiveaway:
         channel=None,
         requirements=None,
         winners=None,
+        **kwargs,
     ) -> None:
         self.bot: Red = bot
         self.cog = cog
@@ -246,6 +254,12 @@ class BaseGiveaway:
         self._host: int = host
         self._channel: int = channel
         self.requirements: Requirements = requirements
+        if self.requirements.messages != 0:
+            self._message_cache = kwargs.get("message_counter") or Counter()
+            cd = kwargs.get("message_cooldown", 0)
+            self._message_cooldown = commands.CooldownMapping.from_cooldown(
+                1, cd, commands.BucketType.guild
+            )
         self.winners: int = winners
 
     def __getitem__(self, key):
@@ -280,6 +294,84 @@ class BaseGiveaway:
         else:
             return 0
 
+    async def verify_entry(self, entry: discord.Member):
+        message = await self.get_message()
+        if not self.donor_can_join and entry.id == self._donor:
+            return False, (
+                f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                "You used the `--no-donor` flag which "
+                "restricts you from joining your own giveaway."
+            )
+
+        if self.requirements.null:
+            return True
+
+        else:
+            requirements = self.requirements.as_role_dict()
+
+            if requirements["bypass"]:
+                maybe_bypass = any([role in entry.roles for role in requirements["bypass"]])
+                if maybe_bypass:
+                    return True  # All the below requirements can be overlooked if user has bypass role.
+
+            for key, value in requirements.items():
+                if value:
+                    if isinstance(value, list):
+                        for i in value:
+                            if key == "blacklist" and i in entry.roles:
+                                return False, (
+                                    f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                    "You had a role that was blacklisted from this giveaway.\n"
+                                    f"Blacklisted role: `{i.name}`"
+                                )
+
+                            elif key == "required" and i not in entry.roles:
+                                return False, (
+                                    f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                    "You did not have the required role to join it.\n"
+                                    f"Required role: `{i.name}`"
+                                )
+
+                    else:
+                        user = None
+                        if key == "amari_level":
+                            try:
+                                user = await self.cog.amari.getGuildUser(entry.id, entry.guild.id)
+                            except:
+                                pass
+                            level = getattr(user, "level", 0)  # int(user.level) if user else 0
+                            if int(level) < int(value):
+                                return False, (
+                                    f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                    f"You are amari level `{level}` which is `{value - level}` levels fewer than the required `{value}`."
+                                )
+
+                        elif key == "amari_weekly":
+                            try:
+                                user = await self.cog.amari.getGuildUser(entry.id, entry.guild.id)
+                            except:
+                                pass
+                            weeklyxp = getattr(
+                                user, "weeklyxp", 0
+                            )  # int(user.weeklyxp) if user else 0
+                            if int(weeklyxp) < int(value):
+                                return False, (
+                                    f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                    f"You have `{weeklyxp}` weekly amari xp which is `{value - weeklyxp}` "
+                                    f"xp fewer than the required `{value}`."
+                                )
+
+                        elif key == "messages":
+                            messages = self._message_cache.setdefault(entry.id, 0)
+                            if not messages >= value:
+                                return False, (
+                                    f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                    f"You have sent `{messages}` messages since the giveaway started "
+                                    f"which is `{value - messages}` messages fewer than the required `{value}`."
+                                )
+
+            return True
+
     def to_dict(self):
         raise NotImplementedError()  # this method must be implemented by the subclasses
 
@@ -304,8 +396,9 @@ class Giveaway(BaseGiveaway):
         use_multi: bool = True,
         donor: Optional[int] = None,
         donor_can_join: bool = True,
+        **kwargs,
     ):
-        super().__init__(bot, cog, prize, time, host, channel, requirements, winners)
+        super().__init__(bot, cog, prize, time, host, channel, requirements, winners, **kwargs)
         self.message_id = message
         self.emoji = emoji or "🎉"
         self.use_multi = use_multi
@@ -322,14 +415,15 @@ class Giveaway(BaseGiveaway):
         return self.guild.get_member(self._donor)
 
     async def get_message(self) -> discord.Message:
-        msg = self.bot._connection._get_message(
-            self.message_id
+        msg = list(
+            filter(lambda x: x.id == self.message_id, self.bot.cached_messages)
         )  # i mean, if its cached, why waste an api request right?
-        if not msg:
-            try:
-                msg = await self.channel.fetch_message(self.message_id)
-            except Exception:
-                msg = None
+        if msg:
+            return msg[0]
+        try:
+            msg = await self.channel.fetch_message(self.message_id)
+        except Exception:
+            msg = None
         return msg
 
     def get_next_edit_time(self):
@@ -450,26 +544,32 @@ class Giveaway(BaseGiveaway):
             .users()
             .flatten()
         )
+        random.shuffle(entrants)
         try:
-            entrants.pop(entrants.index(msg.guild.me))
+            entrants.pop(entrants.index(guild.me))
         except:
             pass
         if self.use_multi:
-            entrants = await self.cog.config.get_list_multi(channel.guild, entrants)
+            entrants = await self.cog.config.get_list_multi(guild, entrants)
         link = gmsg.jump_url
 
-        if len(entrants) == 0 or winners == 0:
+        w_list = []
+        for i in entrants:
+            i = guild.get_member(i.id)
+            if not len(w_list) == winners and await self.verify_entry(i):
+                w_list.append(i)
+
+        if len(w_list) == 0 or winners == 0:
             embed = gmsg.embeds[0]
             embed.description = (
                 f"This giveaway has ended.\nThere were 0 winners.\n**Host:** <@{host}>"
             )
-            embed.set_footer(
-                text=f"{msg.guild.name} - Winners: {winners}", icon_url=msg.guild.icon_url
-            )
+            embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=guild.icon_url)
             await gmsg.edit(embed=embed)
 
             await gmsg.reply(
-                f"The giveaway for ***{prize}*** has ended. There were 0 winners.\nClick on my replied message to jump to the giveaway.\n"
+                f"The giveaway for ***{prize}*** has ended. There were 0 users who qualified for the prize."
+                f"\nClick on my replied message to jump to the giveaway.\n"
                 f"Or click on this link: {gmsg.jump_url}"
             )
             if hostdm == True:
@@ -487,7 +587,6 @@ class Giveaway(BaseGiveaway):
             return ended
 
         w = ""
-        w_list = [random.choice(entrants) for i in range(winners)]
 
         wcounter = Counter(w_list)
         for k, v in wcounter.items():
@@ -497,9 +596,7 @@ class Giveaway(BaseGiveaway):
 
         embed = gmsg.embeds[0]
         embed.description = f"This giveaway has ended.\n**Winners:** {w}\n**Host:** <@{host}>"
-        embed.set_footer(
-            text=f"{msg.guild.name} - Winners: {winners}", icon_url=msg.guild.icon_url
-        )
+        embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=guild.icon_url)
         await gmsg.edit(embed=embed)
 
         await gmsg.reply(endmsg.format_map(formatdict))
@@ -535,6 +632,8 @@ class Giveaway(BaseGiveaway):
             "donor": self._donor,
             "donor_can_join": self.donor_can_join,
         }
+        if getattr(self, "_message_cache", None):
+            data["message_counter"] = self._message_cache
         return data
 
 
@@ -616,7 +715,7 @@ class EndedGiveaway(BaseGiveaway):
             "prize": self.prize,
             "requirements": self.requirements.as_dict(),
             "winnersno": self.winners,
-            "winnerslist": self.winnerslist,
+            "winnerslist": self._winnerlist,
             "reason": self.reason,
         }
 
