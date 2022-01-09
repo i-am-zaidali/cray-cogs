@@ -333,6 +333,7 @@ class BaseGiveaway:
                                 )
 
                     else:
+                        user = None
                         if key == "amari_level":
                             try:
                                 user = await self.cog.amari.getGuildUser(entry.id, entry.guild.id)
