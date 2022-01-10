@@ -203,7 +203,7 @@ class VoteTracker(commands.Cog):
 
         This command can only be run by bot owners."""
         await self.config.role_id.set(role.id)
-        await self.config.guild.set(ctx.guild.id)
+        await self.config.guild_id.set(ctx.guild.id)
 
         await ctx.send(f"Set the role for voting to {role.name}")
 
