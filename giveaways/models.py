@@ -594,7 +594,8 @@ class Giveaway(BaseGiveaway):
 
         formatdict = {"winner": w, "prize": prize, "link": link}
 
-        embed = gmsg.embeds[0]
+        embed: discord.Embed = gmsg.embeds[0]
+        embed.color = discord.Color.red()
         embed.description = f"This giveaway has ended.\n**Winners:** {w}\n**Host:** <@{host}>"
         embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=guild.icon_url)
         await gmsg.edit(embed=embed)
