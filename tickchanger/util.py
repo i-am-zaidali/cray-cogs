@@ -24,8 +24,11 @@ class FakeContext(commands.Context):
             :code:`True` if adding the reaction succeeded.
 
         """
+        emoji = (
+            self.tick_emoji if self.channel.permissions_for(self.me).external_emojis else old_tick
+        )
         try:
-            await self.message.add_reaction(self.tick_emoji)
+            await self.message.add_reaction(emoji)
         except discord.HTTPException:
             return False
         else:
