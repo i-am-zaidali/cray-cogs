@@ -253,6 +253,7 @@ class BaseGiveaway:
         self._time: int = time
         self._host: int = host
         self._channel: int = channel
+        self._guild: Optional[int] = kwargs.get("guild", None)
         self.requirements: Requirements = requirements
         if self.requirements.messages != 0:
             self._message_cache = kwargs.get("message_counter") or Counter()
@@ -281,11 +282,16 @@ class BaseGiveaway:
 
     @property
     def channel(self) -> discord.TextChannel:
-        return self.bot.get_channel(self._channel)
+        return (
+            self.bot.get_channel(self._channel)
+            if not self._guild
+            else self.guild.get_channel(self._channel)
+        )
 
     @property
     def guild(self) -> discord.Guild:
-        return self.channel.guild
+        print(self._guild)
+        return self.bot.get_guild(self._guild) if self._guild else None
 
     @property
     def remaining_time(self) -> int:
@@ -382,7 +388,6 @@ class Giveaway(BaseGiveaway):
 
     def __init__(
         self,
-        *,
         bot: Red,
         cog,
         time: int = int(time.time()),
@@ -640,10 +645,21 @@ class Giveaway(BaseGiveaway):
 
 class EndedGiveaway(BaseGiveaway):
     def __init__(
-        self, bot, cog, host, channel, message, winnersno, winnerslist, prize, requirements, reason
+        self,
+        bot,
+        cog,
+        host,
+        channel,
+        message,
+        winnersno,
+        winnerslist,
+        prize,
+        requirements,
+        reason,
+        **kwargs,
     ) -> None:
         super().__init__(
-            bot, cog, prize, None, host, channel, requirements, winnersno
+            bot, cog, prize, None, host, channel, requirements, winnersno, **kwargs
         )  # winners no is number of winners and list is a list of winners.
         self.message_id = message
         self._winnerlist = winnerslist
@@ -711,7 +727,7 @@ class EndedGiveaway(BaseGiveaway):
         return {
             "message": self.message_id,
             "channel": self._channel,
-            "guild": self.guild.id,
+            "guild": getattr(self.guild, "id", None),
             "host": self._host,
             "prize": self.prize,
             "requirements": self.requirements.as_dict(),
@@ -722,7 +738,18 @@ class EndedGiveaway(BaseGiveaway):
 
 
 class PendingGiveaway(BaseGiveaway):
-    def __init__(self, bot, cog, host, _time, winners, requirements, prize, flags):
+    def __init__(
+        self,
+        bot,
+        cog,
+        host,
+        _time,
+        winners,
+        requirements,
+        prize,
+        flags,
+        **kwargs,
+    ):
         super().__init__(bot, cog, prize, _time, host, flags.get("channel"), requirements, winners)
         self.flags: dict = flags
         self.start: int = flags.get("starts_in")

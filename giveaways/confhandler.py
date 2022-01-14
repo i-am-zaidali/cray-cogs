@@ -268,7 +268,6 @@ class conf:
                         )
                     }
                 )
-                i.pop("guild")
             self.cache = [Giveaway(bot=bot, cog=cog, **i) for i in org]
 
         # ended giveaway caching
@@ -282,7 +281,6 @@ class conf:
                         )
                     }
                 )
-                i.pop("guild")
             self.ended_cache = [EndedGiveaway(bot=bot, cog=cog, **i) for i in org]
 
         # pending giveaway caching
@@ -297,5 +295,4 @@ class conf:
                         )
                     }
                 )
-                i.pop("guild")
             self.pending_cache = [PendingGiveaway(bot=bot, cog=cog, **i) for i in org]
