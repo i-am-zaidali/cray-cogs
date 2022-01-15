@@ -20,6 +20,7 @@ log = logging.getLogger("red.skcogs.VoteTracker")
 
 class VoteTracker(commands.Cog):
     """Track votes for your bot on [Top.gg](https://top.gg)"""
+
     __version__ = "1.5.0"
     __author__ = ["crayyy_zee#2900"]
 
