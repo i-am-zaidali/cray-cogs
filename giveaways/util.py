@@ -40,6 +40,14 @@ def group_embeds_by_fields(
     return groups
 
 
+def is_valid_message(message: discord.Message) -> bool:
+    """
+    This just checks if the message we recieved from cache is valid with all required attributes.
+
+    I need to check this because the cached message for some reason doesn't have all the attributes sometimes."""
+    return all(message.author, message.channel, message.guild, message.embeds)
+
+
 def is_gwmanager():
     async def predicate(ctx):
         roles = await ctx.cog.config.get_managers(ctx.guild)
@@ -110,11 +118,18 @@ class WinnerConverter(commands.Converter):
 
 class GiveawayMessageConverter(MessageConverter):
     async def convert(self, ctx, argument):
-        message = await super().convert(ctx, argument)
+        message = None
+        try:
+            message = await super().convert(ctx, argument)
+        except Exception:
+            pass
+
+        messageid = getattr(message, "id", None) or int(argument)
+
         active_cache = ctx.cog.giveaway_cache.copy()
         msg = list(
             filter(
-                lambda x: x.message_id == message.id and x.guild.id == message.guild.id,
+                lambda x: x.message_id == messageid,
                 active_cache,
             )
         )
@@ -122,7 +137,7 @@ class GiveawayMessageConverter(MessageConverter):
             ended_cache = ctx.cog.ended_cache.copy()
             msg = list(
                 filter(
-                    lambda x: x.message_id == message.id and x.guild.id == message.guild.id,
+                    lambda x: x.message_id == messageid,
                     ended_cache,
                 )
             )
@@ -131,7 +146,7 @@ class GiveawayMessageConverter(MessageConverter):
             msg = msg[0]
 
         except IndexError:
-            raise BadArgument("That message is not a giveaway message.")
+            raise BadArgument(f"Giveaway with message id {messageid} not found.")
 
         return msg
 

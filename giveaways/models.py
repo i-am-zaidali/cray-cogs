@@ -13,7 +13,7 @@ from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list, humanize_timedelta
 
-from .util import Coordinate
+from .util import Coordinate, is_valid_message
 
 
 class EndReason(Enum):
@@ -580,7 +580,7 @@ class Giveaway(BaseGiveaway):
             if hostdm == True:
                 await self.hdm(host, gmsg.jump_url, prize, "None")
 
-            end_data.update({"winnerslist": []})
+            end_data.update({"winnerslist": [], "ended_at": datetime.now()})
             if not canceller:
                 end_data.update({"reason": EndReason.SUCCESS.value})
             else:
@@ -614,7 +614,7 @@ class Giveaway(BaseGiveaway):
             await self.hdm(host, gmsg.jump_url, prize, w)
 
         self.cog.giveaway_cache.remove(self)
-        end_data.update({"winnerslist": [i.id for i in w_list]})
+        end_data.update({"winnerslist": [i.id for i in w_list], "ended_at": datetime.now()})
         if not canceller:
             end_data.update({"reason": EndReason.SUCCESS.value})
         else:
@@ -663,6 +663,9 @@ class EndedGiveaway(BaseGiveaway):
         )  # winners no is number of winners and list is a list of winners.
         self.message_id = message
         self._winnerlist = winnerslist
+        self._ended_at = kwargs.get(
+            "ended_at"
+        )  # i mean come on we need to replace this with something
         self.reason: str = reason
 
     def __hash__(self) -> int:
@@ -672,7 +675,7 @@ class EndedGiveaway(BaseGiveaway):
         msg = self.bot._connection._get_message(
             self.message_id
         )  # i mean, if its cached, why waste an api request right?
-        if not msg:
+        if not msg or not is_valid_message(msg):  # check if message is valid lol.
             try:
                 msg = await self.channel.fetch_message(self.message_id)
             except Exception:
@@ -719,6 +722,18 @@ class EndedGiveaway(BaseGiveaway):
             f"Congratulations :tada:{humanize_list(list(winner))}:tada:. You are the new winners for the giveaway below.\n{link}"
         )
 
+    async def ended_at(self):
+        if not self._ended_at:
+            if not (msg := await self.get_message()):
+                self._ended_at = "Not available."
+
+            else:
+                timestamp: datetime = msg.embeds[0].timestamp
+                secs = int(timestamp.timestamp)
+                self._ended_at = f"<t:{secs}:R>"
+
+        return self._ended_at
+
     @property
     def winnerslist(self):
         return [self.guild.get_member(i) for i in self._winnerlist]
@@ -734,6 +749,7 @@ class EndedGiveaway(BaseGiveaway):
             "winnersno": self.winners,
             "winnerslist": self._winnerlist,
             "reason": self.reason,
+            "ended_at": self._ended_at,
         }
 
 

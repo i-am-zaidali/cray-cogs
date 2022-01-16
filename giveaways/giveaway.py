@@ -559,7 +559,7 @@ class giveaways(gsettings, name="Giveaways"):
 
     @giveaway.command(name="show")
     @commands.bot_has_permissions(embed_links=True)
-    async def gshow(self, ctx: commands.Context, giveaway: discord.Message = None):
+    async def gshow(self, ctx: commands.Context, giveaway: int = None):
         """
         See the details of a giveaway.
 
@@ -567,8 +567,9 @@ class giveaways(gsettings, name="Giveaways"):
         You can also reply to a giveaway message to see its details instead of passing a message id."""
         if giveaway:
             try:
-                gmsg = await self.converter.convert(ctx, str(giveaway.id))
+                gmsg = await self.converter.convert(ctx, str(giveaway))
             except Exception as e:
+                log.exception("Exception in giveaway show command: ", exc_info=e)
                 return await ctx.send(e)
 
         else:
@@ -596,12 +597,12 @@ class giveaways(gsettings, name="Giveaways"):
             + (
                 f"> Donor: **{gmsg.donor}**\n"
                 if isinstance(gmsg, Giveaway)
-                else f"> Reasion for ending:\n> **{gmsg.reason}**\n"
+                else f"> Reasion for ending:\n> {gmsg.reason}\n"
             )
             + (
                 f"> Ends in: **{humanize_timedelta(seconds=gmsg.remaining_time)}**\n"
                 if isinstance(gmsg, Giveaway)
-                else f"> Winners: {winners}"
+                else f"> Winners: {winners}\n> Ended at: **{await gmsg.ended_at()}**"
             )
         )
 
@@ -618,20 +619,20 @@ class giveaways(gsettings, name="Giveaways"):
         """
         See the users who have performed the most giveaways in your server.
         """
-        async with self.config.config.guild(ctx.guild).top_managers() as top:
-            if not top:
-                return await ctx.send("No giveaways performed here in this server yet.")
+        top = await self.config.get_guild(ctx.guild, "top_managers")
+        if not top:
+            return await ctx.send("No giveaways performed here in this server yet.")
 
-            _sorted = {k: v for k, v in sorted(top.items(), key=lambda i: i[1], reverse=True)}
+        _sorted = {k: v for k, v in sorted(top.items(), key=lambda i: i[1], reverse=True)}
 
-            embed = discord.Embed(
-                title=f"Top giveaway managers in **{ctx.guild.name}**",
-                description="\n".join(
-                    [f"<@{k}> : {v} giveaway(s) performed." for k, v in _sorted.items()]
-                ),
-            )
-            embed.set_footer(text=ctx.guild.name, icon_url=ctx.guild.icon_url)
-            return await ctx.send(embed=embed)
+        embed = discord.Embed(
+            title=f"Top giveaway managers in **{ctx.guild.name}**",
+            description="\n".join(
+                [f"<@{k}> : {v} giveaway(s) performed." for k, v in _sorted.items()]
+            ),
+        )
+        embed.set_footer(text=ctx.guild.name, icon_url=ctx.guild.icon_url)
+        return await ctx.send(embed=embed)
 
     @giveaway.command(name="explain")
     @commands.cooldown(1, 5, commands.BucketType.guild)
