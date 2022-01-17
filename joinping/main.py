@@ -42,6 +42,9 @@ class JoinPing(commands.Cog):
     async def _build_cache(self):
         self.cache = await self.config.all_guilds()
 
+    async def red_delete_data_for_user(self, *, requester, user_id: int):
+        return True
+
     @commands.Cog.listener()
     async def on_member_join(self, member):
         guild_data: dict = self.cache.get(member.guild.id)
