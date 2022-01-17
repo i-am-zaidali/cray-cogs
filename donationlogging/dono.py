@@ -622,7 +622,6 @@ class DonationLogging(commands.Cog):
             return await ctx.send(f"*{member}* has no notes!")
         if number != None:
             note = notes.get(str(number))
-            print(number)
             if not note:
                 return await ctx.send(
                     f"That doesn't seem to a valid note! **{member}** only has *{len(notes)}* notes."

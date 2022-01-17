@@ -290,7 +290,6 @@ class BaseGiveaway:
 
     @property
     def guild(self) -> discord.Guild:
-        print(self._guild)
         return self.bot.get_guild(self._guild) if self._guild else None
 
     @property

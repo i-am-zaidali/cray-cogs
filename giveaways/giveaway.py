@@ -365,7 +365,6 @@ class giveaways(gsettings, name="Giveaways"):
             try:
                 msg = await self.converter.convert(ctx, str(msg.id))
             except Exception as e:
-                print(e)
                 msg = None
 
         return msg
