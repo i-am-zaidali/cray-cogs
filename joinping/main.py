@@ -3,7 +3,7 @@ import logging
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import humanize_list
+from redbot.core.utils.chat_formatting import box, humanize_list
 
 from .utils import Coordinate
 
@@ -20,7 +20,7 @@ class JoinPing(commands.Cog):
     """
     Ghost ping users when they join."""
 
-    __version__ = "1.0.0"
+    __version__ = "1.0.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -61,12 +61,16 @@ class JoinPing(commands.Cog):
 
             message = f"{(guild_data.get('ping_message', '')).format_map(Coordinate(member=member, server=member.guild.name, guild=member.guild.name))}"
             try:
-                await channel.send(message, delete_after=guild_data.get("delete_after"))
+                await channel.send(
+                    message,
+                    delete_after=guild_data.get("delete_after"),
+                    allowed_mentions=discord.AllowedMentions(users=True),
+                )
             except discord.HTTPException:
                 pass
 
         log.debug(
-            f"{member} joined the guild {member.guild.name} and was pinged in {' '.join(guild_data.get('ping_channels'))}"
+            f"{member} joined the guild {member.guild.name} and was pinged in {humanize_list([str(i) for i in guild_data.get('ping_channels')])}"
         )
 
     @commands.group(name="jpset", aliases=["joinpingset"], invoke_without_command=True)
@@ -76,6 +80,18 @@ class JoinPing(commands.Cog):
         """
         Adjust the settings for the cog."""
         return await ctx.send_help()
+
+    @jpset.command(name="test", aliases=["testping"], hidden=True)
+    async def jpset_test(self, ctx):
+        """
+        Test whether the pings and message you set up work correctly.
+
+        This is hidden as to not abuse the pings.
+        """
+        if not self.cache.get(ctx.guild.id):
+            return await ctx.send("You haven't set up the join ping yet ._.")
+
+        await self.on_member_join(ctx.author)
 
     @jpset.command(name="deleteafter", aliases=["da"])
     async def jpset_da(self, ctx, seconds: int):
@@ -154,5 +170,30 @@ class JoinPing(commands.Cog):
                 f"The following channels were already present: {', '.join([f'<#{chan}>' for chan in al_present])}"
                 if al_present
                 else ""
+            )
+        )
+
+    @jpset.command(name="show", aliases=["showsettings", "settings", "setting"])
+    async def jpset_show(self, ctx):
+        data = self.cache.setdefault(ctx.guild.id, guild_defaults)
+        channels = data.get("ping_channels", [])
+        message = data.get("ping_message", "{member.mention}")
+        delete_after = data.get("delete_after", 2)
+        if not channels:
+            return await ctx.send(
+                f"JoinPing is not enabled for your guild. Please enable first by running the `{ctx.prefix}jpset channels` command."
+            )
+
+        embed = (
+            discord.Embed(
+                title=f"JoinPing Settings for **__{ctx.guild.name}__**",
+                color=await ctx.embed_colour(),
+            )
+            .add_field(
+                name="Channels", value=" ".join([f"<#{i}>" for i in channels]), inline=False
+            )
+            .add_field(name="Message", value=box(message, "py"), inline=False)
+            .add_field(
+                name="Delete After (seconds)", value=box(delete_after + " seconds"), inline=False
             )
         )
