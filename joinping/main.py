@@ -73,13 +73,13 @@ class JoinPing(commands.Cog):
             f"{member} joined the guild {member.guild.name} and was pinged in {humanize_list([str(i) for i in guild_data.get('ping_channels')])}"
         )
 
-    @commands.group(name="jpset", aliases=["joinpingset"], invoke_without_command=True)
+    @commands.group(name="joinpingset", aliases=["jpset"], invoke_without_command=True)
     @commands.guild_only()
     @commands.admin_or_permissions(administrator=True)
     async def jpset(self, ctx):
         """
         Adjust the settings for the cog."""
-        return await ctx.send_help()
+        return await ctx.send_help("jpset")
 
     @jpset.command(name="test", aliases=["testping"], hidden=True)
     async def jpset_test(self, ctx):
