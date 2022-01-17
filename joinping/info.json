@@ -1,0 +1,20 @@
+{
+    "name": "JoinPing",
+    "short": "Ping members on join in specific channels.",
+    "description": "Ghost ping users in channels to alert them when they join.",
+    "end_user_data_statement": "This cog stores guild ids and channel ids for pinging users when they join.",
+    "install_msg": "Thanks for installing JoinPing. Load the cog with `[p]load joinping` and see all its commands with `[p]help JoinPing`",
+    "author": [
+        "crayyy_zee"
+    ],
+    "required_cogs": {},
+    "requirements": [],
+    "tags": [
+        "joinping",
+        "member join",
+        "join",
+        "welcome",
+        "mentions"
+    ],
+    "type": "COG"
+}
