@@ -713,7 +713,7 @@ class giveaways(gsettings, name="Giveaways"):
     > Flags are extra arguments passed to the giveaway command to modify it.
     > Flags should be prefixed with `--` (two minus signs?)
     > Flags require you to provide an argument after them unless they are marked as `[argless]`.
-    > Then tou som't have to provide anything ans you can just type the flag and get on with it.
+    > Then you don't have to provide anything and you can just type the flag and get on with it.
 
     **Types of flags**
     > *--no-multi* [argless]
@@ -768,7 +768,7 @@ class giveaways(gsettings, name="Giveaways"):
                 if self.bot.get_cog("DonationLogging")
                 else ""
             )
-            + """
+            + f"""
 
 ***__Customization:__ ***
     > Giveaways can be customized to your liking but under a certain limit.
