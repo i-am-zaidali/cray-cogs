@@ -37,7 +37,7 @@ class giveaways(gsettings, name="Giveaways"):
     with advanced requirements, customizable embeds
     and much more."""
 
-    __version__ = "1.7.5"
+    __version__ = "1.7.6"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot):
@@ -341,6 +341,7 @@ class giveaways(gsettings, name="Giveaways"):
             "host": ctx.author.id,
             "bot": self.bot,
             "message_cooldown": message_cooldown,
+            "guild": ctx.guild.id,
         }
         giveaway = Giveaway(**data)
         self.giveaway_cache.append(giveaway)
