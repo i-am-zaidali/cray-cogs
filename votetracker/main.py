@@ -271,7 +271,7 @@ class VoteTracker(commands.Cog):
         self.cache[user_id] = u_data  # just to make sure data is actually updated in cache
 
         if chanid := await self.config.chan():
-            self.bot.get_channel(chanid).send(embed=embed)
+            await self.bot.get_channel(chanid).send(embed=embed)
 
         log.info(f"Vote recieved from: {user_mention} (`{user_id}`)")
 
