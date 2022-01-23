@@ -265,7 +265,7 @@ class VoteTracker(commands.Cog):
         embed = discord.Embed(
             title="Vote recieved on Top.gg!",
             description=f"{user_mention} (`{user_id}`) has voted for **{self.bot.user}**"
-            f"\nTheir total votes are: {self.cache.get(user_id)}" + role_recieved,
+            f"\nTheir total votes are: {self.cache.get(user_id)["votes"]}" + role_recieved,
             color=0x303036,
         )
         embed.set_footer(text=f"Total Votes: {self.total_votes}")
