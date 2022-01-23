@@ -252,7 +252,10 @@ class VoteTracker(commands.Cog):
             if mem := g.get_member(user_id):
                 role = g.get_role(r)
                 if role:
-                    await mem.add_roles(role)
+                    try:
+                        await mem.add_roles(role)
+                    except Exception:
+                        pass
 
         role_recieved = (
             f"\n{user_mention} has recieved the role: <@&{r}>"
