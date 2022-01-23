@@ -97,7 +97,7 @@ class VoteTracker(commands.Cog):
     @property
     def total_votes(self):
         return reduce(
-            lambda x, y: x["votes"] + y["votes"] if isinstance(x, dict) else x + y["vote"],
+            lambda x, y: x["votes"] + y["votes"] if isinstance(x, dict) else x + y["votes"],
             self.cache.values(),
         )
 
