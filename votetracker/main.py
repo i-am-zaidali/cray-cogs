@@ -15,7 +15,7 @@ from topgg import DBLClient, WebhookManager
 from .models import VoteInfo
 
 global log
-log = logging.getLogger("red.skcogs.VoteTracker")
+log = logging.getLogger("red.craycogs.VoteTracker")
 
 
 class VoteTracker(commands.Cog):
@@ -253,14 +253,14 @@ class VoteTracker(commands.Cog):
                 await mem.add_roles(g.get_role(r))
 
         role_recieved = (
-            f"\n{vote.user_mention} has recieved the role: <@&{r}>"
+            f"\n{user_mention} has recieved the role: <@&{r}>"
             if (r := await self.config.role_id())
             else ""
         )
         embed = discord.Embed(
             title="Vote recieved on Top.gg!",
-            description=f"{vote.user.mention} (`{vote.user.id}`) has voted for **{self.bot.user}**"
-            f"\nTheir total votes are: {self.cache.get(vote.user.id)}" + role_recieved,
+            description=f"{user_mention} (`{user_id}`) has voted for **{self.bot.user}**"
+            f"\nTheir total votes are: {self.cache.get(user_id)}" + role_recieved,
             color=0x303036,
         )
         embed.set_footer(text=f"Total Votes: {self.total_votes}")
