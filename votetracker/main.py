@@ -248,9 +248,10 @@ class VoteTracker(commands.Cog):
 
         u_data = self.cache.setdefault(user_id, {"votes": 0, "vote_cd": None})
         u_data.update({"votes": u_data["votes"] + 1})
-        if r := await self.config.role_id() and g:
+        if (r := await self.config.role_id()) and g:
             if mem := g.get_member(user_id):
-                await mem.add_roles(g.get_role(r))
+                role = g.get_role(r)
+                await mem.add_roles(g.get_role(role))
 
         role_recieved = (
             f"\n{user_mention} has recieved the role: <@&{r}>"
