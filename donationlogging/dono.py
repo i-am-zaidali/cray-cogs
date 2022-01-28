@@ -1,6 +1,5 @@
 import asyncio
 import time
-from collections import namedtuple
 from typing import Dict, List, Optional
 
 import discord
@@ -9,13 +8,12 @@ from discord.ext.commands.converter import Greedy, RoleConverter, TextChannelCon
 from discord.ext.commands.errors import ChannelNotFound
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import humanize_list, humanize_number, box
+from redbot.core.utils.chat_formatting import box, humanize_list, humanize_number
 from tabulate import tabulate
 
-from .views import CategorySelectView, PaginationView, YesOrNoView
 from .models import DonationManager, DonoUser
 from .utils import *
-
+from .views import CategorySelectView, PaginationView, YesOrNoView
 
 MEDALS = ["🥇", "🥈", "🥉"]
 
@@ -122,15 +120,19 @@ class DonationLogging(commands.Cog):
         Alternatively you can use the `[p]donoset managers` and `[p]donoset logchannel` commands."""
         if await self.config.guild(ctx.guild).setup():
             return await ctx.send("This setup is a one time process only.")
-        view = YesOrNoView(ctx, "Ok, Let's continue. Please provide answers to the following questions properly.", "Ok, I'll wait for another time.")
+        view = YesOrNoView(
+            ctx,
+            "Ok, Let's continue. Please provide answers to the following questions properly.",
+            "Ok, I'll wait for another time.",
+        )
         view.mesage = await ctx.send(
             "Ok so you want to setup donation logging for your server. Type `yes` to start the process and `no` to cancel.",
-            view=view
+            view=view,
         )
         timed_out = await view.wait()
         if not view.value:
             return
-            
+
         questions = [
             [
                 "Which roles do you want to be able to manage donations?",
@@ -230,7 +232,9 @@ class DonationLogging(commands.Cog):
             value=f"Answer: \n`{ans4}`" if pairs else f"Answer: `None given.`",
             inline=False,
         )
-        view = YesOrNoView(ctx, "", "Aight, retry the command and do it correctly this time.", timeout=60)
+        view = YesOrNoView(
+            ctx, "", "Aight, retry the command and do it correctly this time.", timeout=60
+        )
         view.message = await ctx.send(embed=emb, view=view)
         await view.wait()
         if not view.value:
@@ -246,20 +250,20 @@ class DonationLogging(commands.Cog):
         if old_data := await self.get_old_data(ctx.guild):
             view = YesOrNoView(
                 ctx,
-                "Updated new category with old data :D You can now continue logging donations normally.", 
-                "Alright removing this redundant data. You can now start logging donations.", 
-                timeout=60
+                "Updated new category with old data :D You can now continue logging donations normally.",
+                "Alright removing this redundant data. You can now start logging donations.",
+                timeout=60,
             )
             view.message = await ctx.send(
                 "Old donation logging data was found for this guild. "
                 "\nWould you like to associate it with the category you just registered? "
                 "\nIf not, this data will be cleared and will not be able to be recovered.",
-                view=view
+                view=view,
             )
             await view.wait()
             if not view.value:
-                return 
-                
+                return
+
             else:
                 return bank._data.update(old_data)
 
@@ -278,30 +282,38 @@ class DonationLogging(commands.Cog):
 
         These are set initially in the `[p]dono setup` command
         but can also be set with `[p]donoset addroles`"""
-        
+
         cat_roles: Dict[DonoBank, Dict[int, List[discord.Role]]] = {}
         embeds = {}
         all_cats = await self.cache.get_all_dono_banks(ctx.guild.id)
         for cat in all_cats:
             roles = await cat.getroles(ctx)
             cat_roles[cat] = roles
-            
-        embeds["all"] = final_embed = discord.Embed(title=f"All donations autoroles in {ctx.guild}!", color=await ctx.embed_colour())
+
+        embeds["all"] = final_embed = discord.Embed(
+            title=f"All donations autoroles in {ctx.guild}!", color=await ctx.embed_colour()
+        )
         for cat, ardict in cat_roles.items():
-            role_desc = "\n".join([
+            role_desc = "\n".join(
+                [
                     f"{humanize_list([role.name for role in roles])} for {humanize_number(amount)} donations"
                     for amount, roles in ardict.items()
-                ] or ["No roles setup for this category."]
+                ]
+                or ["No roles setup for this category."]
             )
             final_embed.add_field(
                 name="Category: " + cat.name.title().center(len(cat.name) + 4, "*"),
                 value=role_desc,
-                inline=False
+                inline=False,
             )
-            
-            embeds[cat.name] = cat_embed = discord.Embed(title=f"Autoroles for {cat.name} in {ctx.guild.name}!", description=role_desc, color=await ctx.embed_colour())
+
+            embeds[cat.name] = cat_embed = discord.Embed(
+                title=f"Autoroles for {cat.name} in {ctx.guild.name}!",
+                description=role_desc,
+                color=await ctx.embed_colour(),
+            )
             cat_embed.set_footer(text=f"{ctx.guild.name}", icon_url=ctx.author.display_avatar.url)
-        
+
         if not await self.config.guild(ctx.guild).autoadd():
             final_embed.set_footer(
                 text="These roles are dull and wont be automatically added/removed since auto adding of roles is disabled for this server."
@@ -334,7 +346,7 @@ class DonationLogging(commands.Cog):
                 description=f"Donated: {emoji} *{humanize_number(donos)}*",
                 color=await ctx.embed_color(),
             )
-        
+
             final_embed.add_field(
                 name=f"*{cat.name.title()}*",
                 value=f"Donated: {cat.emoji} {humanize_number(donos)}",
@@ -342,9 +354,18 @@ class DonationLogging(commands.Cog):
             )
 
         final_embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
-        final_embed.set_footer(text="Thanks for donating <3", icon_url=getattr(ctx.guild.icon, "url", EmptyEmbed))
+        final_embed.set_footer(
+            text="Thanks for donating <3", icon_url=getattr(ctx.guild.icon, "url", EmptyEmbed)
+        )
 
-        view = CategorySelectView(ctx, all_categories, embeds, True, placeholder="Select category to show balance of....", timeout=60)
+        view = CategorySelectView(
+            ctx,
+            all_categories,
+            embeds,
+            True,
+            placeholder="Select category to show balance of....",
+            timeout=60,
+        )
         view.message = await ctx.send(embed=final_embed, view=view)
 
     async def dono_log(
@@ -366,7 +387,8 @@ class DonationLogging(commands.Cog):
             name="Jump Link To The Command:", value=f"[click here]({ctx.message.jump_url})"
         )
         embed.set_footer(
-            text=f"Command executed by: {ctx.author.display_name}", icon_url=getattr(ctx.guild.icon, "url", EmptyEmbed)
+            text=f"Command executed by: {ctx.author.display_name}",
+            icon_url=getattr(ctx.guild.icon, "url", EmptyEmbed),
         )
 
         chanid = await self.config.guild(ctx.guild).logchannel()
@@ -502,18 +524,21 @@ class DonationLogging(commands.Cog):
         This requires either one of the donation manager roles or the bot mod role."""
         if user:
             if not category:
-                view = YesOrNoView(ctx, f"{user.mention}'s donations have been reset.", "Alright!", timeout=60)
+                view = YesOrNoView(
+                    ctx, f"{user.mention}'s donations have been reset.", "Alright!", timeout=60
+                )
                 view.message = await ctx.send(
                     f"You didn't provide a category to reset, are you sure you want to reset all donations of {user}? "
-                    "Press `yes` or `no`.", view=view
+                    "Press `yes` or `no`.",
+                    view=view,
                 )
                 await view.wait()
                 if not view.value:
                     return
-                
+
                 await self.cache.delete_all_user_data(user.id, ctx.guild.id)
                 return
-                
+
             category.remove_user(user.id)
             emoji = category.emoji
 
@@ -527,7 +552,8 @@ class DonationLogging(commands.Cog):
                 name="Jump Link To The Command:", value=f"[click here]({ctx.message.jump_url})"
             )
             embed.set_footer(
-                text=f"Command executed by: {ctx.author.display_name}", icon_url=getattr(ctx.guild.icon, "url", EmptyEmbed)
+                text=f"Command executed by: {ctx.author.display_name}",
+                icon_url=getattr(ctx.guild.icon, "url", EmptyEmbed),
             )
 
             chanid = await self.config.guild(ctx.guild).logchannel()
@@ -546,17 +572,23 @@ class DonationLogging(commands.Cog):
                 return await ctx.send(
                     "You need to provide either a category or a user to reset or both."
                 )
-            view = YesOrNoView(ctx, f"Category **`{category.name}`**'s donations have been reset.", "Alright!", timeout=60)
+            view = YesOrNoView(
+                ctx,
+                f"Category **`{category.name}`**'s donations have been reset.",
+                "Alright!",
+                timeout=60,
+            )
             view.message = await ctx.send(
                 f"You didn't provide a user to reset, are you sure you want to reset all donations of the category `{category.name}`? "
-                "Press `yes` or `no`.", view=view
+                "Press `yes` or `no`.",
+                view=view,
             )
-            
+
             if not view.value:
                 return
-            
+
             category._data = {}
-            
+
     @dono.command(name="notes", aliases=["note"])
     @commands.guild_only()
     @is_dmgr()
@@ -598,26 +630,29 @@ class DonationLogging(commands.Cog):
         # Thanks to epic guy for this suggestion :D
 
         fields = []
-        
-        embed = discord.Embed(title=f"{member.name.capitalize()}'s Notes!", color=await ctx.embed_color())
+
+        embed = discord.Embed(
+            title=f"{member.name.capitalize()}'s Notes!", color=await ctx.embed_color()
+        )
         embed.set_footer(text=f"{len(notes)} notes", icon_url=ctx.author.display_avatar.url)
-        
+
         for key, value in notes.items():
             field = {
                 "name": f"**Note Number {key}.**",
                 "value": f"*[{value['content'][:20] if len(value['content']) > 20 else value['content']}]({(await(self.bot.get_channel(value['channel_id'])).fetch_message(int(value['message_id']))).jump_url})*",
-                "inline": False, 
+                "inline": False,
             }
             fields.append(field)
-            
+
         embeds = group_embeds_by_fields(*fields)
-        
+
         for ind, i in enumerate(embeds, 1):
-            i.title=f"{member.name.capitalize()}'s Notes!"
-            i.color=await ctx.embed_color()
+            i.title = f"{member.name.capitalize()}'s Notes!"
+            i.color = await ctx.embed_color()
             i.set_footer(
                 text=f"Use `{ctx.prefix}notes {member} [number]` to look at a specific note.\nPage {ind}/{len(embeds)}.",
-                icon_url=ctx.author.display_avatar.url)
+                icon_url=ctx.author.display_avatar.url,
+            )
 
         view = PaginationView(ctx, embeds, 60, True if len(embeds) > 2 else False)
         await view.start()
@@ -635,7 +670,7 @@ class DonationLogging(commands.Cog):
         if not user:
             await ctx.send("Please mention a user or provide their id to check their donations")
             return
-        
+
         banks = await self.cache.get_all_dono_banks(ctx.guild.id)
         embeds = {}
         embeds["all"] = final_embed = discord.Embed(
@@ -650,22 +685,24 @@ class DonationLogging(commands.Cog):
                 value=f"Donated: {bank.emoji} {humanize_number(donations)}",
                 inline=True,
             )
-            
+
             notes = len(await self.get_member_notes(user))
 
-            embeds[bank.name] = discord.Embed(
-                title=f"{user}'s donations in **__{ctx.guild.name}__**",
-                description=f"Total amount donated: {bank.emoji}{humanize_number(donations)}\n\nThey have **{notes}** notes",
-                color=discord.Color.random(),
-            ).set_author(
-                name=user, 
-                icon_url=user.display_avatar.url
-            ).set_footer(
-                text=f"{ctx.guild.name}",
-                icon_url=getattr(ctx.guild.icon, "url", EmptyEmbed)
+            embeds[bank.name] = (
+                discord.Embed(
+                    title=f"{user}'s donations in **__{ctx.guild.name}__**",
+                    description=f"Total amount donated: {bank.emoji}{humanize_number(donations)}\n\nThey have **{notes}** notes",
+                    color=discord.Color.random(),
+                )
+                .set_author(name=user, icon_url=user.display_avatar.url)
+                .set_footer(
+                    text=f"{ctx.guild.name}", icon_url=getattr(ctx.guild.icon, "url", EmptyEmbed)
+                )
             )
 
-        view = CategorySelectView(ctx, banks, embeds, True, placeholder="Select a category...", timeout=60)
+        view = CategorySelectView(
+            ctx, banks, embeds, True, placeholder="Select a category...", timeout=60
+        )
         view.message = await ctx.send(embed=final_embed, view=view)
 
     @dono.command(
@@ -680,27 +717,27 @@ class DonationLogging(commands.Cog):
 
         The category must be the name of a registered category. These can be seen with `[p]donoset category list`
         Use the <topnumber> parameter to see the top `x` donators."""
-        
+
         banks = await self.cache.get_all_dono_banks(ctx.guild.id)
         embeds = {}
         embeds["all"] = final_embed = discord.Embed(
             title="Top donator for each category in {}".format(ctx.guild.name),
-            color=await ctx.embed_color()
+            color=await ctx.embed_color(),
         )
-        
+
         for bank in banks:
             leaderboard = bank.get_leaderboard()
             leaderboard = list(filter(lambda x: x.donations > 0, leaderboard))
             if leaderboard:
                 top_dono = leaderboard[0]
                 user = top_dono.user
-                
+
                 final_embed.add_field(
                     name=f"Category: **`{bank.name}`**: ",
                     value=f"{user.mention if user else top_dono.user_id + ' (user not found)'} - {humanize_number(top_dono.donations)}",
-                    inline=False
+                    inline=False,
                 )
-                
+
                 # -------- Tabulating per category --------
                 index = []
                 final = []
@@ -720,33 +757,40 @@ class DonationLogging(commands.Cog):
                         break
 
                 msg = box(tabulate(final, showindex=index, headers=headers, tablefmt="rst"))
-            
+
             else:
                 msg = "**No donations have been made for this category yet!**"
-                
+
                 final_embed.add_field(
-                    name=f"Category: **`{bank.name}`**: ",
-                    value=msg,
-                    inline=False
+                    name=f"Category: **`{bank.name}`**: ", value=msg, inline=False
                 )
-                
-            embeds[bank.name] = embed = discord.Embed(
-                title=f"Top donators for **__{bank.name.title()}__**",
-                description=msg,
-                color=await ctx.embed_color(),
-            ).set_author(
-                name=ctx.guild.name
-            ).set_footer(
-                icon_url=getattr(ctx.guild.icon, "url", EmptyEmbed),
+
+            embeds[bank.name] = embed = (
+                discord.Embed(
+                    title=f"Top donators for **__{bank.name.title()}__**",
+                    description=msg,
+                    color=await ctx.embed_color(),
+                )
+                .set_author(name=ctx.guild.name)
+                .set_footer(
+                    icon_url=getattr(ctx.guild.icon, "url", EmptyEmbed),
+                )
             )
             try:
                 emoji = await EmojiConverter().convert(ctx, str(bank.emoji))
                 embed.set_thumbnail(url=emoji.url)
-                
+
             except Exception:
                 pass
-            
-        view = CategorySelectView(ctx, banks, embeds, True, placeholder="Select a category to show leaderboard...", timeout=60)
+
+        view = CategorySelectView(
+            ctx,
+            banks,
+            embeds,
+            True,
+            placeholder="Select a category to show leaderboard...",
+            timeout=60,
+        )
         view.message = await ctx.send(embed=final_embed, view=view)
 
     @commands.group(name="donoset", invoke_without_command=True)
@@ -1008,30 +1052,30 @@ class DonationLogging(commands.Cog):
             if data["managers"]
             else data["managers"]
         )
-        
-        embed = discord.Embed(
-            title=f"Donation Logging settings for {ctx.guild}",
-            color=0x303036,
-            timestamp=ctx.message.created_at,
-        ).add_field(
-            name="Donation Managers: ",
-            value=(managers) if data["managers"] else "None",
-            inline=False,
-        ).add_field(
-            name="Log Channel: ",
-            value=f"<#{data['logchannel']}>" if data["logchannel"] else "None",
-            inline=False,
-        ).add_field(
-            name="Auto Add Roles: ",
-            value=data["autoadd"],
-            inline=False
-        ).add_field(
-            name="Auto Remove Roles: ",
-            value=data["autoremove"]
-        ).add_field(
-            name="Categories: ",
-            value=f"{len(categories)} categories: `{humanize_list([i.name for i in categories])}`",
-            inline=False,
+
+        embed = (
+            discord.Embed(
+                title=f"Donation Logging settings for {ctx.guild}",
+                color=0x303036,
+                timestamp=ctx.message.created_at,
+            )
+            .add_field(
+                name="Donation Managers: ",
+                value=(managers) if data["managers"] else "None",
+                inline=False,
+            )
+            .add_field(
+                name="Log Channel: ",
+                value=f"<#{data['logchannel']}>" if data["logchannel"] else "None",
+                inline=False,
+            )
+            .add_field(name="Auto Add Roles: ", value=data["autoadd"], inline=False)
+            .add_field(name="Auto Remove Roles: ", value=data["autoremove"])
+            .add_field(
+                name="Categories: ",
+                value=f"{len(categories)} categories: `{humanize_list([i.name for i in categories])}`",
+                inline=False,
+            )
         )
-        
+
         await ctx.send(embed=embed)
