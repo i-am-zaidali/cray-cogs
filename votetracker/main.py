@@ -166,7 +166,7 @@ class VoteTracker(commands.Cog):
 
         embed.set_footer(
             text=f"Total Votes: {self.total_votes}",
-            icon_url=ctx.author.avatar_url,
+            icon_url=ctx.author.display_avatar.url,
         )
         await ctx.send(embed=embed)
 
@@ -192,7 +192,7 @@ class VoteTracker(commands.Cog):
 
         embed.set_footer(
             text=f"Total Monthly Votes: {reduce(lambda x, y: x + y, lb.values())}",
-            icon_url=ctx.author.avatar_url,
+            icon_url=ctx.author.display_avatar.url,
         )
         await ctx.send(embed=embed)
 
