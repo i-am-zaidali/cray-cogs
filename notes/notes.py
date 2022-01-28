@@ -161,10 +161,7 @@ class Notes(commands.Cog):
             embeds.append(
                 discord.Embed(
                     title=f"Notes for {ctx.guild}", color=discord.Color.green()
-                ).add_field(
-                    name=f"**{user}: **",
-                    value=final
-                )
+                ).add_field(name=f"**{user}: **", value=final)
             )
 
         embeds = [
