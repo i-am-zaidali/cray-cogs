@@ -246,7 +246,7 @@ class DonationLogging(commands.Cog):
             return await ctx.send("Request timed out.")
 
         if not pred.result:
-            await self.category_remove(ctx, bank.name)
+            await self.category_remove(ctx, bank)
             return await ctx.send("Aight, retry the command and do it correctly this time.")
 
         await self.config.guild(ctx.guild).logchannel.set(channel.id if channel else None)
