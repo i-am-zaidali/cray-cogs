@@ -3,12 +3,13 @@ import time
 from typing import Dict, List, Optional
 
 import discord
-from discord_components.client import DiscordComponents
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list
 
-from .models import ButtonPaginator, UserNote
+from donationlogging.views import PaginationView
+
+from .models import UserNote
 
 global log
 log = logging.getLogger("red.craycogs.notes")
@@ -24,8 +25,6 @@ class Notes(commands.Cog):
 
     def __init__(self, bot):
         self.bot: Red = bot
-        if not getattr(bot, "ButtonClient", None):
-            self.bot.ButtonClient = DiscordComponents(bot)
         self.config = Config.get_conf(None, 1, True, "Notes")
         self.config.register_member(notes=[])
         self.cache: Dict[int, Dict[int, List[UserNote]]] = {}
@@ -159,10 +158,14 @@ class Notes(commands.Cog):
             for i, note in enumerate(n, 1):
                 final += f"**{i}**. {note}\n"
             user = ctx.guild.get_member(user)
-            embed = discord.Embed(
-                title=f"Notes for {ctx.guild}", color=discord.Color.green()
-            ).add_field(name=f"**{user}: **", value=final)
-            embeds.append(embed)
+            embeds.append(
+                discord.Embed(
+                    title=f"Notes for {ctx.guild}", color=discord.Color.green()
+                ).add_field(
+                    name=f"**{user}: **",
+                    value=final
+                )
+            )
 
         embeds = [
             embed.set_footer(text=f"Page {embeds.index(embed)+1}/{len(embeds)}")
@@ -172,8 +175,8 @@ class Notes(commands.Cog):
         if not embeds:
             return await ctx.send("No notes found for this server.")
 
-        paginator = ButtonPaginator(self.bot.ButtonClient, ctx, embeds)
-        await paginator.start()
+        view = PaginationView(ctx, embeds, 60, True)
+        await view.start()
 
     @commands.command()
     @commands.mod_or_permissions(manage_messages=True)
@@ -184,8 +187,8 @@ class Notes(commands.Cog):
         The member argument is optional and defaults to the command invoker"""
         member = member or ctx.author
         notes = self._get_notes(ctx.guild, member)
-        embed = discord.Embed(color=discord.Color.random())
-        embed.set_author(name=f"{member}", icon_url=member.avatar_url)
+        embed = discord.Embed(color=await ctx.embed_color())
+        embed.set_author(name=f"{member}", icon_url=member.display_avatar.url)
         if notes:
             embed.color = member.color
 
