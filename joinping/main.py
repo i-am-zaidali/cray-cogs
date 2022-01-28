@@ -194,8 +194,10 @@ class JoinPing(commands.Cog):
             )
             .add_field(name="Message", value=box(message, "py"), inline=False)
             .add_field(
-                name="Delete After (in seconds)", value=box(delete_after + " seconds"), inline=False
+                name="Delete After (in seconds)",
+                value=box(delete_after + " seconds"),
+                inline=False,
             )
         )
-        
+
         await ctx.send(embed=embed)
