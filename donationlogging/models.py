@@ -60,6 +60,12 @@ class DonoBank:
 
     def __hash__(self):
         return hash((self.name, self.guild_id))
+    
+    def __eq__(self, other: "DonoBank"):
+        if not isinstance(other, DonoBank):
+            return False
+        
+        return all([self.name == other.name, self.guild_id == other.guild_id, self.emoji == other.emoji])
 
     def get_user(self, user_id: int) -> DonoUser:
         return DonoUser(

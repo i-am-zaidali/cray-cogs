@@ -9,6 +9,7 @@ from emoji import UNICODE_EMOJI_ENGLISH
 from redbot.core import commands
 from redbot.core.utils import mod
 from redbot.core.utils.predicates import MessagePredicate
+from typing import Dict, Union
 
 from .exceptions import CategoryAlreadyExists, CategoryDoesNotExist
 from .models import DonoBank
@@ -180,6 +181,21 @@ class AmountRoleConverter(commands.Converter):
 
         return final
 
+def group_embeds_by_fields(*fields: Dict[str, Union[str, bool]], per_embed: int = 3):
+    """
+    This was the result of a big brain moment i had
+
+    This method takes dicts of fields and groups them into separate embeds
+    keeping `per_embed` number of fields per embed.
+    """
+        
+    groups: list[discord.Embed] = []
+    for ind, i in enumerate(range(0, len(fields), per_embed)):
+        groups.append(discord.Embed())
+        fields_to_add = fields[i : i + per_embed]
+        for field in fields_to_add:
+            groups[ind].add_field(**field)
+    return groups
 
 async def valid_role(ctx: commands.Context, role: discord.Role):
     my_position = role > ctx.me.top_role
