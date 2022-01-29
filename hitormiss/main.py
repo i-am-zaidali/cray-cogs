@@ -6,6 +6,7 @@ from dataclasses import make_dataclass
 from typing import Dict, List, Literal, Optional, Tuple, Type, Union
 
 import discord
+from discord.embeds import EmptyEmbed
 from discord.ext.commands.converter import EmojiConverter
 from emoji.unicode_codes import UNICODE_EMOJI_ENGLISH
 from redbot.core import Config, bank, commands
@@ -15,6 +16,8 @@ from redbot.core.utils.chat_formatting import box, humanize_list, pagify
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils.predicates import MessagePredicate
 from tabulate import tabulate
+
+from hitormiss.views import PaginationView
 
 from .CONSTANTS import dc_fields, global_defaults, lb_types, user_defaults
 from .converters import ItemConverter, PlayerConverter
@@ -258,10 +261,11 @@ class HitOrMiss(commands.Cog):
             embed.title = "Hit or Miss Items"
             embed.description = "All the items available in H.O.M"
             embed.color = await ctx.embed_color()
-            embed.set_thumbnail(url=ctx.guild.icon_url)
+            embed.set_thumbnail(url=getattr(ctx.guild.icon, "url", EmptyEmbed))
             embed.set_footer(text=f"Page {embeds.index(embed) + 1}/{len(embeds)}")
 
-        return await menu(ctx, embeds, DEFAULT_CONTROLS)
+        view = PaginationView(ctx, embeds, 60, True)
+        await view.start()
 
     @hom.command(name="inventory", aliases=["inv"])
     async def hom_inv(self, ctx: commands.Context):
@@ -275,21 +279,32 @@ class HitOrMiss(commands.Cog):
 
         embed = discord.Embed(title=f"{me}'s Hit or Miss Inventory", color=await ctx.embed_color())
 
+        fields = []
+
         for item, amount in me.inv.items.items():
             item_cooldown = (
                 f"Can be used <t:{int(item.on_cooldown(me))}:R>."
                 if item.on_cooldown(me)
                 else "Not on cooldown."
             )
-            embed.add_field(
-                name=f"{item.__class__.__name__} {item.emoji if item.emoji else ''}",
-                value=f"> **Amount Owned: ** {amount}\n"
-                f"> **Uses remaining: ** {item.get_remaining_uses(me)}\n"
-                f"> **On cooldown?: ** {item_cooldown}",
-                inline=False,
+            fields.append(
+                {
+                    "name": f"{item.__class__.__name__} {item.emoji if item.emoji else ''}",
+                    "value": f"> **Amount Owned: ** {amount}\n"
+                             f"> **Uses remaining: ** {item.get_remaining_uses(me)}\n"
+                             f"> **On cooldown?: ** {item_cooldown}",
+                    "inline": False,
+                }
             )
+            
+        embeds = self.group_embeds_by_fields(*fields)
+        for ind, embed in enumerate(embeds, 1):
+            embed.color = await ctx.embed_color()
+            embed.set_thumbnail(url=ctx.author.display_avatar.url)
+            embed.set_footer(text=f"Page {ind}/{len(embeds)}")
 
-        return await ctx.send(embed=embed)
+        view = PaginationView(ctx, embeds, 60, True)
+        await view.start()
 
     @hom.command(name="buy", aliases=["purchase"], usage="[amount] <item>")
     async def hom_buy(
@@ -483,6 +498,5 @@ class HitOrMiss(commands.Cog):
             page = title + "\n\n" + page + "\n\n"
             pages.append(box(page, lang="html"))
 
-        if len(pages) == 1:
-            return await ctx.send(pages[0])
-        return await menu(ctx, pages, DEFAULT_CONTROLS)
+        view = PaginationView(ctx, pages, 60, True)
+        await view.start()
