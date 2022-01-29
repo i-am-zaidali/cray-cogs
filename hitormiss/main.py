@@ -291,12 +291,12 @@ class HitOrMiss(commands.Cog):
                 {
                     "name": f"{item.__class__.__name__} {item.emoji if item.emoji else ''}",
                     "value": f"> **Amount Owned: ** {amount}\n"
-                             f"> **Uses remaining: ** {item.get_remaining_uses(me)}\n"
-                             f"> **On cooldown?: ** {item_cooldown}",
+                    f"> **Uses remaining: ** {item.get_remaining_uses(me)}\n"
+                    f"> **On cooldown?: ** {item_cooldown}",
                     "inline": False,
                 }
             )
-            
+
         embeds = self.group_embeds_by_fields(*fields)
         for ind, embed in enumerate(embeds, 1):
             embed.color = await ctx.embed_color()
