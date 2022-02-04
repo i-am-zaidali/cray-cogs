@@ -254,9 +254,7 @@ class Giveaway(GiveawayMeta):
     async def create_embed(self) -> discord.Embed:
         embed = giveaway_embed.copy()
 
-        timestamp_str = (
-            f"<t:{int(self.ends_at.timestamp())}:R> (<t:{self.ends_at.timestamp()}:f>)"
-        )
+        timestamp_str = f"<t:{int(self.ends_at.timestamp())}:R> (<t:{self.ends_at.timestamp()}:f>)"
 
         embed.title = embed.title.format(prize=self.prize)
         embed.description = embed.description.format(
