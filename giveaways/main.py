@@ -284,6 +284,20 @@ class Giveaways(commands.Cog):
             await giveaway.start()
 
         self.add_to_cache(giveaway)
+        
+    @g.command(name="flash", aliases=["f", "flashes"])
+    @commands.guild_only()
+    @is_manager()
+    async def g_flash(self, ctx: commands.Context, giveaways: int, prize: str):
+        """
+        Start multiple flash giveaways with a given prize.
+        
+        These giveaway will have 1 winner and will last for 10 seconds."""
+        if giveaways < 3:
+            return await ctx.send("You must flash atleast 3 giveaways.")
+        
+        for i in range(giveaways):
+            await self.g_start(ctx=ctx, time=datetime.now(timezone.utc)+timedelta(seconds=10), winners=1, prize=prize)
 
     @g.command(name="end")
     @commands.guild_only()
@@ -596,6 +610,8 @@ class Giveaways(commands.Cog):
     @commands.guild_only()
     @is_manager()
     async def g_top(self, ctx: commands.Context):
+        """
+        See the giveaway managers who have performed the most giveaways."""
         top = (await get_guild_settings(ctx.guild.id)).top_managers
         if not top:
             return await ctx.send("No giveaways performed here in this server yet.")

@@ -244,12 +244,9 @@ class Gset(Giveaways, name="Giveaways"):
     @commands.bot_has_permissions(embed_links=True)
     async def gset_bypass(self, ctx):
         """
-        Set roles to bypass all giveaways in your server.
-
-        Passing no parameters will show a list of all roles set to bypass.
-
-        1st argument should be either of add or remove
-        2nd should be role ids or mentions separated by spaces."""
+        See a list of roles that can bypass requirements in giveaways.
+        
+        Use subcommands for more specific actions."""
         settings = await get_guild_settings(ctx.guild.id)
         roles = settings.bypass
         return await ctx.send(
@@ -273,6 +270,8 @@ class Gset(Giveaways, name="Giveaways"):
     @commands.admin_or_permissions(administrator=True)
     @commands.bot_has_permissions(embed_links=True)
     async def gset_bypass_add(self, ctx, *roles: discord.Role):
+        """
+        Add one or more roles to the server's bypass list."""
         settings = await get_guild_settings(ctx.guild.id, False)
         async with settings.bypass() as by:
             failed = []
@@ -292,6 +291,8 @@ class Gset(Giveaways, name="Giveaways"):
     @commands.admin_or_permissions(administrator=True)
     @commands.bot_has_permissions(embed_links=True)
     async def gset_bypass_remove(self, ctx, *roles: discord.Role):
+        """
+        Remove one or more roles from the server's bypass list."""
         settings = await get_guild_settings(ctx.guild.id, False)
         async with settings.bypass() as by:
             failed = []
@@ -312,16 +313,7 @@ class Gset(Giveaways, name="Giveaways"):
     @commands.bot_has_permissions(embed_links=True)
     async def gset_multi(self, ctx):
         """
-        Add role multipliers for giveaways.
-
-        This multiplier gives extra entries to users with that role in giveaways.
-        If a user has multiple roles each with its separate multiplier, all of them will apply to him.
-        A role's multiplier can not be greater than 5.
-
-        Passing no parameters will show you the current multipliers of the server.
-        [add_or_remove] takes either of 'add' or 'remove'.
-        [role] is the role name, id or mention and
-        [multi] is the multiplier amount. **Must be under 5**. This is not required when you are removing."""
+        See a list for all roles that have multipliers in giveaways in this server."""
         roles = await config.all_roles()
         roles = [
             ctx.guild.get_role(role)
@@ -346,6 +338,10 @@ class Gset(Giveaways, name="Giveaways"):
     @commands.admin_or_permissions(administrator=True)
     @commands.bot_has_permissions(embed_links=True)
     async def role_multi_add(self, ctx, role: discord.Role, multi: int):
+        """
+        Add a multipier to a given role.
+        
+        This will increase the chances of the members of that role to win in giveaways."""
         if multi > 5:
             return await ctx.send("Multiplier can not be greater than 5.")
         settings = await get_role(role.id)
@@ -359,6 +355,8 @@ class Gset(Giveaways, name="Giveaways"):
     @commands.admin_or_permissions(administrator=True)
     @commands.bot_has_permissions(embed_links=True)
     async def role_multi_remove(self, ctx, role: discord.Role):
+        """
+        Remove multiplier from a given role."""
         settings = await get_role(role.id)
         await settings.multi.set(None)
         return await ctx.send(f"Removed `{role.name}` from the server's role multipliers.")
@@ -412,7 +410,7 @@ class Gset(Giveaways, name="Giveaways"):
         endmsg = settings.endmsg
         managers = settings.manager
         autodelete = settings.autodelete
-        color = discord.Color(settings.color)
+        color = discord.Color(settings.color) if settings.color else await ctx.embed_color()
         show_defaults = settings.show_defaults
 
         embed = discord.Embed(
