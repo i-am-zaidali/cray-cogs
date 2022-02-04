@@ -7,7 +7,7 @@ import discord
 from discord.ext import tasks
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import box, humanize_timedelta, pagify
+from redbot.core.utils.chat_formatting import box, humanize_timedelta, pagify, humanize_list
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 
 from .converters import PrizeConverter, TimeConverter, WinnerConverter
@@ -35,6 +35,10 @@ log = logging.getLogger("red.craycogs.giveaways")
 
 
 class Giveaways(commands.Cog):
+    
+    __version__ = "2.0.0"
+    __author__ = ["crayyy_zee#2900"]
+    
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(None, 1, True, "Giveaways")
@@ -57,6 +61,27 @@ class Giveaways(commands.Cog):
                 guild.setdefault(message_id, g.from_json(more_data))
 
         return self
+    
+    async def red_delete_data_for_user(self, *, requester, user_id: int):
+        if not self._CACHE:
+            return
+        for guild_id, data in self._CACHE.copy().items():
+            for msg_id, giveaway in data.items():
+                if giveaway.host.id == user_id:
+                    if isinstance(giveaway, Giveaway):
+                        await giveaway.end(reason=f"Host ({giveaway.host}) requested to delete their data so the giveaway was ended.")
+                    
+                    self._CACHE[guild_id].pop(msg_id)
+
+    def format_help_for_context(self, ctx: commands.Context) -> str:
+        pre_processed = super().format_help_for_context(ctx) or ""
+        n = "\n" if "\n\n" not in pre_processed else ""
+        text = [
+            f"{pre_processed}{n}",
+            f"Cog Version: **{self.__version__}**",
+            f"Author: {humanize_list(self.__author__)}",
+        ]
+        return "\n".join(text)
 
     def add_to_cache(self, giveaway: Union[Giveaway, EndedGiveaway]):
         e = self._CACHE.setdefault(giveaway.guild_id, {})
