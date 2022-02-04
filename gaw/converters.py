@@ -1,11 +1,13 @@
-from datetime import datetime, timedelta, timezone
 import re
+from datetime import datetime, timedelta, timezone
+
 from redbot.core import commands
+
 
 class TimeConverter(commands.Converter):
     time_regex = re.compile(r"(?:(\d{1,5})(h|s|m|d))+?")
     time_dict = {"h": 3600, "s": 1, "m": 60, "d": 86400}
-    
+
     async def convert(self, ctx, argument):
         args = argument.lower()
         matches = re.findall(self.time_regex, args)
@@ -21,11 +23,12 @@ class TimeConverter(commands.Converter):
                 )
             except ValueError:
                 raise commands.BadArgument(f"{key} is not a number!")
-            
+
         time = timedelta(seconds=time)
         time = datetime.now(timezone.utc) + time
         return time
-    
+
+
 class WinnerConverter(commands.Converter):
     async def convert(self, ctx, argument: str):
         try:
@@ -39,7 +42,8 @@ class WinnerConverter(commands.Converter):
 
         except Exception as e:
             raise commands.BadArgument(str(e))
-        
+
+
 class PrizeConverter(commands.Converter):
     async def convert(self, ctx, argument: str):
         if argument.startswith("--"):

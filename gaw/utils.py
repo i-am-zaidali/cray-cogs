@@ -1,7 +1,8 @@
 from typing import Callable
+
 import discord
 from redbot.core import commands
-import re
+
 
 async def dict_keys_to(d: dict, conv: Callable = int):
     """Convert a dict's keys to the given conv. This will convert keys upto one nested dict."""
@@ -10,14 +11,16 @@ async def dict_keys_to(d: dict, conv: Callable = int):
         if isinstance(value, dict):
             final[conv(key)] = {conv(k): v for k, v in value.items()}
             continue
-        
+
         final[conv(key)] = value
-        
+
     return final
+
 
 class Coordinate(dict):
     def __missing__(self, key):
         return "{" + key + "}"
+
 
 class SafeMember:
     def __init__(self, member: discord.Member):

@@ -1,26 +1,27 @@
+from argparse import ArgumentParser
 from datetime import datetime, timezone
 from typing import Optional
+
+import discord
+from dateparser import parse
 from redbot.core import commands
-from argparse import ArgumentParser
 from redbot.core.utils.chat_formatting import humanize_list
 
 from ..converters import TimeConverter
-import time
-from dateparser import parse
-import discord
+
 
 class NoExitParser(ArgumentParser):
     def error(self, message):
         raise commands.BadArgument(message)
 
+
 class GiveawayFlags(commands.Converter):
-    
     def __init__(self, data: dict = {}) -> None:
         self.message: str = data.get("msg")
         self.ping: bool = data.get("ping", False)
         self.donor: Optional[discord.Member] = data.get("donor")
         self.thank: bool = data.get("thank", False)
-        self.channel: Optional[discord.TextChannel]= data.get("channel")
+        self.channel: Optional[discord.TextChannel] = data.get("channel")
         self.ends_in: Optional[datetime] = data.get("ends_at")
         self.starts_in: Optional[datetime] = data.get("starts_in")
         self.no_defaults: bool = data.get("no_defaults")
@@ -28,8 +29,10 @@ class GiveawayFlags(commands.Converter):
         self.no_donor: bool = data.get("no_donor")
         self.message_count: int = data.get("message_count")
         self.cooldown = data.get("message_cooldown", 1)
-        self.message_cooldown: Optional[commands.CooldownMapping] = commands.CooldownMapping.from_cooldown(1, self.cooldown, commands.BucketType.member)
-        
+        self.message_cooldown: Optional[
+            commands.CooldownMapping
+        ] = commands.CooldownMapping.from_cooldown(1, self.cooldown, commands.BucketType.member)
+
     @property
     def json(self):
         return {
@@ -46,7 +49,7 @@ class GiveawayFlags(commands.Converter):
             "message_count": self.message_count,
             "message_cooldown": self.cooldown,
         }
-        
+
     def __str__(self):
         return (
             f"<{self.__class__.__name__} message={self.message} ping={self.ping} "
@@ -54,26 +57,30 @@ class GiveawayFlags(commands.Converter):
             f"ends_in={self.ends_in} starts_in={self.starts_in} no_defaults={self.no_defaults} "
             f"no_multi={self.no_multi} no_donor={self.no_donor} message_count={self.message_count}>"
         )
-        
+
     def __repr__(self) -> str:
         return self.__str__()
-        
+
     @classmethod
     def from_json(cls, json: dict, guild: discord.Guild):
         json.update(
             {
                 "donor": guild.get_member(json.get("donor")) if json.get("donor") else None,
                 "channel": guild.get_channel(json.get("channel")) if json.get("channel") else None,
-                "ends_at": datetime.fromtimestamp(json.get("ends_at"), timezone.utc) if json.get("ends_at") else None,
-                "starts_in": datetime.fromtimestamp(json.get("starts_in"), timezone.utc) if json.get("starts_in") else None,
+                "ends_at": datetime.fromtimestamp(json.get("ends_at"), timezone.utc)
+                if json.get("ends_at")
+                else None,
+                "starts_in": datetime.fromtimestamp(json.get("starts_in"), timezone.utc)
+                if json.get("starts_in")
+                else None,
             }
         )
         return cls(data=json)
-    
+
     @classmethod
     def none(cls):
         return cls()
-        
+
     @classmethod
     async def convert(cls, ctx: commands.Context, argument: str):
         argument = argument.replace("—", "--")
@@ -152,7 +159,9 @@ class GiveawayFlags(commands.Converter):
                     # honestly idk how this works but it does and tbf idk how to work with times so bare with me pls-
                     _ = datetime.datetime.now()
                     if t < _:
-                        raise commands.BadArgument(f"Given date/time for `--ends-at` is in the past!")
+                        raise commands.BadArgument(
+                            f"Given date/time for `--ends-at` is in the past!"
+                        )
                     _ = t - _
                     t = end_t = datetime.datetime.now(tz=datetime.timezone.utc) + _
                     # t = t.replace(tzinfo=datetime.timezone.utc)
@@ -186,7 +195,9 @@ class GiveawayFlags(commands.Converter):
                 if not t.tzinfo:
                     _ = datetime.datetime.now()
                     if t < _:
-                        raise commands.BadArgument(f"Given date/time for `--starts-in` is in the past!")
+                        raise commands.BadArgument(
+                            f"Given date/time for `--starts-in` is in the past!"
+                        )
                     _ = t - _
                     t = start_t = datetime.datetime.now(tz=datetime.timezone.utc) + _
 
@@ -195,7 +206,9 @@ class GiveawayFlags(commands.Converter):
                     raise commands.BadArgument("Given date/time for `--starts-in` is in the past.")
 
                 if end_t and end_t < start_t:
-                    raise commands.BadArgument("`--ends-at` can not be a time before `--starts-in`.")
+                    raise commands.BadArgument(
+                        "`--ends-at` can not be a time before `--starts-in`."
+                    )
 
             flags["starts_in"] = t
 

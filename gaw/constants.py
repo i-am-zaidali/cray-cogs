@@ -1,13 +1,9 @@
 import discord
 
 giveaway_embed: discord.Embed = discord.Embed(
-            title="**`{prize}`**",
-            description=(
-                "React with {emoji} to enter\n"
-                "Host: {host}\n"
-                "Ends {timestamp}\n"
-            ),
-        ).set_footer(text="Winners: {winners} | ends : ")
+    title="**`{prize}`**",
+    description=("React with {emoji} to enter\n" "Host: {host}\n" "Ends {timestamp}\n"),
+).set_footer(text="Winners: {winners} | ends : ")
 
 guild_default_config = {
     "msg": ":tada:Giveaway:tada:",

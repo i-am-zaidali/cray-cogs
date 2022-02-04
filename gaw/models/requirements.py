@@ -1,9 +1,11 @@
-from typing import List, Optional, Dict, Union
-from redbot.core import commands
-from redbot.core.utils.chat_formatting import humanize_list
-from .guildsettings import get_guild_settings
+from typing import Dict, List, Optional, Union
 
 import discord
+from redbot.core import commands
+from redbot.core.utils.chat_formatting import humanize_list
+
+from .guildsettings import get_guild_settings
+
 
 class Requirements(commands.Converter):
     """
@@ -37,11 +39,11 @@ class Requirements(commands.Converter):
 
         self.default_bl = default_bl
         self.default_by = default_by
-        
+
     @property
     def json(self):
         return self.as_dict()
-    
+
     @property
     def null(self):
         return all([not i for i in self.as_dict().values()])
@@ -122,7 +124,7 @@ class Requirements(commands.Converter):
     @classmethod
     def from_json(cls, json: dict):
         return cls(**json)
-    
+
     @classmethod
     async def empty(cls, ctx):
         return await cls.convert(ctx, "none")
@@ -212,7 +214,9 @@ class Requirements(commands.Converter):
                     except commands.RoleNotFound:
                         raise commands.BadArgument(f"Role with id: {_list[0]} was not found.")
                     if role.id in data["default_by"]:
-                        raise commands.BadArgument(f"Role `@{role.name}` is already bypassing by default.")
+                        raise commands.BadArgument(
+                            f"Role `@{role.name}` is already bypassing by default."
+                        )
                     data["bypass"].append(role.id)
                 elif "alevel" in _list[1] or "alvl" in _list[1] or "amarilevel" in _list[1]:
                     data["amari_level"] = int(_list[0])

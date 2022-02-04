@@ -1,13 +1,15 @@
-import discord
-
-from typing import Dict, List, Optional
-from redbot.core import Config
 from dataclasses import dataclass
+from typing import Dict, List, Optional
+
+import discord
+from redbot.core import Config
+
 from ..constants import guild_default_config
 
 config: Config = Config.get_conf(None, 234_6969_420, True, cog_name="Giveaways")
 config.register_guild(**guild_default_config)
-    
+
+
 @dataclass(init=True, repr=True)
 class GuildSettings:
     msg: str
@@ -25,16 +27,20 @@ class GuildSettings:
     color: Optional[int]
     show_defaults: bool
     edit_timer: bool = False
-    
+
+
 async def get_guild_settings(guild_id: int):
     return GuildSettings(**(await config.guild_from_id(guild_id).all()))
+
 
 async def apply_multi(guild: discord.Guild, winners: list):
     _winners = winners.copy()
     roles = await config.all_roles()
-    roles = {guild.get_role(_id): data["multi"] for _id, data in roles.items() if guild.get_role(_id)}
+    roles = {
+        guild.get_role(_id): data["multi"] for _id, data in roles.items() if guild.get_role(_id)
+    }
     for member in _winners:
         for key, value in roles.items():
             winners += [member for i in range(value) if member and key in member.roles]
-        
+
     return winners
