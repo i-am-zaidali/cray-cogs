@@ -29,6 +29,7 @@ from .utils import (
     group_embeds_by_fields,
     is_lt,
     requirement_conv,
+    is_manager
 )
 
 log = logging.getLogger("red.craycogs.giveaways")
@@ -207,8 +208,8 @@ class Giveaways(commands.Cog):
     @commands.group(
         name="giveaway", aliases=["g"], invoke_without_command=True, cooldown_after_parsing=True
     )
-    @commands.mod_or_permissions(administrator=True)
     @commands.guild_only()
+    @is_manager()
     async def g(self, ctx: commands.Context):
         """
         Perform giveaway related actions.
@@ -220,6 +221,8 @@ class Giveaways(commands.Cog):
     @g.command(
         name="start", aliases=["s"], usage="[time] <winners> [requirements] <prize> [flags]"
     )
+    @commands.guild_only()
+    @is_manager()
     async def g_start(
         self,
         ctx: commands.Context,
@@ -283,6 +286,8 @@ class Giveaways(commands.Cog):
         self.add_to_cache(giveaway)
 
     @g.command(name="end")
+    @commands.guild_only()
+    @is_manager()
     async def g_end(
         self, ctx: commands.Context, message: Optional[discord.Message] = None, reason: str = ""
     ):
@@ -334,6 +339,8 @@ class Giveaways(commands.Cog):
         await ctx.tick(message="Giveaway was ended successfully!")
 
     @g.command(name="reroll")
+    @commands.guild_only()
+    @is_manager()
     async def g_reroll(
         self, ctx: commands.Context, message: discord.Message = None, winners: WinnerConverter = 1
     ):
@@ -380,6 +387,8 @@ class Giveaways(commands.Cog):
         await ctx.tick(message="Successfuly rerolled the giveaway!")
 
     @g.command(name="create")
+    @commands.guild_only()
+    @is_manager()
     async def g_create(self, ctx: commands.Context):
         """
         Start a questionaire to start a giveaway.
@@ -457,6 +466,8 @@ class Giveaways(commands.Cog):
         )
 
     @g.command(name="list", usage="")
+    @commands.guild_only()
+    @is_manager()
     async def g_list(self, ctx: commands.Context, _global: bool = False):
         """
         List all the active giveaways in a server.
@@ -541,6 +552,8 @@ class Giveaways(commands.Cog):
             await menu(ctx, embeds, DEFAULT_CONTROLS)
 
     @g.command(name="show")
+    @commands.guild_only()
+    @is_manager()
     async def g_show(self, ctx: commands.Context, message: discord.Message = None):
         """
         Show the giveaway that has the given message id.
@@ -580,6 +593,8 @@ class Giveaways(commands.Cog):
         await ctx.send(embed=embed)
 
     @g.command(name="top", aliases=["topmanagers"])
+    @commands.guild_only()
+    @is_manager()
     async def g_top(self, ctx: commands.Context):
         top = (await get_guild_settings(ctx.guild.id)).top_managers
         if not top:

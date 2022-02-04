@@ -8,6 +8,7 @@ from redbot.core import commands
 from redbot.core.utils.chat_formatting import box
 from redbot.core.utils.predicates import MessagePredicate
 
+from .models import get_guild_settings
 from .converters import TimeConverter
 
 
@@ -45,6 +46,19 @@ async def group_embeds_by_fields(
             groups[ind].add_field(**field)
     return groups
 
+
+def is_manager():
+    async def predicate(ctx: commands.Context):
+        settings = await get_guild_settings(ctx.guild)
+
+        if any(
+            [ctx.author.id in settings.manager, ctx.bot.is_owner(ctx.author), ctx.bot.is_mod(ctx.author), ctx.author.guild_permissions.manage_messages]
+        ):
+            return True
+        
+        return False
+    
+    return commands.check(predicate)
 
 class Coordinate(dict):
     def __missing__(self, key):
