@@ -11,9 +11,6 @@
   </a>
 </p>
 
-<h1> This branch is for the rewrite of the giveaway cog. Its called gaw so install that if you want to test. <h1>
-<h1> NOTE: This cog is not backwards compatible with the old one. Only guild settings will be ported but the old giveaways will not.<h1>
-
 ### A bunch of *badly coded* yet useful utility and random cogs for Red V3 Discord Bot.</h3>
 
 ## Cog Installation
@@ -27,7 +24,7 @@
 | Name              | Version          | Functionality (Click to see full description)                                                                                                              |
 |-------------------|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | DonationLogging   | 2.1.0            | <details><summary>Store donation amounts.</summary>This cog allows you to store a member's donations in a guild.</details>                                 |
-| Giveaways         | 1.7.6            | <details><summary>Host embedded giveaways using reactions.</summary>Start giveaways in your server using reactions and advanced requirements.</details>    |
+| Giveaways         | 2.0.0            | <details><summary>Host embedded giveaways using reactions.</summary>Start giveaways in your server using reactions and advanced requirements.</details>    |
 | Notes             | 1.0.0            | <details><summary>Moderation Notes</summary>Keep moderation notes on people.</details>                                                                     |
 | VoteTracker       | 1.5.0            | <details><summary>Track votes for your bot on top.gg</summary>Track votes for your bot on top.gg and give users roles accordingly.</details>               |
 | HitOrMiss         | 1.0.0            | <details><summary>Throw stuff at others.</summary>Throw items at users and hope you kill them. Buy items from the shop.</details>                          |
