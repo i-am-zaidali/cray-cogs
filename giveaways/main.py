@@ -28,8 +28,8 @@ from .utils import (
     flags_conv,
     group_embeds_by_fields,
     is_lt,
+    is_manager,
     requirement_conv,
-    is_manager
 )
 
 log = logging.getLogger("red.craycogs.giveaways")
@@ -286,20 +286,25 @@ class Giveaways(commands.Cog):
             await giveaway.start()
 
         self.add_to_cache(giveaway)
-        
+
     @g.command(name="flash", aliases=["f", "flashes"])
     @commands.guild_only()
     @is_manager()
     async def g_flash(self, ctx: commands.Context, giveaways: int, prize: str):
         """
         Start multiple flash giveaways with a given prize.
-        
+
         These giveaway will have 1 winner and will last for 10 seconds."""
         if giveaways < 3:
             return await ctx.send("You must flash atleast 3 giveaways.")
-        
+
         for i in range(giveaways):
-            await self.g_start(ctx=ctx, time=datetime.now(timezone.utc)+timedelta(seconds=10), winners=1, prize=prize)
+            await self.g_start(
+                ctx=ctx,
+                time=datetime.now(timezone.utc) + timedelta(seconds=10),
+                winners=1,
+                prize=prize,
+            )
 
     @g.command(name="end")
     @commands.guild_only()
