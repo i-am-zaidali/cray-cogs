@@ -12,6 +12,7 @@
 </p>
 
 <h1> This branch is for the rewrite of the giveaway cog. Its called gaw so install that if you want to test. <h1>
+<h1> NOTE: This cog is not backwards compatible with the old one. Only guild settings will be ported but the old giveaways will not.<h1>
 
 ### A bunch of *badly coded* yet useful utility and random cogs for Red V3 Discord Bot.</h3>
 
