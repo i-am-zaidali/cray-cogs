@@ -29,8 +29,14 @@ class GuildSettings:
     edit_timer: bool = False
 
 
-async def get_guild_settings(guild_id: int):
+async def get_guild_settings(guild_id: int, obj=True):
+    if not obj:
+        return config.guild_from_id(guild_id)
+        
     return GuildSettings(**(await config.guild_from_id(guild_id).all()))
+
+async def get_role(role_id: int):
+    return config.role_from_id(role_id)
 
 
 async def apply_multi(guild: discord.Guild, winners: list):

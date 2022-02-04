@@ -1,4 +1,4 @@
-from typing import Callable, Awaitable, List, Tuple, Dict, Any
+from typing import Callable, Awaitable, List, Tuple, Dict, Any, Union
 from .converters import TimeConverter
 from dateparser import parse
 from redbot.core.utils.chat_formatting import box
@@ -20,6 +20,27 @@ async def dict_keys_to(d: dict, conv: Callable = int):
         final[conv(key)] = value
 
     return final
+
+async def group_embeds_by_fields(
+    *fields: Dict[str, Union[str, bool]], per_embed: int = 3, **kwargs
+) -> List[discord.Embed]:
+    """
+    This was the result of a big brain moment i had
+
+    This method takes dicts of fields and groups them into separate embeds
+    keeping `per_embed` number of fields per embed.
+
+    Extra kwargs can be passed to create embeds off of.
+    """
+    groups: list[discord.Embed] = []
+    for ind, i in enumerate(range(0, len(fields), per_embed)):
+        groups.append(
+            discord.Embed(**kwargs)
+        )  # append embeds in the loop to prevent incorrect embed count
+        fields_to_add = fields[i : i + per_embed]
+        for field in fields_to_add:
+            groups[ind].add_field(**field)
+    return groups
 
 
 class Coordinate(dict):
@@ -83,9 +104,6 @@ async def ask_for_answers(
                 await ctx.send(
                     f"The following error has occurred:\n{box(e, lang='py')}\nPlease try again. (The process has not stopped. Send your answer again)"
                 )
-                # log.exception(
-                #     "An exception occurred during hte step by step process:\n", exc_info=e
-                # )
                 continue
 
             answer = result

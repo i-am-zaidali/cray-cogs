@@ -124,6 +124,23 @@ class GiveawayMeta:
 
     def __repr__(self) -> str:
         return self.__str__()
+    
+    def get_winners_str(self):
+        wcounter = Counter(self.winners)
+        w = ""
+        for k, v in wcounter.items():
+            w += f"<@{k.id}> x {v}, " if v > 1 else f"<@{k.id}> "
+    
+        if not wcounter:
+            w += "There were no winners."
+            
+        return w
+    
+    async def get_embed_color(self):
+        set_color = (await get_guild_settings(self.guild.id)).color
+        bot_color = await self.bot.get_embed_color(self.channel)
+
+        return discord.Color(set_color) if set_color else bot_color
 
     async def _get_message(self) -> Optional[discord.Message]:
         msg = list(filter(lambda x: x.id == self.message_id, self.bot.cached_messages))
@@ -388,12 +405,6 @@ class Giveaway(GiveawayMeta):
         self._entrants.append(member.id)
         return True
 
-    async def get_embed_color(self):
-        set_color = (await get_guild_settings(self.guild.id)).color
-        bot_color = await self.bot.get_embed_color(self.channel)
-
-        return discord.Color(set_color) if set_color else bot_color
-
     async def _handle_flags(self):
         flags = self.flags
         if flags.ends_in:
@@ -422,7 +433,6 @@ class Giveaway(GiveawayMeta):
             kwargs["content"] = ping
 
         if msg:
-            print("hello")
             kwargs["embed"] = discord.Embed(
                 description=f"***Message***: {msg}", color=await self.get_embed_color()
             )
@@ -454,8 +464,10 @@ class Giveaway(GiveawayMeta):
         self.cog.remove_from_cache(self)  # remove the old giveaway id
 
         embed = await self.create_embed()
+        
+        settings = await get_guild_settings(self.guild_id)
 
-        gmsg: discord.Message = await self.channel.send(embed=embed)
+        gmsg: discord.Message = await self.channel.send(settings.msg, embed=embed)
         await gmsg.add_reaction(self.emoji)
 
         self.message_id = gmsg.id
@@ -518,13 +530,9 @@ class Giveaway(GiveawayMeta):
 
             return EndedGiveaway.from_giveaway(self, reason)
 
-        w = ""
-
         self._winners = [i.id for i in w_list]
 
-        wcounter = Counter(w_list)
-        for k, v in wcounter.items():
-            w += f"<@{k.id}> x {v}, " if v > 1 else f"<@{k.id}> "
+        w = self.get_winners_str()
 
         formatdict = {"winner": w, "prize": prize, "link": link}
 
@@ -611,10 +619,13 @@ class EndedGiveaway(GiveawayMeta):
             )
             return
 
-        winner = {random.choice(entrants).mention for i in range(winners)}
+        winner = [random.choice(entrants).mention for i in range(winners)]
+        self._winners = winner
+        
+        w = self.get_winners_str()
 
         await gmsg.reply(
-            f"Congratulations :tada:{humanize_list(list(winner))}:tada:. You are the new winner(s) for the giveaway below.\n{link}"
+            f"Congratulations :tada:{w}:tada:. You are the new winner(s) for the giveaway below.\n{link}"
         )
 
     @classmethod
