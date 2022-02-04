@@ -255,7 +255,7 @@ class Giveaway(GiveawayMeta):
         embed = giveaway_embed.copy()
 
         timestamp_str = (
-            f"<t:{int(self.ends_at.timestamp())}:R> ({self.ends_at.strftime('%Y-%m-%d %H:%M:%S')})"
+            f"<t:{int(self.ends_at.timestamp())}:R> (<t:{self.ends_at.timestamp()}:f>)"
         )
 
         embed.title = embed.title.format(prize=self.prize)
@@ -520,7 +520,7 @@ class Giveaway(GiveawayMeta):
 
         w = ""
 
-        self._winners = w_list
+        self._winners = [i.id for i in w_list]
 
         wcounter = Counter(w_list)
         for k, v in wcounter.items():
