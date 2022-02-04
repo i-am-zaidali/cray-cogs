@@ -8,7 +8,6 @@ from redbot.core import commands
 from redbot.core.utils.chat_formatting import box
 from redbot.core.utils.predicates import MessagePredicate
 
-from .models import get_guild_settings
 from .converters import TimeConverter
 
 
@@ -48,6 +47,7 @@ async def group_embeds_by_fields(
 
 
 def is_manager():
+    from .models import get_guild_settings
     async def predicate(ctx: commands.Context):
         settings = await get_guild_settings(ctx.guild)
 
