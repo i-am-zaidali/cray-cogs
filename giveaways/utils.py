@@ -48,24 +48,31 @@ async def group_embeds_by_fields(
 
 def is_manager():
     from .models import get_guild_settings
+
     async def predicate(ctx: commands.Context):
         settings = await get_guild_settings(ctx.guild.id)
-        
+
         if settings.autodelete:
             try:
-                await ctx.message.delete() # just handle it here :p
+                await ctx.message.delete()  # just handle it here :p
 
             except Exception:
                 pass
 
         if any(
-            [ctx.author.id in settings.manager, await ctx.bot.is_owner(ctx.author), await ctx.bot.is_mod(ctx.author), ctx.author.guild_permissions.manage_messages]
+            [
+                ctx.author.id in settings.manager,
+                await ctx.bot.is_owner(ctx.author),
+                await ctx.bot.is_mod(ctx.author),
+                ctx.author.guild_permissions.manage_messages,
+            ]
         ):
             return True
-        
+
         return False
-    
+
     return commands.check(predicate)
+
 
 class Coordinate(dict):
     def __missing__(self, key):

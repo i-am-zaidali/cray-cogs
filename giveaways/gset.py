@@ -245,7 +245,7 @@ class Gset(Giveaways, name="Giveaways"):
     async def gset_bypass(self, ctx):
         """
         See a list of roles that can bypass requirements in giveaways.
-        
+
         Use subcommands for more specific actions."""
         settings = await get_guild_settings(ctx.guild.id)
         roles = settings.bypass
@@ -340,7 +340,7 @@ class Gset(Giveaways, name="Giveaways"):
     async def role_multi_add(self, ctx, role: discord.Role, multi: int):
         """
         Add a multipier to a given role.
-        
+
         This will increase the chances of the members of that role to win in giveaways."""
         if multi > 5:
             return await ctx.send("Multiplier can not be greater than 5.")
