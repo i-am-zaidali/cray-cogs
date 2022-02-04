@@ -1,14 +1,14 @@
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, Union
 
 import discord
-import asyncio
 from discord.ext import tasks
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import box, humanize_timedelta, pagify
-from redbot.core.utils.menus import menu, DEFAULT_CONTROLS
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 
 from .converters import PrizeConverter, TimeConverter, WinnerConverter
 from .models import (
@@ -20,7 +20,16 @@ from .models import (
     model_from_time,
 )
 from .models.guildsettings import config as guildconf
-from .utils import dict_keys_to, ask_for_answers, group_embeds_by_fields, is_lt, datetime_conv, requirement_conv, flags_conv, channel_conv
+from .utils import (
+    ask_for_answers,
+    channel_conv,
+    datetime_conv,
+    dict_keys_to,
+    flags_conv,
+    group_embeds_by_fields,
+    is_lt,
+    requirement_conv,
+)
 
 log = logging.getLogger("red.craycogs.giveaways")
 
@@ -160,12 +169,12 @@ class Giveaways(commands.Cog):
             if not retry_after and getattr(i, "_message_cache", None):
                 i._message_cache.setdefault(message.author.id, 0)
                 i._message_cache[message.author.id] += 1
-                
+
     @commands.Cog.listener()
     async def on_command_completion(self, ctx: commands.Context):
         if ctx.command != self.bot.get_command("giveaway start"):
             return
-        
+
         async with guildconf.guild(ctx.guild).top_managers() as top_managers:
             top_managers.setdefault(ctx.author.id, 0)
             top_managers[ctx.author.id] += 1
@@ -257,7 +266,7 @@ class Giveaways(commands.Cog):
 
         This can also act as a second option for giveaways that are stuck because of some internal error.
         `Reason` is an optional argument to pass to why the giveaway was ended.
-        
+
         You can also reply to a giveaway message instead of passing its id."""
 
         message = message or await self.message_from_reply(ctx.message)
@@ -305,9 +314,9 @@ class Giveaways(commands.Cog):
     ):
         """
         Reroll the winners for an ended giveaway.
-        
+
         You can pass the winners argument to specify how many winners you want to reroll.
-        
+
         You can also reply to a giveaway message instead of passing its id."""
         message = message or await self.message_from_reply(ctx.message)
 
@@ -344,13 +353,14 @@ class Giveaways(commands.Cog):
             )
 
         await ctx.tick(message="Successfuly rerolled the giveaway!")
-        
+
     @g.command(name="create")
     async def g_create(self, ctx: commands.Context):
         """
         Start a questionaire to start a giveaway.
-        
+
         This asks you different question one by one to start a giveaway."""
+
         async def _prize(m):
             return m.content
 
@@ -412,45 +422,48 @@ class Giveaways(commands.Cog):
             flags.channel = channel
             await ctx.send("Successfully created giveaway in channel `{}`.".format(channel))
 
-        await self.g_start(ctx=ctx, time=time, prize=prize, winners=winners, requirements=requirements, flags=flags)
-        
+        await self.g_start(
+            ctx=ctx,
+            time=time,
+            prize=prize,
+            winners=winners,
+            requirements=requirements,
+            flags=flags,
+        )
+
     @g.command(name="list", usage="")
     async def g_list(self, ctx: commands.Context, _global: bool = False):
         """
         List all the active giveaways in a server.
-        
+
         For bot owners, you can add `true` to the command invocation to list all the active giveaways globally."""
         if _global and not ctx.author.id in ctx.bot.owner_ids:
             return await ctx.send("Tryna be sneaky eh? :smirk:")
-        
+
         if not _global:
             guild = self._CACHE.get(ctx.guild.id)
-            
+
             if not guild:
                 return await ctx.send("This server has no giveaways, active or otherwise.")
-            
-            giveaways = list(
-                filter(
-                    lambda x: isinstance(x, Giveaway), guild.values()
-                )
-            )
-            
+
+            giveaways = list(filter(lambda x: isinstance(x, Giveaway), guild.values()))
+
         else:
             if not self._CACHE:
                 return await ctx.send("No guilds have started a giveaway yet!")
-            
+
             giveaways: list[Giveaway] = []
-            
+
             for guild, data in self._CACHE.items():
                 for mid, giveaway in data.items():
                     if not isinstance(giveaway, Giveaway):
                         continue
-                    
+
                     giveaways.append(giveaway)
-                    
+
         if not giveaways:
             return await ctx.send("It seems there are no active giveaways right now.")
-        
+
         fields = []
         failed: list[EndedGiveaway] = []
         for i in giveaways:
@@ -501,45 +514,46 @@ class Giveaways(commands.Cog):
             return await ctx.send(embed=embeds[0])
         else:
             await menu(ctx, embeds, DEFAULT_CONTROLS)
-            
+
     @g.command(name="show")
     async def g_show(self, ctx: commands.Context, message: discord.Message = None):
         """
         Show the giveaway that has the given message id.
-        
+
         The message id can be found by using `[p]giveaway list`."""
         guild = self._CACHE.get(ctx.guild.id)
         if not guild:
             return await ctx.send("This server has no giveaways, active or otherwise.")
-        
+
         message = message or await self.message_from_reply(ctx.message)
-        
+
         if not message:
             return await ctx.send_help()
-        
+
         giveaway = guild.get(message.id)
         if giveaway is None:
             return await ctx.send("This server has no giveaway with that message id.")
-        
+
         embed = discord.Embed(
             title=f"Giveaway for {giveaway.prize}",
             color=await giveaway.get_embed_color(),
         )
         embed.description = (
-            f"***__[JUMP TO MESSAGE]({message.jump_url})__***\n\n" +
-            f"> Guild: **{giveaway.guild}**\n" +
-            f"> Host: **{giveaway.host}**\n" +
-            f"> Message id: **{giveaway.message_id}**\n" +
-            f"> Amount of winners: **{giveaway.amount_of_winners}**\n" +
-            (f"> Ends in: **{humanize_timedelta(timedelta=giveaway.ends_at - datetime.now(timezone.utc))}**\n" 
-            if isinstance(giveaway, Giveaway) 
-            else 
-            f"> Ended at: **<t:{int(giveaway.ends_at.timestamp())}:f>**\n"
-            f"> Winner(s): {giveaway.get_winners_str()}")
+            f"***__[JUMP TO MESSAGE]({message.jump_url})__***\n\n"
+            + f"> Guild: **{giveaway.guild}**\n"
+            + f"> Host: **{giveaway.host}**\n"
+            + f"> Message id: **{giveaway.message_id}**\n"
+            + f"> Amount of winners: **{giveaway.amount_of_winners}**\n"
+            + (
+                f"> Ends in: **{humanize_timedelta(timedelta=giveaway.ends_at - datetime.now(timezone.utc))}**\n"
+                if isinstance(giveaway, Giveaway)
+                else f"> Ended at: **<t:{int(giveaway.ends_at.timestamp())}:f>**\n"
+                f"> Winner(s): {giveaway.get_winners_str()}"
+            )
         )
         embed.set_thumbnail(url=ctx.guild.icon_url)
         await ctx.send(embed=embed)
-        
+
     @g.command(name="top", aliases=["topmanagers"])
     async def g_top(self, ctx: commands.Context):
         top = (await get_guild_settings(ctx.guild.id)).top_managers
@@ -556,7 +570,7 @@ class Giveaways(commands.Cog):
         )
         embed.set_footer(text=ctx.guild.name, icon_url=ctx.guild.icon_url)
         return await ctx.send(embed=embed)
-    
+
     @g.command(name="explain")
     @commands.cooldown(1, 5, commands.BucketType.guild)
     @commands.bot_has_permissions(embed_links=True)

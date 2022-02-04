@@ -2,7 +2,7 @@ import time
 
 from .flags import GiveawayFlags
 from .giveaway import EndedGiveaway, Giveaway
-from .guildsettings import get_guild_settings, get_role, config
+from .guildsettings import config, get_guild_settings, get_role
 from .requirements import Requirements
 
 

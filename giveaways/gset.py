@@ -1,18 +1,18 @@
-from .main import Giveaways
-from .models import get_guild_settings, get_role, config
 from typing import Union
 
 import discord
-
 from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import box, humanize_list
 
+from .main import Giveaways
+from .models import config, get_guild_settings, get_role
+
+
 class Gset(Giveaways, name="Giveaways"):
-    
     def __init__(self, bot: Red):
         super().__init__(bot)
-        
+
     @commands.group(
         name="giveawaysettings", aliases=["gset", "giveawaysetting"], invoke_without_command=True
     )
@@ -133,7 +133,7 @@ class Gset(Giveaways, name="Giveaways"):
             return await ctx.send(
                 "You need to provide proper role ids or mentions to add them as managers"
             )
-            
+
         settings = await get_guild_settings(ctx.guild.id, False)
         async with settings.manager() as managers:
             roles = set(roles)
@@ -190,13 +190,19 @@ class Gset(Giveaways, name="Giveaways"):
             return await ctx.send(
                 embed=discord.Embed(
                     title=f"Giveaway Blacklisted Roles in `{ctx.guild.name}`!",
-                    description="\n\n".join([ctx.guild.get_role(role).mention for role in roles if ctx.guild.get_role(role)])
+                    description="\n\n".join(
+                        [
+                            ctx.guild.get_role(role).mention
+                            for role in roles
+                            if ctx.guild.get_role(role)
+                        ]
+                    )
                     if roles
                     else "No roles have been blacklisted from giveaways permanently.",
                     color=discord.Color.green(),
                 )
             )
-            
+
         settings = await get_guild_settings(ctx.guild.id, False)
         async with settings.blacklist() as bl:
             failed = []
@@ -249,13 +255,19 @@ class Gset(Giveaways, name="Giveaways"):
         return await ctx.send(
             embed=discord.Embed(
                 title=f"Role Bypasses for `{ctx.guild.name}`!",
-                description="\n\n".join([ctx.guild.get_role(role).mention for role in roles if ctx.guild.get_role(role)])
+                description="\n\n".join(
+                    [
+                        ctx.guild.get_role(role).mention
+                        for role in roles
+                        if ctx.guild.get_role(role)
+                    ]
+                )
                 if roles
                 else "No role bypasses set in this server.",
                 color=discord.Color.green(),
             )
         )
-        
+
     @gset_bypass.command(name="add", aliases=["a"])
     @commands.guild_only()
     @commands.admin_or_permissions(administrator=True)
@@ -311,16 +323,16 @@ class Gset(Giveaways, name="Giveaways"):
         [role] is the role name, id or mention and
         [multi] is the multiplier amount. **Must be under 5**. This is not required when you are removing."""
         roles = await config.all_roles()
-        roles = [ ctx.guild.get_role(role) for role in filter(lambda x: ctx.guild.get_role(x) is not None, roles) ]
+        roles = [
+            ctx.guild.get_role(role)
+            for role in filter(lambda x: ctx.guild.get_role(x) is not None, roles)
+        ]
         return await ctx.send(
             embed=discord.Embed(
                 title=f"Role Multipliers for `{ctx.guild.name}`'s giveaways!",
                 description=box(
                     "\n\n".join(
-                        [
-                            f"@{k.name:<10}  {'<'+'-'*15+'>':>5}  {v:>5}"
-                            for k, v in roles.items()
-                        ]
+                        [f"@{k.name:<10}  {'<'+'-'*15+'>':>5}  {v:>5}" for k, v in roles.items()]
                     )
                     if roles
                     else "No role multipliers set in this server."
@@ -328,7 +340,7 @@ class Gset(Giveaways, name="Giveaways"):
                 color=discord.Color.green(),
             )
         )
-            
+
     @gset_multi.command(name="add", aliases=["a"])
     @commands.guild_only()
     @commands.admin_or_permissions(administrator=True)
@@ -341,7 +353,7 @@ class Gset(Giveaways, name="Giveaways"):
         return await ctx.send(
             f"Added `{role.name}` with multiplier `{multi}` to the server's role multipliers."
         )
-        
+
     @gset_multi.command(name="remove", aliases=["r"])
     @commands.guild_only()
     @commands.admin_or_permissions(administrator=True)
@@ -349,9 +361,7 @@ class Gset(Giveaways, name="Giveaways"):
     async def role_multi_remove(self, ctx, role: discord.Role):
         settings = await get_role(role.id)
         await settings.multi.set(None)
-        return await ctx.send(
-            f"Removed `{role.name}` from the server's role multipliers."
-        )
+        return await ctx.send(f"Removed `{role.name}` from the server's role multipliers.")
 
     @gset.command(name="color", aliases=["colour"])
     @commands.admin_or_permissions(administrator=True)

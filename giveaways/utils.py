@@ -1,12 +1,14 @@
-from typing import Callable, Awaitable, List, Tuple, Dict, Any, Union
-from .converters import TimeConverter
-from dateparser import parse
-from redbot.core.utils.chat_formatting import box
-from redbot.core.utils.predicates import MessagePredicate
 import asyncio
 from datetime import datetime, timezone
+from typing import Any, Awaitable, Callable, Dict, List, Tuple, Union
+
 import discord
+from dateparser import parse
 from redbot.core import commands
+from redbot.core.utils.chat_formatting import box
+from redbot.core.utils.predicates import MessagePredicate
+
+from .converters import TimeConverter
 
 
 async def dict_keys_to(d: dict, conv: Callable = int):
@@ -20,6 +22,7 @@ async def dict_keys_to(d: dict, conv: Callable = int):
         final[conv(key)] = value
 
     return final
+
 
 async def group_embeds_by_fields(
     *fields: Dict[str, Union[str, bool]], per_embed: int = 3, **kwargs
@@ -63,7 +66,7 @@ class SafeMember:
         self, value
     ):  # if anyone tries to be sneaky and tried to access things they cant
         return f"donor.{value}"  # since its only used in one place where the var name is donor.
-    
+
 
 async def ask_for_answers(
     ctx: commands.Context,
@@ -120,7 +123,9 @@ def is_lt(lt: int):
     async def pred(message: discord.Message):
         if message.content.isdigit() and int(message.content) <= lt:
             return int(message.content)
-        raise commands.BadArgument("Given argument must be less than or equal to {} and a numeric digit".format(lt))
+        raise commands.BadArgument(
+            "Given argument must be less than or equal to {} and a numeric digit".format(lt)
+        )
 
     return pred
 
@@ -139,7 +144,9 @@ def datetime_conv(ctx):
                 # honestly idk how this works but it does and tbf idk how to work with times so bare with me pls-
                 _ = datetime.now()
                 if t < _:
-                    raise commands.BadArgument(f"1 Given date/time for `--ends-at` is in the past!")
+                    raise commands.BadArgument(
+                        f"1 Given date/time for `--ends-at` is in the past!"
+                    )
                 _ = t - _
                 t = datetime.now(tz=timezone.utc) + _
                 # t = t.replace(tzinfo=datetime.timezone.utc)
@@ -177,6 +184,7 @@ def channel_conv(ctx):
 
 def flags_conv(ctx):
     from .models import GiveawayFlags
+
     async def pred(message: discord.Message):
         if message.content.lower() == "none":
             return GiveawayFlags.none()

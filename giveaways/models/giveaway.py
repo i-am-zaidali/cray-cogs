@@ -124,18 +124,18 @@ class GiveawayMeta:
 
     def __repr__(self) -> str:
         return self.__str__()
-    
+
     def get_winners_str(self):
         wcounter = Counter(self.winners)
         w = ""
         for k, v in wcounter.items():
             w += f"<@{k.id}> x {v}, " if v > 1 else f"<@{k.id}> "
-    
+
         if not wcounter:
             w += "There were no winners."
-            
+
         return w
-    
+
     async def get_embed_color(self):
         set_color = (await get_guild_settings(self.guild.id)).color
         bot_color = await self.bot.get_embed_color(self.channel)
@@ -464,7 +464,7 @@ class Giveaway(GiveawayMeta):
         self.cog.remove_from_cache(self)  # remove the old giveaway id
 
         embed = await self.create_embed()
-        
+
         settings = await get_guild_settings(self.guild_id)
 
         gmsg: discord.Message = await self.channel.send(settings.msg, embed=embed)
@@ -621,7 +621,7 @@ class EndedGiveaway(GiveawayMeta):
 
         winner = [random.choice(entrants).mention for i in range(winners)]
         self._winners = winner
-        
+
         w = self.get_winners_str()
 
         await gmsg.reply(
