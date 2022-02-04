@@ -1,15 +1,18 @@
+from .main import Giveaways
+from .models import get_guild_settings, get_role, config
+from typing import Union
+
 import discord
+
 from redbot.core import commands
-from redbot.core.utils.chat_formatting import box, humanize_list, humanize_timedelta
+from redbot.core.bot import Red
+from redbot.core.utils.chat_formatting import box, humanize_list
 
-from .events import main
-from .util import TimeConverter
-
-
-class gsettings(main):
-    def __init__(self, bot):
+class Gset(Giveaways, name="Giveaways"):
+    
+    def __init__(self, bot: Red):
         super().__init__(bot)
-
+        
     @commands.group(
         name="giveawaysettings", aliases=["gset", "giveawaysetting"], invoke_without_command=True
     )
@@ -23,17 +26,18 @@ class gsettings(main):
 
     @gset.command(name="gmsg", usage="<message>")
     @commands.admin_or_permissions(administrator=True)
-    async def gmsg(self, ctx, *, message):
+    async def gset_gmsg(self, ctx, *, message):
         """
         Set a custom giveaway message.
 
         This message shows above the giveaway embed."""
-        await self.config.set_guild_msg(ctx.guild, message)
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.msg.set(message)
         await ctx.reply(f"The new giveaway message has been set to \n```\n{message}\n```")
 
     @gset.command(name="tmsg")
     @commands.admin_or_permissions(administrator=True)
-    async def tmsg(self, ctx, *, message):
+    async def gset_tmsg(self, ctx, *, message):
         """
         Set a custom message for giveaways.
 
@@ -53,27 +57,30 @@ class gsettings(main):
                 `[p]gset tmsg Donated by: {donor.mention}
                 Prize: **{prize}**
                 Please thank **{donor.name}** in #general`"""
-        await self.config.set_guild_tmsg(ctx.guild, message)
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.tmsg.set(message)
         await ctx.reply(f"The new giveaway message has been set to \n```\n{message}\n```")
 
     @gset.command(name="emoji", usage="<emoji>")
     @commands.admin_or_permissions(administrator=True)
-    async def emoji(self, ctx, emoji: discord.Emoji):
+    async def gset_emoji(self, ctx, emoji: Union[discord.Emoji, discord.PartialEmoji]):
         """
         Set a custom giveaway emoji that the bot reacts with on giveaway embeds.
 
         The bot must have access to the emoji to be used."""
-        await self.config.set_guild_emoji(ctx.guild, emoji)
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.emoji.set(str(emoji))
         await ctx.reply(f"The new giveaway emoji has been set to {emoji}")
 
     @gset.command(name="winnerdm", usage="<status>")
     @commands.admin_or_permissions(administrator=True)
-    async def winnerdm(self, ctx, status: bool):
+    async def gset_winnerdm(self, ctx, status: bool):
         """
         Set whether the bot dms the winners when the giveaway ends.
 
         This won't be able to dm if the winners have their dms closed."""
-        await self.config.set_guild_windm(ctx.guild, status)
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.winnerdm.set(status)
         await ctx.reply(
             "The winner will be dm'ed when the giveaway ends now."
             if status == True
@@ -82,12 +89,13 @@ class gsettings(main):
 
     @gset.command(name="hostdm", usage="<status>")
     @commands.admin_or_permissions(administrator=True)
-    async def hostdm(self, ctx, status: bool):
+    async def gset_hostdm(self, ctx, status: bool):
         """
         Set whether the bot dms the host when the giveaway ends.
 
         This won't be able to dm if the host has their dms closed."""
-        await self.config.set_guild_hostdm(ctx.guild, status)
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.hostdm.set(status)
         await ctx.reply(
             "The host will be dm'ed when the giveaway ends now."
             if status == True
@@ -96,7 +104,7 @@ class gsettings(main):
 
     @gset.command(name="endmsg", usage="<message>")
     @commands.admin_or_permissions(administrator=True)
-    async def endmsg(self, ctx, *, message):
+    async def gset_endmsg(self, ctx, *, message):
         """
         Set the message that gets sent when a giveaway ends.
 
@@ -110,12 +118,13 @@ class gsettings(main):
         For example:
                 `[p]gset endmsg Congratulations {winner}! You have won the givaway for **{prize}**.
                 {link}`"""
-        await self.config.set_guild_endmsg(ctx.guild, message)
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.endmsg.set(message)
         await ctx.reply(f"The ending message has been changed to\n```\n{message}\n```")
 
-    @gset.command(name="manager", usage="<role>")
+    @gset.command(name="manager", aliases=["managers"])
     @commands.admin_or_permissions(administrator=True)
-    async def manager(self, ctx, *roles: discord.Role):
+    async def gset_manager(self, ctx, *roles: discord.Role):
         """
         Set roles that can manage giveaways in your server.
 
@@ -124,7 +133,11 @@ class gsettings(main):
             return await ctx.send(
                 "You need to provide proper role ids or mentions to add them as managers"
             )
-        await self.config.set_manager(ctx.guild, *list(roles))
+            
+        settings = await get_guild_settings(ctx.guild.id, False)
+        async with settings.manager() as managers:
+            roles = set(roles)
+            managers += [role.id for role in roles]
         await ctx.reply(
             f"{humanize_list([role.mention for role in roles])} have been set as the giveaway managers!",
             allowed_mentions=discord.AllowedMentions(roles=False, replied_user=False),
@@ -132,12 +145,13 @@ class gsettings(main):
 
     @gset.command(name="pingrole", usage="<role>")
     @commands.admin_or_permissions(administrator=True)
-    async def pingrole(self, ctx, role: discord.Role):
+    async def gset_pingrole(self, ctx, role: discord.Role):
         """
         Set which role gets pinged in giveaways.
 
         This only takes effect when the `--ping` flag is used in giveaways."""
-        await self.config.set_guild_pingrole(ctx.guild, role.id)
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.pingrole.set(role.id)
         await ctx.reply(
             f"{role.mention} has been set as the pingrole!",
             allowed_mentions=discord.AllowedMentions(roles=False, replied_user=False),
@@ -146,12 +160,13 @@ class gsettings(main):
     @gset.command(name="autodelete", aliases=["autodel"])
     @commands.guild_only()
     @commands.admin_or_permissions(administrator=True)
-    async def auto(self, ctx, toggle: bool):
+    async def gset_autodelete(self, ctx, toggle: bool):
         """
         Set whether giveaway command invocations get automatically deleted or not.
 
         Pass true to delete and false to not."""
-        await self.config.set_guild_autodelete(ctx.guild, toggle)
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.autodelete.set(toggle)
         await ctx.reply(
             "Giveaway commands will automatically delete now."
             if toggle == True
@@ -162,7 +177,7 @@ class gsettings(main):
     @commands.guild_only()
     @commands.admin_or_permissions(administrator=True)
     @commands.bot_has_permissions(embed_links=True)
-    async def bl_role(self, ctx, roles: commands.Greedy[discord.Role] = None):
+    async def gset_blacklist(self, ctx, roles: commands.Greedy[discord.Role] = None):
         """
         Blacklist roles from giveaway permanently without having to pass them as requirements each time.
 
@@ -170,34 +185,58 @@ class gsettings(main):
 
         Sending nothing will show a list of blacklisted roles."""
         if not roles:
-            roles = await self.config.all_blacklisted_roles(ctx.guild, False)
+            settings = await get_guild_settings(ctx.guild.id)
+            roles = settings.blacklist
             return await ctx.send(
                 embed=discord.Embed(
                     title=f"Giveaway Blacklisted Roles in `{ctx.guild.name}`!",
-                    description="\n\n".join([str(role.mention) for role in roles])
+                    description="\n\n".join([ctx.guild.get_role(role).mention for role in roles if ctx.guild.get_role(role)])
                     if roles
                     else "No roles have been blacklisted from giveaways permanently.",
                     color=discord.Color.green(),
                 )
             )
-        roles = await self.config.blacklist_role(ctx.guild, roles)
-        await ctx.send(roles)
+            
+        settings = await get_guild_settings(ctx.guild.id, False)
+        async with settings.blacklist() as bl:
+            failed = []
+            for role in roles:
+                if not role.id in bl:
+                    bl.append(role.id)
+                else:
+                    failed.append(f"`{role.name}`")
+
+        return await ctx.send(
+            f"Blacklisted {humanize_list([f'`@{role.name}`' for role in roles])} permanently from giveaways."
+            + (f"{humanize_list(failed)} were already blacklisted." if failed else "")
+        )
 
     @gset.command(name="unblacklist", aliases=["ubl"])
     @commands.guild_only()
     @commands.admin_or_permissions(administrator=True)
     @commands.bot_has_permissions(embed_links=True)
-    async def ubl_role(self, ctx, roles: commands.Greedy[discord.Role]):
+    async def gset_unblacklist(self, ctx, roles: commands.Greedy[discord.Role]):
         """
         Unblacklist previously blacklisted roles from giveaways."""
-        roles = await self.config.unblacklist_role(ctx.guild, roles)
-        return await ctx.send(roles)
+        settings = await get_guild_settings(ctx.guild.id, False)
+        async with settings.blacklist() as bl:
+            failed = []
+            for role in roles:
+                if role.id in bl:
+                    bl.remove(role.id)
+                else:
+                    failed.append(f"`{role.name}`")
 
-    @gset.command(name="bypass", aliases=["by"])
+        return await ctx.send(
+            f"UnBlacklisted {humanize_list([f'`@{role.name}`' for role in roles])} permanently from giveaways."
+            + (f"{humanize_list(failed)} were never blacklisted" if failed else "")
+        )
+
+    @gset.group(name="bypass", aliases=["by"], invoke_without_command=True)
     @commands.guild_only()
     @commands.admin_or_permissions(administrator=True)
     @commands.bot_has_permissions(embed_links=True)
-    async def by_role(self, ctx, add_or_remove=None, roles: commands.Greedy[discord.Role] = None):
+    async def gset_bypass(self, ctx):
         """
         Set roles to bypass all giveaways in your server.
 
@@ -205,33 +244,61 @@ class gsettings(main):
 
         1st argument should be either of add or remove
         2nd should be role ids or mentions separated by spaces."""
-        if not add_or_remove and not roles:
-            roles = await self.config.all_bypass_roles(ctx.guild, False)
-            return await ctx.send(
-                embed=discord.Embed(
-                    title=f"Role Bypasses for `{ctx.guild.name}`!",
-                    description="\n\n".join([str(role.mention) for role in roles])
-                    if roles
-                    else "No role bypasses set in this server.",
-                    color=discord.Color.green(),
-                )
+        settings = await get_guild_settings(ctx.guild.id)
+        roles = settings.bypass
+        return await ctx.send(
+            embed=discord.Embed(
+                title=f"Role Bypasses for `{ctx.guild.name}`!",
+                description="\n\n".join([ctx.guild.get_role(role).mention for role in roles if ctx.guild.get_role(role)])
+                if roles
+                else "No role bypasses set in this server.",
+                color=discord.Color.green(),
             )
-        if not add_or_remove.lower() in ["add", "remove"]:
-            return await ctx.send_help("gset bypass")
-        if add_or_remove.lower() == "add":
-            roles = await self.config.bypass_role(ctx.guild, roles)
-            return await ctx.send(roles)
-
-        roles = await self.config.unbypass_role(ctx.guild, roles)
-        return await ctx.send(roles)
-
-    @gset.command(name="multi", aliases=["rolemulti", "rm"])
+        )
+        
+    @gset_bypass.command(name="add", aliases=["a"])
     @commands.guild_only()
     @commands.admin_or_permissions(administrator=True)
     @commands.bot_has_permissions(embed_links=True)
-    async def role_multi(
-        self, ctx, add_or_remove=None, role: discord.Role = None, multi: int = None
-    ):
+    async def gset_bypass_add(self, ctx, *roles: discord.Role):
+        settings = await get_guild_settings(ctx.guild.id, False)
+        async with settings.bypass() as by:
+            failed = []
+            for role in roles:
+                if role.id not in by:
+                    by.append(role.id)
+                else:
+                    failed.append(f"`{role.name}`")
+
+        return await ctx.send(
+            f"Added giveaway bypass to {humanize_list([f'`@{role.name}`' for role in roles])}."
+            + (f"{humanize_list(failed)} were never allowed to bypass" if failed else "")
+        )
+
+    @gset_bypass.command(name="remove", aliases=["r"])
+    @commands.guild_only()
+    @commands.admin_or_permissions(administrator=True)
+    @commands.bot_has_permissions(embed_links=True)
+    async def gset_bypass_remove(self, ctx, *roles: discord.Role):
+        settings = await get_guild_settings(ctx.guild.id, False)
+        async with settings.bypass() as by:
+            failed = []
+            for role in roles:
+                if role.id in by:
+                    by.remove(role.id)
+                else:
+                    failed.append(f"`{role.name}`")
+
+        return await ctx.send(
+            f"Removed giveaway bypass from {humanize_list([f'`@{role.name}`' for role in roles])}."
+            + (f"{humanize_list(failed)} were never allowed to bypass" if failed else "")
+        )
+
+    @gset.group(name="multi", aliases=["rolemulti", "rm"])
+    @commands.guild_only()
+    @commands.admin_or_permissions(administrator=True)
+    @commands.bot_has_permissions(embed_links=True)
+    async def gset_multi(self, ctx):
         """
         Add role multipliers for giveaways.
 
@@ -243,53 +310,47 @@ class gsettings(main):
         [add_or_remove] takes either of 'add' or 'remove'.
         [role] is the role name, id or mention and
         [multi] is the multiplier amount. **Must be under 5**. This is not required when you are removing."""
-        if not add_or_remove and not role and not multi:
-            roles = await self.config.get_all_roles_multi(ctx.guild)
-            return await ctx.send(
-                embed=discord.Embed(
-                    title=f"Role Multipliers for `{ctx.guild.name}`'s giveaways!",
-                    description=box(
-                        "\n\n".join(
-                            [
-                                f"@{k.name:<10}  {'<'+'-'*15+'>':>5}  {v:>5}"
-                                for k, v in roles.items()
-                            ]
-                        )
-                        if roles
-                        else "No role multipliers set in this server."
-                    ),
-                    color=discord.Color.green(),
-                )
-            )
-
-        if not add_or_remove.lower() in ["add", "remove"]:
-            return await ctx.send_help("gset multi")
-
-        if add_or_remove.lower() == "add":
-            if multi > 5:
-                return await ctx.send("Multipliers must be under 5x.")
-            role = await self.config.set_role_multi(role, multi)
-            return await ctx.send(role)
-
-        else:
-            role = await self.config.reset_role_multi(role)
-            return await ctx.send(role)
-
-    @gset.command(name="et", aliases=["edit_timer"])
-    @commands.admin_or_permissions(administrator=True)
-    async def edit_timers(self, ctx, enable_or_disable: bool):
-        """
-        Configure whether you want to edit the timers for your server's giveaways.
-
-        If disabled, the embed will use discord's native timestamps or else will use text
-        to show the remaining time for the giveaway to end.
-
-        **NOTE TO BOT OWNER:**
-            > This has the potential of ratelimiting your bot and if you want to prevent that,
-            > disable this command globally using `[p]command disable gset et`."""
-        await self.config.set_guild_timer(ctx.guild, enable_or_disable)
+        roles = await config.all_roles()
+        roles = [ ctx.guild.get_role(role) for role in filter(lambda x: ctx.guild.get_role(x) is not None, roles) ]
         return await ctx.send(
-            f"Editing timers for giveaways has been {'enabled' if enable_or_disable else 'disabled'}."
+            embed=discord.Embed(
+                title=f"Role Multipliers for `{ctx.guild.name}`'s giveaways!",
+                description=box(
+                    "\n\n".join(
+                        [
+                            f"@{k.name:<10}  {'<'+'-'*15+'>':>5}  {v:>5}"
+                            for k, v in roles.items()
+                        ]
+                    )
+                    if roles
+                    else "No role multipliers set in this server."
+                ),
+                color=discord.Color.green(),
+            )
+        )
+            
+    @gset_multi.command(name="add", aliases=["a"])
+    @commands.guild_only()
+    @commands.admin_or_permissions(administrator=True)
+    @commands.bot_has_permissions(embed_links=True)
+    async def role_multi_add(self, ctx, role: discord.Role, multi: int):
+        if multi > 5:
+            return await ctx.send("Multiplier can not be greater than 5.")
+        settings = await get_role(role.id)
+        await settings.multi.set(multi)
+        return await ctx.send(
+            f"Added `{role.name}` with multiplier `{multi}` to the server's role multipliers."
+        )
+        
+    @gset_multi.command(name="remove", aliases=["r"])
+    @commands.guild_only()
+    @commands.admin_or_permissions(administrator=True)
+    @commands.bot_has_permissions(embed_links=True)
+    async def role_multi_remove(self, ctx, role: discord.Role):
+        settings = await get_role(role.id)
+        await settings.multi.set(None)
+        return await ctx.send(
+            f"Removed `{role.name}` from the server's role multipliers."
         )
 
     @gset.command(name="color", aliases=["colour"])
@@ -301,7 +362,8 @@ class gsettings(main):
         if color is not passed, it will default to invisible embeds.
         Before this command is used, the global bot color will be used.
         Default is invisible (0x303036)."""
-        await self.config.set_guild(ctx.guild, "color", colour.value)
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.color.set(colour.value)
         embed = discord.Embed(
             title="Color successfully set!",
             description=f"Embed colors for giveaways will now be set to `{colour.value}`",
@@ -318,59 +380,46 @@ class gsettings(main):
         Set whether the default requirements set through `[p]gset bypass/blacklist` should be shown in the giveaway embed.
 
         If set to False, the requirements would still be applied but not shown in the embed itself."""
-        current = await self.config.get_guild(ctx.guild, "show_defaults")
-        await self.config.set_guild(ctx.guild, "show_defaults", not current)
+        settings = await get_guild_settings(ctx.guild.id, False)
+        current = await settings.show_defaults()
+        await settings.show_defaults.set(not current)
         return await ctx.send(
             f"Showing default requirements in giveaway embeds has been {'enabled' if not current else 'disabled'}."
         )
 
-    @gset.command(name="backup")
-    @commands.is_owner()
-    async def gset_backup(self, ctx: commands.Converter, time: TimeConverter):
-        if time < 60 * 10:
-            return await ctx.send("Backup interval must be at least 10 minutes.")
-
-        elif time > 60 * 60 * 3:
-            return await ctx.send("Backup interval must be at most 3 hours.")
-
-        await self.config.config.backup.set(time)
-        return await ctx.send(f"Backup interval set to every {humanize_timedelta(seconds=time)}.")
-
     @gset.command(name="showsettings", aliases=["ss", "show", "showset"])
     @commands.admin_or_permissions(administrator=True)
     @commands.bot_has_permissions(embed_links=True)
-    async def show(self, ctx):
+    async def gset_show(self, ctx):
         """
         See giveaway settings configured for your server"""
-        message = await self.config.get_guild_msg(ctx.guild)
-        tmsg = await self.config.get_guild_tmsg(ctx.guild)
-        emoji = await self.config.get_guild_emoji(ctx.guild)
-        winnerdm = await self.config.dm_winner(ctx.guild)
-        hostdm = await self.config.dm_host(ctx.guild)
-        endmsg = await self.config.get_guild_endmsg(ctx.guild)
-        managers = await self.config.get_managers(ctx.guild)
-        autodelete = await self.config.config.guild(ctx.guild).autodelete()
+        settings = await get_guild_settings(ctx.guild.id)
+        message = settings.msg
+        tmsg = settings.tmsg
+        emoji = settings.emoji
+        winnerdm = settings.winnerdm
+        hostdm = settings.hostdm
+        endmsg = settings.endmsg
+        managers = settings.manager
+        autodelete = settings.autodelete
+        color = discord.Color(settings.color)
+        show_defaults = settings.show_defaults
 
         embed = discord.Embed(
             title=f"Giveaway Settings for **__{ctx.guild.name}__**",
             description=f"""
-**Giveaway Managers:** {humanize_list([manager.mention for manager in managers if manager]) if managers else "No managers set. Requires manage message permission or bot's mod role."}
+**Giveaway Managers:** {humanize_list([ctx.guild.get_role(manager).mention for manager in managers if ctx.guild.get_role(manager)]) if managers else "No managers set. Requires manage message permission or bot's mod role."}
 **Message:** {message}
 **Reaction Emoji:** {emoji}
 **Will the winner be dm'ed?:** {winnerdm}
 **Will the host be dm'ed?:** {hostdm}
 **Auto delete Giveaway Commands?:** {autodelete}
-**Embed color: **{await self.get_embed_color(ctx)}
-**Show defaults in giveaway embed?: **{await self.config.get_guild(ctx.guild, "show_defaults")}
+**Embed color: **{color}
+**Show defaults in giveaway embed?: **{show_defaults}
 **Giveaway Thank message:** {box(tmsg)}
 **Giveaway Ending message:** {box(endmsg)}\n
-			"""
-            + (
-                f"**Backup Interval:** {humanize_timedelta(seconds=await self.config.config.backup()) if await self.config.config.backup() else 'disabled'}"
-                if ctx.author.id in ctx.bot.owner_ids
-                else ""
-            ),
-            color=await self.get_embed_color(ctx),
+			""",
+            color=color,
         )
 
         embed.set_footer(text=ctx.guild.name, icon_url=ctx.guild.icon_url)
