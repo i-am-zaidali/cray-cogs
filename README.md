@@ -11,6 +11,8 @@
   </a>
 </p>
 
+<h1> This branch is for the rewrite of the giveaway cog. Its called gaw so install that if you want to test. <h1>
+
 ### A bunch of *badly coded* yet useful utility and random cogs for Red V3 Discord Bot.</h3>
 
 ## Cog Installation
