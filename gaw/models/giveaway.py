@@ -255,7 +255,7 @@ class Giveaway(GiveawayMeta):
         embed = giveaway_embed.copy()
 
         timestamp_str = (
-            f"<t:{int(self.ends_at.timestamp())}:R> (<t:{self.ends_at.timestamp()}:f>)"
+            f"<t:{int(self.ends_at.timestamp())}:R> (<t:{int(self.ends_at.timestamp())}:f>)"
         )
 
         embed.title = embed.title.format(prize=self.prize)
@@ -503,7 +503,7 @@ class Giveaway(GiveawayMeta):
         if len(w_list) == 0 or winners == 0:
             embed = gmsg.embeds[0]
             embed.description = (
-                f"This giveaway has ended.\nThere were 0 winners.\n**Host:** <@{host}>"
+                f"This giveaway has ended.\nThere were 0 winners.\n**Host:** {host.mention}"
             )
             embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=guild.icon_url)
             await gmsg.edit(embed=embed)
@@ -530,7 +530,7 @@ class Giveaway(GiveawayMeta):
 
         embed: discord.Embed = gmsg.embeds[0]
         embed.color = discord.Color.red()
-        embed.description = f"This giveaway has ended.\n**Winners:** {w}\n**Host:** <@{host}>"
+        embed.description = f"This giveaway has ended.\n**Winners:** {w}\n**Host:** {host.mention}"
         embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=guild.icon_url)
         await gmsg.edit(embed=embed)
 

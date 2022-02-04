@@ -1,8 +1,9 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, Union
 
 import discord
+import asyncio
 from discord.ext import tasks
 from redbot.core import Config, commands
 from redbot.core.bot import Red
@@ -17,7 +18,7 @@ from .models import (
     get_guild_settings,
     model_from_time,
 )
-from .utils import dict_keys_to
+from .utils import dict_keys_to, ask_for_answers, is_lt, datetime_conv, requirement_conv, flags_conv, channel_conv
 
 log = logging.getLogger("red.craycogs.giveaways")
 
@@ -163,6 +164,7 @@ class Giveaways(commands.Cog):
         name="giveaway", aliases=["g"], invoke_without_command=True, cooldown_after_parsing=True
     )
     @commands.mod_or_permissions(administrator=True)
+    @commands.guild_only()
     async def g(self, ctx: commands.Context):
         """
         Perform giveaway related actions.
@@ -325,3 +327,70 @@ class Giveaways(commands.Cog):
             )
 
         await ctx.tick(message="Successfuly rerolled the giveaway!")
+        
+    @g.command(name="create")
+    async def g_create(self, ctx: commands.Context):
+        async def _prize(m):
+            return m.content
+
+        await ctx.send(
+            "The giveaway creation process will start now. If you ever wanna quit just send a `cancel` to end the process."
+        )
+        await asyncio.sleep(3)  # delay the questionnaire so people can read the above message
+        questions = [
+            (
+                "What is the prize for this giveaway?",
+                "The prize can be multi worded and can have emojis.\nThis prize will be the embed title.",
+                "prize",
+                _prize,
+            ),
+            (
+                "How many winners will there be?",
+                "The number of winners must be a number less than 20.",
+                "winners",
+                is_lt(20),
+            ),
+            (
+                "How long/Until when will the giveaway last?",
+                "Either send a duration like `1m 45s` (1 minute 45 seconds)\nor a date/time with your timezone like `30 december 2021 1 pm UTC`.",
+                "time",
+                datetime_conv(ctx),
+            ),
+            (
+                "Are there any requirements to join this giveaways?",
+                "These requirements will be in the format explained in `[p]giveaway explain`.\nIf there are none, just send `None`.",
+                "requirements",
+                requirement_conv(ctx),
+            ),
+            (
+                "What channel will this giveaway be hosted in?",
+                "This can be a channel mention or channel ID.",
+                "channel",
+                channel_conv(ctx),
+            ),
+            (
+                "Do you want to pass flags to this giveaways?",
+                "Send the flags you want to associate to this giveaway. Send `None` if you don't want to use any.",
+                "flags",
+                flags_conv(ctx),
+            ),
+        ]
+
+        final = await ask_for_answers(ctx, questions, 45)
+
+        if not final:
+            return
+
+        time = final.get("time", datetime.now(timezone.utc) + timedelta(seconds=30))
+        winners = final.get("winners", 1)
+        requirements = final.get("requirements")
+        prize = final.get("prize", "A new giveaway").split()
+        flags = final.get("flags", GiveawayFlags.none())
+        channel = final.get("channel", None)
+        if channel:
+            flags.channel = channel
+            await ctx.send("Successfully created giveaway in channel `{}`.".format(channel))
+
+        await self.g_start(ctx=ctx, time=time, prize=prize, winners=winners, requirements=requirements, flags=flags)
+        
+    
