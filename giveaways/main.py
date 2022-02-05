@@ -10,6 +10,7 @@ from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import box, humanize_list, humanize_timedelta, pagify
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 
+from .constants import commands_to_delete
 from .converters import PrizeConverter, TimeConverter, WinnerConverter
 from .models import (
     AmariClient,
@@ -32,7 +33,6 @@ from .utils import (
     is_manager,
     requirement_conv,
 )
-from .constants import commands_to_delete
 
 log = logging.getLogger("red.craycogs.giveaways")
 
@@ -233,7 +233,7 @@ class Giveaways(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_completion(self, ctx: commands.Context):
-        
+
         settings = await get_guild_settings(ctx.guild.id)
 
         if settings.autodelete and ctx.command.qualified_name in commands_to_delete:
@@ -242,7 +242,7 @@ class Giveaways(commands.Cog):
 
             except Exception:
                 pass
-        
+
         if ctx.command != self.bot.get_command("giveaway start"):
             return
 
