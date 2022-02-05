@@ -16,7 +16,6 @@ class Requirements(commands.Converter):
     def __init__(
         self,
         *,
-        guild: discord.Guild = None,
         required: List[int] = [],
         blacklist: List[int] = [],
         bypass: List[int] = [],
@@ -27,7 +26,6 @@ class Requirements(commands.Converter):
         messages: int = None,
     ):
 
-        self.guild = guild  # guild object for role fetching
         self.required = required  # roles that are actually required
         self.blacklist = blacklist  # list of role blacklisted for this giveaway
         self.bypass = bypass  # list of roles bypassing this giveaway
@@ -48,9 +46,9 @@ class Requirements(commands.Converter):
     def null(self):
         return all([not i for i in self.as_dict().values()])
 
-    async def get_str(self):
+    async def get_str(self, guild_id: int):
         final = ""
-        show_defaults = (await get_guild_settings(self.guild.id)).show_defaults
+        show_defaults = (await get_guild_settings(guild_id)).show_defaults
         items = self.as_dict()
         if not show_defaults:
             default_by, default_bl = set(self.default_by), set(self.default_bl)
@@ -94,23 +92,23 @@ class Requirements(commands.Converter):
         self.amari_weekly = None
         return True
 
-    def verify_role(self, id) -> Optional[discord.Role]:
-        role = self.guild.get_role(id)
+    def verify_role(self, id, guild: discord.Guild) -> Optional[discord.Role]:
+        role = guild.get_role(id)
         return role
 
     def as_dict(self):
         return {i: getattr(self, i) for i in self.__slots__}
 
-    def as_role_dict(self) -> Dict[str, Union[List[discord.Role], discord.Role, int]]:
+    def as_role_dict(self, guild: discord.Guild) -> Dict[str, Union[List[discord.Role], discord.Role, int]]:
         org = self.as_dict()
         for k, v in (org.copy()).items():
             if isinstance(v, list):
                 org[k] = [
-                    self.verify_role(int(i)) for i in v if self.verify_role(int(i)) is not None
+                    self.verify_role(int(i), guild) for i in v if self.verify_role(int(i), guild) is not None
                 ]
 
             else:
-                r = self.verify_role(v)  # checking if its a role
+                r = self.verify_role(v, guild)  # checking if its a role
                 if not r:
                     org[k] = v  # replace with orginal value if its not a role
                 else:
@@ -159,7 +157,7 @@ class Requirements(commands.Converter):
         data["default_by"] += new_by
 
         if isinstance(maybeid, str) and maybeid.lower() == "none":
-            return cls(guild=ctx.guild, **data)
+            return cls(**data)
 
         if isinstance(maybeid, list):
             for i in maybeid:
@@ -224,4 +222,4 @@ class Requirements(commands.Converter):
                     data["amari_weekly"] = int(_list[0])
                 elif "messages" in _list[1] or "msgs" in _list[1]:
                     data["messages"] = int(_list[0])
-        return cls(guild=ctx.guild, **data)
+        return cls(**data)

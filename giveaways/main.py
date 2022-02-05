@@ -18,6 +18,7 @@ from .models import (
     Requirements,
     get_guild_settings,
     model_from_time,
+    AmariClient
 )
 from .models.guildsettings import config as guildconf
 from .utils import (
@@ -43,23 +44,45 @@ class Giveaways(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(None, 1, True, "Giveaways")
+        self.config.register_global(sent_message=False)
         self.config.init_custom("giveaway", 2)
 
         self._CACHE: Dict[int, Dict[int, Union[Giveaway, EndedGiveaway]]] = {}
 
-        self.end_giveaways_task = self.end_giveaway.start()
+    async def initialize(self):
+        if not getattr(self.bot, "amari", None):
+            keys = await self.bot.get_shared_api_tokens("amari")
+            auth = keys.get("auth")
+            if auth:
+                amari = AmariClient(self.bot, auth)
+                setattr(self.bot, "amari", amari)
 
-    @classmethod
-    async def initialize(cls, bot: Red):
-        self = cls(bot)
+            else:
+                if not await self.config.sent_message():
+                    await self.bot.send_to_owners(
+                        f"Thanks for installing and using my Giveaways cog. "
+                        f"This cog has a requirements system for the giveaways and one of "
+                        f"these requirements type is amari levels. "
+                        f"If you don't know what amari is, ignore this message. "
+                        f"But if u do, you need an Amari auth key for these to work, "
+                        f"go to this website: https://forms.gle/TEZ3YbbMPMEWYuuMA "
+                        f"and apply to get the key. You should probably get a response within "
+                        f"24 hours but if you don't, visit this server for information: https://discord.gg/6FJhupDHS6 "
+                        f"You can then set the amari api key with the `[p]set api amari auth,<api key>` command"
+                    )
+                    await self.config.sent_message.set(True)
+        
         all = await self.config.custom("giveaway").all()
         all = await dict_keys_to(all)
+        await self.bot.wait_until_red_ready()
         for guild_id, data in all.items():
             guild = self._CACHE.setdefault(guild_id, {})
             for message_id, more_data in data.items():
                 g = model_from_time(more_data.get("ends_at"))
-                more_data.update(bot=bot)
+                more_data.update(bot=self.bot)
                 guild.setdefault(message_id, g.from_json(more_data))
+                
+        self.end_giveaways_task = self.end_giveaway.start()
 
         return self
 
@@ -121,6 +144,9 @@ class Giveaways(commands.Cog):
     def cog_unload(self):
         self.bot.loop.create_task(self.to_config())
         self.end_giveaways_task.cancel()
+        if getattr(self.bot, "amari", None):
+            self.bot.loop.create_task(self.bot.amari.close())
+            delattr(self.bot, "amari")
         for i in Giveaway._tasks:
             i.cancel()  # cancel all running tasks
 
@@ -168,15 +194,19 @@ class Giveaways(commands.Cog):
         if not str(payload.emoji) == giveaway.emoji:
             return
 
-        result = await giveaway.add_entrant(payload.member)
-        if not result:
-            channel: discord.TextChannel = self.bot.get_channel(payload.channel_id)
-            message: discord.Message = await channel.fetch_message(payload.message_id)
-            try:
-                await message.remove_reaction(payload.emoji, payload.member)
+        try:
+            result = await giveaway.add_entrant(payload.member)
+            if not result:
+                channel: discord.TextChannel = self.bot.get_channel(payload.channel_id)
+                message: discord.Message = await channel.fetch_message(payload.message_id)
+                try:
+                    await message.remove_reaction(payload.emoji, payload.member)
 
-            except discord.HTTPException:
-                return
+                except discord.HTTPException:
+                    return
+                
+        except Exception as e:
+            log.debug(f"Error occurred in on_reaction_add: ", exc_info=e)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -529,8 +559,9 @@ class Giveaways(commands.Cog):
                 failed.append(await i.end())
                 continue
             value = (
-                f"***__[{i.prize}]({message.jump_url})__***\n"
+                f"***__[{i.prize}]({message.jump_url})__***\n\n"
                 f"> Guild: **{i.guild}**\n"
+                f"> Channel: {i.channel.mention} ({i.channel})\n"
                 f"> Host: **{i.host}**\n"
                 f"> Message id: **{i.message_id}**\n"
                 f"> Amount of winners: **{i.amount_of_winners}**\n"
@@ -539,10 +570,18 @@ class Giveaways(commands.Cog):
             fields.append({"name": "\u200b", "value": value, "inline": False})
 
         if failed:
+            fields.append(
+                {
+                    "name": "Failed Giveaways",
+                    "value": "----------------------------------------\n",
+                    "inline": False
+                }
+            )
             for i in failed:
                 value = (
-                    f"***{i.prize}***\n"
+                    f"***__{i.prize}__***\n\n"
                     f"> Guild: **{i.guild}**\n"
+                    f"> Channel: {i.channel.mention} ({i.channel})\n"
                     f"> Host: **{i.host}**\n"
                     f"> Message id: **{i.message_id}**\n"
                     f"> Amount of winners: **{i.amount_of_winners}**\n"
@@ -553,7 +592,7 @@ class Giveaways(commands.Cog):
 
         embeds = await group_embeds_by_fields(
             *fields,
-            per_embed=5,
+            per_embed=4,
             title=f"Active giveaways in **{ctx.guild.name}**"
             if not _global
             else "Active giveaways **globally**",
@@ -600,6 +639,7 @@ class Giveaways(commands.Cog):
         embed.description = (
             f"***__[JUMP TO MESSAGE]({message.jump_url})__***\n\n"
             + f"> Guild: **{giveaway.guild}**\n"
+            + f"> Channel: {giveaway.channel.mention} ({giveaway.channel})\n"
             + f"> Host: **{giveaway.host}**\n"
             + f"> Message id: **{giveaway.message_id}**\n"
             + f"> Amount of winners: **{giveaway.amount_of_winners}**\n"

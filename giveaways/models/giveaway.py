@@ -297,7 +297,7 @@ class Giveaway(GiveawayMeta):
 
         self.requirements = requirements
 
-        req_str = await requirements.get_str()
+        req_str = await requirements.get_str(self.guild_id)
         if not requirements.null and not req_str == "":
             embed.add_field(name="Requirements:", value=req_str, inline=False)
 
@@ -316,15 +316,13 @@ class Giveaway(GiveawayMeta):
             return True, ""
 
         else:
-            requirements = self.requirements.as_role_dict()
+            requirements = self.requirements.as_role_dict(member.guild)
 
             if requirements["bypass"]:
                 maybe_bypass = any([role in member.roles for role in requirements["bypass"]])
                 if maybe_bypass:
-                    return (
-                        True,
-                        "",
-                    )  # All the below requirements can be overlooked if user has bypass role.
+                    return True, ""
+                    # All the below requirements can be overlooked if user has bypass role.
 
             for key, value in requirements.items():
                 if value:
@@ -345,15 +343,13 @@ class Giveaway(GiveawayMeta):
                                 )
 
                     else:
-                        user = None
+                        user = {}
                         if key == "amari_level":
                             try:
-                                user = await self.bot.amari.getGuildUser(
-                                    member.id, member.guild.id
-                                )
+                                user = await self.bot.amari.get_user(member.guild.id, member.id)
                             except:
-                                pass
-                            level = getattr(user, "level", 0)  # int(user.level) if user else 0
+                                raise
+                            level = user.get("level", 0)
                             if int(level) < int(value):
                                 return False, (
                                     f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
@@ -362,14 +358,10 @@ class Giveaway(GiveawayMeta):
 
                         elif key == "amari_weekly":
                             try:
-                                user = await self.bot.amari.getGuildUser(
-                                    member.id, member.guild.id
-                                )
+                                user = await self.bot.amari.get_user(member.guild.id, member.id)
                             except:
                                 pass
-                            weeklyxp = getattr(
-                                user, "weeklyxp", 0
-                            )  # int(user.weeklyxp) if user else 0
+                            weeklyxp = user.get("weeklyExp", 0)
                             if int(weeklyxp) < int(value):
                                 return False, (
                                     f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
@@ -627,6 +619,11 @@ class EndedGiveaway(GiveawayMeta):
         await gmsg.reply(
             f"Congratulations :tada:{w}:tada:. You are the new winner(s) for the giveaway below.\n{link}"
         )
+        
+    @classmethod
+    def from_json(cls, json: dict):
+        self = super().from_json(json)
+        self.reason = json.get("reason")
 
     @classmethod
     def from_giveaway(cls, giveaway: Giveaway, reason=None):
