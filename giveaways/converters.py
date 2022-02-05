@@ -23,6 +23,9 @@ class TimeConverter(commands.Converter):
                 )
             except ValueError:
                 raise commands.BadArgument(f"{key} is not a number!")
+            
+        if not time > 10:
+            raise commands.BadArgument("Time must be greater than 10 seconds.")
 
         time = timedelta(seconds=time)
         time = datetime.now(timezone.utc) + time
