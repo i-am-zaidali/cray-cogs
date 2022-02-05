@@ -322,15 +322,16 @@ class Giveaways(commands.Cog):
     @g.command(name="flash", aliases=["f", "flashes"])
     @commands.guild_only()
     @is_manager()
-    async def g_flash(self, ctx: commands.Context, giveaways: int, prize: str):
+    async def g_flash(self, ctx: commands.Context, amount: int, prize: str):
         """
         Start multiple flash giveaways with a given prize.
 
+        <amount> is the number of giveaways to flash.
         These giveaway will have 1 winner and will last for 10 seconds."""
-        if giveaways < 3:
+        if amount < 3:
             return await ctx.send("You must flash atleast 3 giveaways.")
 
-        for i in range(giveaways):
+        for i in range(amount):
             await self.g_start(
                 ctx=ctx,
                 time=datetime.now(timezone.utc) + timedelta(seconds=10),
