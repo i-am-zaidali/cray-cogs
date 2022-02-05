@@ -158,6 +158,10 @@ class Giveaways(commands.Cog):
                 for message_id, giveaway in data.items():
                     if isinstance(giveaway, EndedGiveaway):
                         continue
+                    
+                    if giveaway is None: # very rare edge case idek how it occurs 
+                        self._CACHE[guild_id].pop(message_id)
+                        continue
 
                     if giveaway.ended:
                         try:
