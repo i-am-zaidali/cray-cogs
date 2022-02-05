@@ -624,6 +624,7 @@ class EndedGiveaway(GiveawayMeta):
     def from_json(cls, json: dict):
         self = super().from_json(json)
         self.reason = json.get("reason")
+        return self
 
     @classmethod
     def from_giveaway(cls, giveaway: Giveaway, reason=None):

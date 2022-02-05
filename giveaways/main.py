@@ -80,7 +80,8 @@ class Giveaways(commands.Cog):
             for message_id, more_data in data.items():
                 g = model_from_time(more_data.get("ends_at"))
                 more_data.update(bot=self.bot)
-                guild.setdefault(message_id, g.from_json(more_data))
+                g = g.from_json(more_data)
+                self.add_to_cache(g)
 
         self.end_giveaways_task = self.end_giveaway.start()
 
@@ -159,10 +160,6 @@ class Giveaways(commands.Cog):
                     if isinstance(giveaway, EndedGiveaway):
                         continue
                     
-                    if giveaway is None: # very rare edge case idek how it occurs 
-                        self._CACHE[guild_id].pop(message_id)
-                        continue
-
                     if giveaway.ended:
                         try:
                             g = await giveaway.end()
@@ -176,7 +173,7 @@ class Giveaways(commands.Cog):
 
         except Exception as e:
             log.exception(
-                f"Error occurred while ending a giveaway with message id: {giveaway.message_id}",
+                f"Error occurred while ending a giveaway with message id: {getattr(giveaway, 'message_id', None)}",
                 exc_info=e,
             )
 
@@ -563,7 +560,7 @@ class Giveaways(commands.Cog):
                 failed.append(await i.end())
                 continue
             value = (
-                f"***__[{i.prize}]({message.jump_url})__***\n\n"
+                f"***[`{i.prize.center(len(i.prize) + 10, ' ')}`]({message.jump_url})***\n\n"
                 f"> Guild: **{i.guild}**\n"
                 f"> Channel: {i.channel.mention} ({i.channel})\n"
                 f"> Host: **{i.host}**\n"
