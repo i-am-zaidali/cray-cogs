@@ -9,7 +9,6 @@ class AmariException(Exception):
     """Base exception for Amari"""
 
 
-
 class NotFoundError(AmariException):
     """
     An exception raised when the Amari API returns a 404 status code
