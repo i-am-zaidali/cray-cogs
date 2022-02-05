@@ -159,7 +159,7 @@ class Giveaways(commands.Cog):
                 for message_id, giveaway in data.items():
                     if isinstance(giveaway, EndedGiveaway):
                         continue
-                    
+
                     if giveaway.ended:
                         try:
                             g = await giveaway.end()
