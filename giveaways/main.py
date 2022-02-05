@@ -164,6 +164,7 @@ class Giveaways(commands.Cog):
                         try:
                             g = await giveaway.end()
                             self.add_to_cache(g)
+                            await self.to_config()
 
                         except Exception as e:
                             log.exception(
