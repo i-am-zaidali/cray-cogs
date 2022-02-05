@@ -32,6 +32,7 @@ from .utils import (
     is_manager,
     requirement_conv,
 )
+from .constants import commands_to_delete
 
 log = logging.getLogger("red.craycogs.giveaways")
 
@@ -232,6 +233,16 @@ class Giveaways(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_completion(self, ctx: commands.Context):
+        
+        settings = await get_guild_settings(ctx.guild.id)
+
+        if settings.autodelete and ctx.command.qualified_name in commands_to_delete:
+            try:
+                await ctx.message.delete()  # just handle it here :p
+
+            except Exception:
+                pass
+        
         if ctx.command != self.bot.get_command("giveaway start"):
             return
 

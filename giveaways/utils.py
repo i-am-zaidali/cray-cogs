@@ -52,13 +52,6 @@ def is_manager():
     async def predicate(ctx: commands.Context):
         settings = await get_guild_settings(ctx.guild.id)
 
-        if settings.autodelete:
-            try:
-                await ctx.message.delete()  # just handle it here :p
-
-            except Exception:
-                pass
-
         if any(
             [
                 ctx.author.id in settings.manager,

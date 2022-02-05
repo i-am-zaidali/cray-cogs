@@ -21,3 +21,5 @@ guild_default_config = {
     "color": None,
     "show_defaults": True,
 }
+
+commands_to_delete = ["giveaway start", "giveaway flash", "giveaway end", "giveaway reroll"]
