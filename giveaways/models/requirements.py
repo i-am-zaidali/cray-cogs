@@ -99,12 +99,16 @@ class Requirements(commands.Converter):
     def as_dict(self):
         return {i: getattr(self, i) for i in self.__slots__}
 
-    def as_role_dict(self, guild: discord.Guild) -> Dict[str, Union[List[discord.Role], discord.Role, int]]:
+    def as_role_dict(
+        self, guild: discord.Guild
+    ) -> Dict[str, Union[List[discord.Role], discord.Role, int]]:
         org = self.as_dict()
         for k, v in (org.copy()).items():
             if isinstance(v, list):
                 org[k] = [
-                    self.verify_role(int(i), guild) for i in v if self.verify_role(int(i), guild) is not None
+                    self.verify_role(int(i), guild)
+                    for i in v
+                    if self.verify_role(int(i), guild) is not None
                 ]
 
             else:

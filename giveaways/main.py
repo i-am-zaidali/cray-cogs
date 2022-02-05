@@ -12,13 +12,13 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 
 from .converters import PrizeConverter, TimeConverter, WinnerConverter
 from .models import (
+    AmariClient,
     EndedGiveaway,
     Giveaway,
     GiveawayFlags,
     Requirements,
     get_guild_settings,
     model_from_time,
-    AmariClient
 )
 from .models.guildsettings import config as guildconf
 from .utils import (
@@ -71,7 +71,7 @@ class Giveaways(commands.Cog):
                         f"You can then set the amari api key with the `[p]set api amari auth,<api key>` command"
                     )
                     await self.config.sent_message.set(True)
-        
+
         all = await self.config.custom("giveaway").all()
         all = await dict_keys_to(all)
         await self.bot.wait_until_red_ready()
@@ -81,7 +81,7 @@ class Giveaways(commands.Cog):
                 g = model_from_time(more_data.get("ends_at"))
                 more_data.update(bot=self.bot)
                 guild.setdefault(message_id, g.from_json(more_data))
-                
+
         self.end_giveaways_task = self.end_giveaway.start()
 
         return self
@@ -208,7 +208,7 @@ class Giveaways(commands.Cog):
 
                 except discord.HTTPException:
                     return
-                
+
         except Exception as e:
             log.debug(f"Error occurred in on_reaction_add: ", exc_info=e)
 
@@ -578,7 +578,7 @@ class Giveaways(commands.Cog):
                 {
                     "name": "Failed Giveaways",
                     "value": "----------------------------------------\n",
-                    "inline": False
+                    "inline": False,
                 }
             )
             for i in failed:
