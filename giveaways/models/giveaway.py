@@ -346,7 +346,9 @@ class Giveaway(GiveawayMeta):
                         user = {}
                         if key == "amari_level":
                             try:
-                                user = await self.bot.amari.get_user(member.guild.id, member.id) or {}
+                                user = (
+                                    await self.bot.amari.get_user(member.guild.id, member.id) or {}
+                                )
                             except:
                                 raise
                             level = user.get("level", 0)
@@ -358,7 +360,9 @@ class Giveaway(GiveawayMeta):
 
                         elif key == "amari_weekly":
                             try:
-                                user = await self.bot.amari.get_user(member.guild.id, member.id) or {}
+                                user = (
+                                    await self.bot.amari.get_user(member.guild.id, member.id) or {}
+                                )
                             except:
                                 pass
                             weeklyxp = user.get("weeklyExp", 0)
