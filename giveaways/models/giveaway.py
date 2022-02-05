@@ -403,9 +403,7 @@ class Giveaway(GiveawayMeta):
 
     async def _handle_flags(self):
         flags = self.flags
-        if flags.ends_in:
-            self.ends_at = flags.ends_in
-
+        
         if flags.channel:
             self.channel_id = flags.channel.id
 

@@ -141,6 +141,37 @@ class GiveawayFlags(commands.Converter):
 
         end_t = None
         start_t = None
+        
+        if start_at := flags.get("starts_in"):
+            # hahaha ctrl-C + ctrl-V go brrrrrrr
+            start_at = " ".join(start_at)
+
+            try:
+                t = await TimeConverter().convert(ctx, start_at)
+
+            except Exception:
+                try:
+                    t = parse(start_at)
+
+                except Exception as e:
+                    raise commands.BadArgument(f"{start_at} is not a valid date/time!") from e
+
+                if not t.tzinfo:
+                    _ = datetime.now()
+                    if t < _:
+                        print("here?", t, _)
+                        raise commands.BadArgument(
+                            f"Given date/time for `--starts-in` is in the past!"
+                        )
+                    _ = t - _
+                    t = start_t = datetime.now(tz=timezone.utc) + _
+
+                current = datetime.now(tz=timezone.utc)
+                if t < current:
+                    print("or here?")
+                    raise commands.BadArgument("Given date/time for `--starts-in` is in the past.")
+
+            flags["starts_in"] = t
 
         if end_at := flags.get("ends_at"):
             end_at = " ".join(end_at)
@@ -157,14 +188,14 @@ class GiveawayFlags(commands.Converter):
 
                 if not t.tzinfo:
                     # honestly idk how this works but it does and tbf idk how to work with times so bare with me pls-
-                    _ = datetime.datetime.now()
+                    _ = datetime.now()
                     if t < _:
                         raise commands.BadArgument(
                             f"Given date/time for `--ends-at` is in the past!"
                         )
                     _ = t - _
-                    t = end_t = datetime.datetime.now(tz=datetime.timezone.utc) + _
-                    # t = t.replace(tzinfo=datetime.timezone.utc)
+                    t = end_t = datetime.now(tz=timezone.utc) + _
+                    # t = t.replace(tzinfo=timezone.utc)
 
                     # i couldve just done this but it gets messed up with the system time
                     # when the user passes a *duration* and not a date/time
@@ -172,45 +203,19 @@ class GiveawayFlags(commands.Converter):
                     # dateparser will give us 1:30pm (no timezone) and converting it to utc gives us 1:30pm UTC
                     # which is 5 hours ahead of current time and not 30 minutes.
 
-                current = datetime.datetime.now(tz=datetime.timezone.utc)
+                current = datetime.now(tz=timezone.utc)
                 if t < current:
                     raise commands.BadArgument("Given date/time for `--ends-at` is in the past.")
-
-            flags["ends_at"] = t
-
-        if start_at := flags.get("starts_in"):
-            # hahaha ctrl-C + ctrl-V go brrrrrrr
-            start_at = " ".join(start_at)
-
-            try:
-                t = await TimeConverter().convert(ctx, start_at)
-
-            except Exception:
-                try:
-                    t = parse(start_at)
-
-                except Exception as e:
-                    raise commands.BadArgument(f"{start_at} is not a valid date/time!") from e
-
-                if not t.tzinfo:
-                    _ = datetime.datetime.now()
-                    if t < _:
-                        raise commands.BadArgument(
-                            f"Given date/time for `--starts-in` is in the past!"
-                        )
-                    _ = t - _
-                    t = start_t = datetime.datetime.now(tz=datetime.timezone.utc) + _
-
-                current = datetime.datetime.now(tz=datetime.timezone.utc)
-                if t < current:
-                    raise commands.BadArgument("Given date/time for `--starts-in` is in the past.")
-
-                if end_t and end_t < start_t:
+                
+                if (t - current).total_seconds() < 10:
+                    raise commands.BadArgument("Time to end at must be greater than 10 seconds.")
+                
+                if start_t and t < start_t:
                     raise commands.BadArgument(
-                        "`--ends-at` can not be a time before `--starts-in`."
+                        "Given date/time for `--ends-at` must be after `--starts-in`."
                     )
-
-            flags["starts_in"] = t
+               
+            flags["ends_at"] = t
 
         if donor := flags.get("donor"):
             try:

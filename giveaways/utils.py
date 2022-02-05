@@ -182,6 +182,11 @@ def datetime_conv(ctx):
             if t < current:
                 raise commands.BadArgument("Given date/time is in the past.")
 
+            if (t - current).total_seconds() < 10:
+                raise commands.BadArgument(
+                    "Time must be at least 10 seconds away from current time."
+                )
+
         return t
 
     return pred
