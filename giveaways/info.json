@@ -1,0 +1,21 @@
+{
+    "name": "Giveaways",
+    "short": "Start reaction based giveaways.",
+    "description": "Reaction based giveaways with customisable embeds, reactions, requirements and much more. ",
+    "end_user_data_statement": "This cog stores user ids to link them to their hosted giveaways.",
+    "install_msg": "Thanks for installing Giveaways. Load the cog with `[p]load giveaways` and see all its commands with `[p]help Giveaways`",
+    "author": [
+        "crayyy_zee#2900"
+    ],
+    "required_cogs": {},
+    "requirements": [],
+    "tags": [
+        "giveaways",
+        "requirements",
+        "raffles",
+        "raffle",
+        "giveaway",
+        "reactions"
+    ],
+    "type": "COG"
+}
