@@ -61,7 +61,7 @@ class AmariClient:
     def __init__(self, bot: Red, auth_key: str) -> None:
         self.bot = bot
         self.session = ClientSession(headers={"Authorization": auth_key})
-        self.cache = TTLCache(maxsize=100, ttl=5 * 60)  # a temp 5 miutes cache
+        self.cache = TTLCache(maxsize=100, ttl=2 * 60)  # a temp 2 miutes cache
 
     async def close(self):
         return await self.session.close()
