@@ -141,7 +141,7 @@ class GiveawayFlags(commands.Converter):
 
         end_t = None
         start_t = None
-        
+
         if start_at := flags.get("starts_in"):
             # hahaha ctrl-C + ctrl-V go brrrrrrr
             start_at = " ".join(start_at)
@@ -206,15 +206,15 @@ class GiveawayFlags(commands.Converter):
                 current = datetime.now(tz=timezone.utc)
                 if t < current:
                     raise commands.BadArgument("Given date/time for `--ends-at` is in the past.")
-                
+
                 if (t - current).total_seconds() < 10:
                     raise commands.BadArgument("Time to end at must be greater than 10 seconds.")
-                
+
                 if start_t and t < start_t:
                     raise commands.BadArgument(
                         "Given date/time for `--ends-at` must be after `--starts-in`."
                     )
-               
+
             flags["ends_at"] = t
 
         if donor := flags.get("donor"):

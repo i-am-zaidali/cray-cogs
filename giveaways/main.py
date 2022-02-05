@@ -142,7 +142,7 @@ class Giveaways(commands.Cog):
 
         reply = message.reference.resolved
         return reply
-    
+
     def _handle_starts_in(self, time: datetime, start_in: datetime):
         _t = time - datetime.now(timezone.utc)
         time_to_end = start_in + _t
@@ -305,20 +305,24 @@ class Giveaways(commands.Cog):
             return await ctx.send_help()
 
         if not time and not flags.ends_in:
-            return await ctx.send("You must specify a time greater than 10 seconds or use the `--ends-at` flag for a more accurate duration.")
+            return await ctx.send(
+                "You must specify a time greater than 10 seconds or use the `--ends-at` flag for a more accurate duration."
+            )
 
         settings = await get_guild_settings(ctx.guild.id)
-        
+
         prize = " ".join(prize)
 
         if flags.starts_in:
             starts_in = flags.starts_in
             time = self._handle_starts_in(time, starts_in)
-            await ctx.send(f"The giveaway for {prize} will start in <t:{int(starts_in.timestamp())}:R>")
-            
+            await ctx.send(
+                f"The giveaway for {prize} will start in <t:{int(starts_in.timestamp())}:R>"
+            )
+
         else:
             starts_in = datetime.now(timezone.utc)
-        
+
         if flags.ends_in:
             time = flags.ends_in
 
@@ -591,8 +595,12 @@ class Giveaways(commands.Cog):
                 f"> Host: **{i.host}**\n"
                 f"> Message id: **{i.message_id}**\n"
                 f"> Amount of winners: **{i.amount_of_winners}**\n"
-                + (f"> Starts in: **{humanize_timedelta(timedelta=i.starts_at - datetime.now(timezone.utc))}**\n" if i.starts_at > datetime.now(timezone.utc) else "") +
-                f"> Ends in: **{humanize_timedelta(timedelta=i.ends_at - datetime.now(timezone.utc))}**\n"
+                + (
+                    f"> Starts in: **{humanize_timedelta(timedelta=i.starts_at - datetime.now(timezone.utc))}**\n"
+                    if i.starts_at > datetime.now(timezone.utc)
+                    else ""
+                )
+                + f"> Ends in: **{humanize_timedelta(timedelta=i.ends_at - datetime.now(timezone.utc))}**\n"
             )
             fields.append({"name": "\u200b", "value": value, "inline": False})
 
