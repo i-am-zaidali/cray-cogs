@@ -619,7 +619,7 @@ class EndedGiveaway(GiveawayMeta):
         await gmsg.reply(
             f"Congratulations :tada:{w}:tada:. You are the new winner(s) for the giveaway below.\n{link}"
         )
-        
+
     @classmethod
     def from_json(cls, json: dict):
         self = super().from_json(json)
