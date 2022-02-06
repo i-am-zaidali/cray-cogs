@@ -193,7 +193,7 @@ class GiveawayFlags(commands.Converter):
                         raise commands.BadArgument(
                             f"Given date/time for `--ends-at` is in the past!"
                         )
-                    _ = t - _
+                    _ = _.total_seconds() - _
                     t = end_t = datetime.now(tz=timezone.utc) + _
                     # t = t.replace(tzinfo=timezone.utc)
 
