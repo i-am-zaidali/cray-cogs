@@ -27,6 +27,9 @@ class TimeConverter(commands.Converter):
         if not time >= 10:
             raise commands.BadArgument("Time must be greater than 10 seconds.")
 
+        if time > (60*60*24*14):
+            raise commands.BadArgument("Time for giveaways must be less than 2 weeks")
+            
         time = timedelta(seconds=time)
         time = datetime.now(timezone.utc) + time
         return time
