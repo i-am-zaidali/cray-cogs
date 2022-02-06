@@ -194,7 +194,7 @@ class GiveawayFlags(commands.Converter):
                             f"Given date/time for `--ends-at` is in the past!"
                         )
                     _ = t - _
-                    if _.total_seconds() > (60*60*24*14):
+                    if _.total_seconds() > (60 * 60 * 24 * 14):
                         raise commands.BadArgument("Time for giveaways must be less than 2 weeks")
                     t = end_t = datetime.now(tz=timezone.utc) + _
                     # t = t.replace(tzinfo=timezone.utc)
