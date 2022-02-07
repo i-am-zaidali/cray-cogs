@@ -1,5 +1,5 @@
 import discord
-from discord.ext.commands.converter import EmojiConverter as ec
+from discord.ext.commands.converter import EmojiConverter as ec, PartialEmojiConverter
 from emoji import UNICODE_EMOJI_ENGLISH
 from redbot.core import commands
 from redbot.core.bot import Red
@@ -15,8 +15,13 @@ class FakeContext(commands.Context):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    async def tick(self) -> bool:
+    async def tick(self, *, message: str = None) -> bool:
         """Add a tick reaction to the command message.
+        
+        Keyword Arguments
+        -----------------
+        message : str, optional
+            The message to send if adding the reaction doesn't succeed.
 
         Returns
         -------
@@ -24,15 +29,12 @@ class FakeContext(commands.Context):
             :code:`True` if adding the reaction succeeded.
 
         """
+        
         emoji = (
             self.tick_emoji if self.channel.permissions_for(self.me).external_emojis else old_tick
         )
-        try:
-            await self.message.add_reaction(emoji)
-        except discord.HTTPException:
-            return False
-        else:
-            return True
+        
+        return await self.react_quietly(emoji, message=message)
 
 
 class EmojiConverter(ec):
