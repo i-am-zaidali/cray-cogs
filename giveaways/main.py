@@ -347,6 +347,7 @@ class Giveaways(commands.Cog):
         self.add_to_cache(giveaway)
 
     @g.command(name="flash", aliases=["f", "flashes"])
+    @g.command(2, 15, commands.BucketType.guild)
     @commands.guild_only()
     @is_manager()
     async def g_flash(self, ctx: commands.Context, amount: int, prize: str):
@@ -357,8 +358,10 @@ class Giveaways(commands.Cog):
         These giveaway will have 1 winner and will last for 10 seconds."""
         if amount < 3:
             return await ctx.send("You must flash atleast 3 giveaways.")
-        if amount > 20:
+        
+        if amount > 10:
             return await ctx.send("You cant flash more than 20 giveaways.")
+        
         for i in range(amount):
             await self.g_start(
                 ctx=ctx,
