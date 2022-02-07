@@ -358,10 +358,10 @@ class Giveaways(commands.Cog):
         These giveaway will have 1 winner and will last for 10 seconds."""
         if amount < 3:
             return await ctx.send("You must flash atleast 3 giveaways.")
-        
+
         if amount > 10:
             return await ctx.send("You cant flash more than 20 giveaways.")
-        
+
         for i in range(amount):
             await self.g_start(
                 ctx=ctx,
