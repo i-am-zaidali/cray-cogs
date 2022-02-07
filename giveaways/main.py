@@ -271,6 +271,7 @@ class Giveaways(commands.Cog):
     @g.command(
         name="start", aliases=["s"], usage="[time] <winners> [requirements] <prize> [flags]"
     )
+    @commands.cooldown(1, 5, commands.BucketType.member)
     @commands.guild_only()
     @is_manager()
     async def g_start(
