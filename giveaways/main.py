@@ -50,6 +50,8 @@ class Giveaways(commands.Cog):
         self.config.init_custom("giveaway", 2)
 
         self._CACHE: Dict[int, Dict[int, Union[Giveaway, EndedGiveaway]]] = {}
+        
+    # < ----------------- Internal Private Methods ----------------- > #
 
     async def initialize(self):
         if not getattr(self.bot, "amari", None):
@@ -157,6 +159,8 @@ class Giveaways(commands.Cog):
             delattr(self.bot, "amari")
         for i in Giveaway._tasks:
             i.cancel()  # cancel all running tasks
+            
+    # < ----------------- Giveaway Ending Task ----------------- > #
 
     @tasks.loop(seconds=5)
     async def end_giveaway(self):
@@ -184,6 +188,8 @@ class Giveaways(commands.Cog):
                 f"Error occurred while ending a giveaway with message id: {getattr(giveaway, 'message_id', None)}",
                 exc_info=e,
             )
+            
+    # < ----------------- Event Listeners ----------------- > #
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -205,9 +211,18 @@ class Giveaways(commands.Cog):
 
         try:
             result = await giveaway.add_entrant(payload.member)
-            if not result:
-                channel: discord.TextChannel = self.bot.get_channel(payload.channel_id)
-                message: discord.Message = await channel.fetch_message(payload.message_id)
+            if isinstance(result, str):
+                embed = discord.Embed(
+                    title="Entry Invalidated!",
+                    description=result,
+                    color=discord.Color.red(),
+                ).set_thumbnail(url=payload.member.guild.icon_url)
+                try:
+                    await payload.member.send(embed=embed)
+                except discord.HTTPException:
+                    pass
+                
+                message = await giveaway.message
                 try:
                     await message.remove_reaction(payload.emoji, payload.member)
 
@@ -216,6 +231,42 @@ class Giveaways(commands.Cog):
 
         except Exception as e:
             log.debug(f"Error occurred in on_reaction_add: ", exc_info=e)
+            
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
+        member = payload.member or await self.bot.get_or_fetch_user(payload.user_id)
+        
+        if member.bot:
+            return
+        
+        guild = self._CACHE.get(payload.guild_id)
+
+        if not guild:
+            return
+
+        giveaway: Optional[Union[Giveaway, EndedGiveaway]] = guild.get(payload.message_id)
+
+        if not giveaway or isinstance(giveaway, EndedGiveaway):
+            return
+
+        if not str(payload.emoji) == giveaway.emoji:
+            return
+        
+        member = giveaway.guild.get_member(member.id) # needs to be a proper member object for the below check
+
+        if (await giveaway.verify_entry(member))[0] is False: # to check that the bot didnt remove the reaction.
+            return
+        
+        await giveaway.remove_entrant(member)
+        embed = discord.Embed(
+            title="Entry removed!",
+            description=f"I detected your reaction was removed on [this]({giveaway.jump_url}) giveaway.\n"
+                        f"As such, your entry for this giveaway has been removed.\n"
+                        f"If you think this was a mistake, please go and react again to the giveaway :)",
+            color=await giveaway.get_embed_color()
+        ).set_thumbnail(url=giveaway.guild.icon_url)
+        
+        await member.send(embed=embed)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -255,6 +306,8 @@ class Giveaways(commands.Cog):
         async with guildconf.guild(ctx.guild).top_managers() as top_managers:
             top_managers.setdefault(str(ctx.author.id), 0)
             top_managers[str(ctx.author.id)] += 1
+            
+    # < ----------------- The Actual Commands ----------------- > #
 
     @commands.group(
         name="giveaway", aliases=["g"], invoke_without_command=True, cooldown_after_parsing=True
@@ -664,6 +717,7 @@ class Giveaways(commands.Cog):
                 }
             )
             for i in failed:
+                self.add_to_cache(i)
                 value = (
                     f"***__{i.prize}__***\n\n"
                     f"> Guild: **{i.guild}**\n"
@@ -704,7 +758,7 @@ class Giveaways(commands.Cog):
         """
         Show the giveaway that has the given message id.
 
-        The message id can be found by using `[p]giveaway list`."""
+        You can also reply to a giveaway message instead of passing its id."""
         guild = self._CACHE.get(ctx.guild.id)
         if not guild:
             return await ctx.send("This server has no giveaways, active or otherwise.")
@@ -737,6 +791,36 @@ class Giveaways(commands.Cog):
             )
         )
         embed.set_thumbnail(url=ctx.guild.icon_url)
+        await ctx.send(embed=embed)
+        
+    @g.command(name="entrants", aliasers=["entries"])
+    @commands.guild_only()
+    async def g_entrants(self, ctx: commands.Context, message: discord.Message = None):
+        """
+        Check who has entered the giveaway until now.
+        
+        You can also reply to a giveaway message instead of passing its id."""
+        guild = self._CACHE.get(ctx.guild.id)
+        if not guild:
+            return await ctx.send("This server has no giveaways, active or otherwise.")
+
+        message = message or await self.message_from_reply(ctx.message)
+
+        if not message:
+            return await ctx.send_help()
+
+        giveaway = guild.get(message.id)
+        if giveaway is None:
+            return await ctx.send("This server has no giveaway with that message id.")
+        
+        embed = discord.Embed(
+            title="Current Entrants for {}".format(giveaway.prize),
+            description="\n\n".join(
+                [f"{i.mention} - {i} ({i.id})" for i in giveaway.entrants] if giveaway._entrants else ["This giveaway has no entrants!"]
+            ),
+            color=await giveaway.get_embed_color(),
+        ).set_thumbnail(url=ctx.guild.icon_url)
+        
         await ctx.send(embed=embed)
 
     @g.command(name="top", aliases=["topmanagers"])

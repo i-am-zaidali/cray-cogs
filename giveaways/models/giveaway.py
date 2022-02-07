@@ -33,7 +33,7 @@ class GiveawayMeta:
         self.flags: Optional[GiveawayFlags] = kwargs.get("flags")
         self.emoji: str = kwargs.get("emoji", ":tada:")
         self.amount_of_winners: int = kwargs.get("amount_of_winners", 1)
-        self._entrants: List[int] = kwargs.get("entrants") or []
+        self._entrants: set[int] = set(kwargs.get("entrants", {}) or {})
         self._winners: List[int] = kwargs.get("winners") or []
         self._host: int = kwargs.get("host")
         self.starts_at: datetime = kwargs.get("starts_at", datetime.now(tz=timezone.utc))
@@ -74,6 +74,10 @@ class GiveawayMeta:
     @property
     def ended(self) -> bool:
         return datetime.now(tz=timezone.utc) > self.ends_at
+    
+    @property
+    def jump_url(self) -> str:
+        return f"https://discord.com/channels/{self.guild_id}/{self.channel_id}/{self.message_id}"
 
     @property
     def json(self):
@@ -88,7 +92,7 @@ class GiveawayMeta:
             "requirements": self.requirements.json if self.requirements else {},
             "flags": self.flags.json if self.flags else {},
             "emoji": self.emoji,
-            "entrants": self._entrants,
+            "entrants": list(self._entrants),
             "winners": self._winners,
             "host": self._host,
             "ends_at": self.ends_at.timestamp(),
@@ -191,7 +195,7 @@ class Giveaway(GiveawayMeta):
         emoji: str = None,
         starts_at: datetime = datetime.now(tz=timezone.utc),
         ends_at: datetime = None,
-        entrants: list = None,
+        entrants: set = None,
         winners: list = None,
     ) -> None:
 
@@ -227,9 +231,9 @@ class Giveaway(GiveawayMeta):
             await self.start()
             break
 
-    async def hdm(self, message):
+    async def hdm(self):
         host = self.host
-        jump_url = message.jump_url
+        jump_url = self.jump_url
         prize = self.prize
         winners = self.winners
         winners = (
@@ -250,9 +254,9 @@ class Giveaway(GiveawayMeta):
             except discord.HTTPException:
                 return False
 
-    async def wdm(self, message):
+    async def wdm(self):
         winners = self.winners
-        jump_url = message.jump_url
+        jump_url = self.jump_url
         prize = self.prize
         winners = Counter(winners)
         for winner in winners.keys():
@@ -304,10 +308,9 @@ class Giveaway(GiveawayMeta):
         return embed
 
     async def verify_entry(self, member: discord.Member):
-        message = await self.message
         if self.flags.no_donor and member.id == (self.flags.donor or self.host).id:
             return False, (
-                f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                f"Your entry for [this]({self.jump_url}) giveaway has been removed.\n"
                 "You used the `--no-donor` flag which "
                 "restricts you from joining your own giveaway."
             )
@@ -330,14 +333,14 @@ class Giveaway(GiveawayMeta):
                         for i in value:
                             if key == "blacklist" and i in member.roles:
                                 return False, (
-                                    f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                    f"Your entry for [this]({self.jump_url}) giveaway has been removed.\n"
                                     "You had a role that was blacklisted from this giveaway.\n"
                                     f"Blacklisted role: `{i.name}`"
                                 )
 
                             elif key == "required" and i not in member.roles:
                                 return False, (
-                                    f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                    f"Your entry for [this]({self.jump_url}) giveaway has been removed.\n"
                                     "You did not have the required role to join it.\n"
                                     f"Required role: `{i.name}`"
                                 )
@@ -354,7 +357,7 @@ class Giveaway(GiveawayMeta):
                             level = user.get("level", 0)
                             if int(level) < int(value):
                                 return False, (
-                                    f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                    f"Your entry for [this]({self.jump_url}) giveaway has been removed.\n"
                                     f"You are amari level `{level}` which is `{value - level}` levels fewer than the required `{value}`."
                                 )
 
@@ -368,7 +371,7 @@ class Giveaway(GiveawayMeta):
                             weeklyxp = user.get("weeklyExp", 0)
                             if int(weeklyxp) < int(value):
                                 return False, (
-                                    f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                    f"Your entry for [this]({self.jump_url}) giveaway has been removed.\n"
                                     f"You have `{weeklyxp}` weekly amari xp which is `{value - weeklyxp}` "
                                     f"xp fewer than the required `{value}`."
                                 )
@@ -377,7 +380,7 @@ class Giveaway(GiveawayMeta):
                             messages = self._message_cache.setdefault(member.id, 0)
                             if not messages >= value:
                                 return False, (
-                                    f"Your entry for [this]({message.jump_url}) giveaway has been removed.\n"
+                                    f"Your entry for [this]({self.jump_url}) giveaway has been removed.\n"
                                     f"You have sent `{messages}` messages since the giveaway started "
                                     f"which is `{value - messages}` messages fewer than the required `{value}`."
                                 )
@@ -387,18 +390,19 @@ class Giveaway(GiveawayMeta):
     async def add_entrant(self, member: discord.Member):
         result, statement = await self.verify_entry(member)
         if not result:
-            embed = discord.Embed(
-                title="Entry Invalidated!",
-                description=statement,
-                color=discord.Color.red(),
-            ).set_thumbnail(url=member.guild.icon_url)
-            try:
-                await member.send(embed=embed)
-            except discord.HTTPException:
-                pass
-            return False
+            return statement
 
-        self._entrants.append(member.id)
+        if member.id in self.entrants:
+            return False
+        
+        self._entrants.add(member.id)
+        return True
+    
+    async def remove_entrant(self, member: discord.Member):
+        if not member.id in self._entrants:
+            return False
+        
+        self._entrants.remove(member.id)
         return True
 
     async def _handle_flags(self):
@@ -498,7 +502,7 @@ class Giveaway(GiveawayMeta):
         random.shuffle(entrants)
         if not self.flags.no_multi:
             entrants = await apply_multi(guild, entrants)
-        link = gmsg.jump_url
+        link = self.jump_url
 
         try:
             w_list = [random.choice(entrants) for _ in range(winners)]
@@ -520,7 +524,7 @@ class Giveaway(GiveawayMeta):
                 f"Or click on this link: {gmsg.jump_url}"
             )
             if hostdm == True:
-                await self.hdm(gmsg)
+                await self.hdm()
 
             return EndedGiveaway.from_giveaway(self, reason)
 
@@ -539,10 +543,10 @@ class Giveaway(GiveawayMeta):
         await gmsg.reply(endmsg.format_map(formatdict))
 
         if winnerdm == True:
-            await self.wdm(gmsg)
+            await self.wdm()
 
         if hostdm == True:
-            await self.hdm(gmsg)
+            await self.hdm()
 
         return EndedGiveaway.from_giveaway(self, reason)
 
@@ -605,7 +609,7 @@ class EndedGiveaway(GiveawayMeta):
         winners = winners or 1
         entrants = self.entrants
         entrants = await apply_multi(self.guild, entrants)
-        link = gmsg.jump_url
+        link = self.jump_url
 
         if len(entrants) == 0:
             await gmsg.reply(
