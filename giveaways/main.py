@@ -347,6 +347,7 @@ class Giveaways(commands.Cog):
         self.add_to_cache(giveaway)
 
     @g.command(name="flash", aliases=["f", "flashes"])
+    @g.command(2, 15, commands.BucketType.guild)
     @commands.guild_only()
     @is_manager()
     async def g_flash(self, ctx: commands.Context, amount: int, prize: str):
@@ -357,7 +358,10 @@ class Giveaways(commands.Cog):
         These giveaway will have 1 winner and will last for 10 seconds."""
         if amount < 3:
             return await ctx.send("You must flash atleast 3 giveaways.")
-
+        
+        if amount > 10:
+            return await ctx.send("You cant flash more than 20 giveaways.")
+        
         for i in range(amount):
             await self.g_start(
                 ctx=ctx,
@@ -854,7 +858,7 @@ class Giveaways(commands.Cog):
         You can set whether giveaway command invocations get deleted themselves or not. `{ctx.prefix}gset autodelete true`
 
     > **Giveaway headers**
-        The message above the giveaway can also be changed. `{ctx.prefix}gset msg`
+        The message above the giveaway can also be changed. `{ctx.prefix}gset gmsg`
 
     > **Giveaway emoji**
         The emoji to which people must react to enter a giveaway. This defaults to :tada: but can be changed to anything. `{ctx.prefix}gset emoji`
@@ -875,7 +879,7 @@ class Giveaways(commands.Cog):
         The roles that are by default able to bypass requirements in giveaways. `{ctx.prefix}gset bypass`
 
     > **Show defaults in giveaway embed**
-        It gets kinda janky when you ahve multiple defaults set and the giveaway embed becomes too long.
+        It gets kinda janky when you have multiple defaults set and the giveaway embed becomes too long.
         Easy way out, is to simply disable showing the defaults in the embed ;) `{ctx.prefix}gset showdefaults`
 
     > **Embed Color**
