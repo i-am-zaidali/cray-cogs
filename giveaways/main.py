@@ -876,7 +876,7 @@ class Giveaways(commands.Cog):
         The roles that are by default able to bypass requirements in giveaways. `{ctx.prefix}gset bypass`
 
     > **Show defaults in giveaway embed**
-        It gets kinda janky when you ahve multiple defaults set and the giveaway embed becomes too long.
+        It gets kinda janky when you have multiple defaults set and the giveaway embed becomes too long.
         Easy way out, is to simply disable showing the defaults in the embed ;) `{ctx.prefix}gset showdefaults`
 
     > **Embed Color**
