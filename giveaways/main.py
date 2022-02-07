@@ -42,7 +42,7 @@ class Giveaways(commands.Cog):
 
     """
     Host embedded giveaways in your server with the help of reactions.
-    
+
     This cog is a very complex cog and could be resource intensive on your bot.
     Use `giveaway explain` command for an indepth explanation on how to use the commands."""
 
@@ -266,7 +266,7 @@ class Giveaways(commands.Cog):
             0
         ] is False:  # to check that the bot didnt remove the reaction.
             return
-        
+
         unreactdm = (await get_guild_settings(giveaway.guild_id)).unreactdm
 
         await giveaway.remove_entrant(member)

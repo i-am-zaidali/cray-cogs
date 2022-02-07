@@ -394,7 +394,7 @@ class Gset(Giveaways, name="Giveaways"):
         return await ctx.send(
             f"Showing default requirements in giveaway embeds has been {'enabled' if not current else 'disabled'}."
         )
-        
+
     @gset.command(name="unreactdm", aliases=["urdm"])
     @commands.admin_or_permissions(administrator=True)
     async def gset_urdm(self, ctx: commands.Context, status: bool):
