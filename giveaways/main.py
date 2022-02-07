@@ -40,6 +40,12 @@ log = logging.getLogger("red.craycogs.giveaways")
 
 class Giveaways(commands.Cog):
 
+    """
+    Host embedded giveaways in your server with the help of reactions.
+    
+    This cog is a very complex cog and could be resource intensive on your bot.
+    Use `giveaway explain` command for an indepth explanation on how to use the commands."""
+
     __version__ = "2.0.0"
     __author__ = ["crayyy_zee#2900"]
 
@@ -260,17 +266,24 @@ class Giveaways(commands.Cog):
             0
         ] is False:  # to check that the bot didnt remove the reaction.
             return
+        
+        unreactdm = (await get_guild_settings(giveaway.guild_id)).unreactdm
 
         await giveaway.remove_entrant(member)
-        embed = discord.Embed(
-            title="Entry removed!",
-            description=f"I detected your reaction was removed on [this]({giveaway.jump_url}) giveaway.\n"
-            f"As such, your entry for this giveaway has been removed.\n"
-            f"If you think this was a mistake, please go and react again to the giveaway :)",
-            color=await giveaway.get_embed_color(),
-        ).set_thumbnail(url=giveaway.guild.icon_url)
+        if unreactdm:
+            embed = discord.Embed(
+                title="Entry removed!",
+                description=f"I detected your reaction was removed on [this]({giveaway.jump_url}) giveaway.\n"
+                f"As such, your entry for this giveaway has been removed.\n"
+                f"If you think this was a mistake, please go and react again to the giveaway :)",
+                color=await giveaway.get_embed_color(),
+            ).set_thumbnail(url=giveaway.guild.icon_url)
 
-        await member.send(embed=embed)
+            try:
+                await member.send(embed=embed)
+
+            except discord.HTTPException:
+                pass
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -304,7 +317,7 @@ class Giveaways(commands.Cog):
             except Exception:
                 pass
 
-        if ctx.command != (com := self.bot.get_command("giveaway start")):
+        if ctx.command != (self.bot.get_command("giveaway start")):
             return
 
         async with guildconf.guild(ctx.guild).top_managers() as top_managers:

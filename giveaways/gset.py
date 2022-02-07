@@ -394,6 +394,20 @@ class Gset(Giveaways, name="Giveaways"):
         return await ctx.send(
             f"Showing default requirements in giveaway embeds has been {'enabled' if not current else 'disabled'}."
         )
+        
+    @gset.command(name="unreactdm", aliases=["urdm"])
+    @commands.admin_or_permissions(administrator=True)
+    async def gset_urdm(self, ctx: commands.Context, status: bool):
+        """
+        Set whether the user is informed when their reaction is removed from a giveaway message.
+        """
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.unreactdm.set(status)
+        await ctx.reply(
+            "The user will be dmed if their reaction is removed from the giveaway."
+            if status == True
+            else "The user will not be dm'ed when their reaction is removed."
+        )
 
     @gset.command(name="showsettings", aliases=["ss", "show", "showset"])
     @commands.admin_or_permissions(administrator=True)
@@ -417,14 +431,25 @@ class Gset(Giveaways, name="Giveaways"):
             title=f"Giveaway Settings for **__{ctx.guild.name}__**",
             description=f"""
 **Giveaway Managers:** {humanize_list([ctx.guild.get_role(manager).mention for manager in managers if ctx.guild.get_role(manager)]) if managers else "No managers set. Requires manage message permission or bot's mod role."}
+
 **Message:** {message}
+
 **Reaction Emoji:** {emoji}
+
 **Will the winner be dm'ed?:** {winnerdm}
+
 **Will the host be dm'ed?:** {hostdm}
+
+**Will users be dmed if their reaction is removed?:** {settings.unreactdm}
+
 **Auto delete Giveaway Commands?:** {autodelete}
+
 **Embed color: **{color}
+
 **Show defaults in giveaway embed?: **{show_defaults}
+
 **Giveaway Thank message:** {box(tmsg)}
+
 **Giveaway Ending message:** {box(endmsg)}\n
 			""",
             color=color,

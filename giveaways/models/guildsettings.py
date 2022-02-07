@@ -17,6 +17,7 @@ class GuildSettings:
     winnerdm: bool
     hostdm: bool
     endmsg: str
+    unreactdm: bool
     tmsg: str
     manager: List[int]
     pingrole: Optional[int]
