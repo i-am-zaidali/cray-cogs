@@ -42,8 +42,6 @@ class WinnerConverter(commands.Converter):
             if not match:
                 raise commands.BadArgument(f"{argument} is not a valid number for winners.")
             winner = int(match[0])
-            if winner > 20:
-                raise commands.BadArgument("You can't have more than 20 winners.")
             return winner
 
         except Exception as e:

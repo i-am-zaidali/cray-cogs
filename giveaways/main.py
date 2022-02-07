@@ -9,6 +9,7 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import box, humanize_list, humanize_timedelta, pagify
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
+from redbot.core.utils.predicates import MessagePredicate
 
 from .constants import commands_to_delete
 from .converters import PrizeConverter, TimeConverter, WinnerConverter
@@ -248,12 +249,12 @@ class Giveaways(commands.Cog):
             except Exception:
                 pass
 
-        if ctx.command != self.bot.get_command("giveaway start"):
+        if ctx.command != (com:=self.bot.get_command("giveaway start")):
             return
 
         async with guildconf.guild(ctx.guild).top_managers() as top_managers:
-            top_managers.setdefault(ctx.author.id, 0)
-            top_managers[ctx.author.id] += 1
+            top_managers.setdefault(str(ctx.author.id), 0)
+            top_managers[str(ctx.author.id)] += 1
 
     @commands.group(
         name="giveaway", aliases=["g"], invoke_without_command=True, cooldown_after_parsing=True
@@ -271,7 +272,7 @@ class Giveaways(commands.Cog):
     @g.command(
         name="start", aliases=["s"], usage="[time] <winners> [requirements] <prize> [flags]"
     )
-    @commands.cooldown(1, 5, commands.BucketType.member)
+    @commands.cooldown(2, 1, commands.BucketType.guild)
     @commands.guild_only()
     @is_manager()
     async def g_start(
@@ -307,8 +308,11 @@ class Giveaways(commands.Cog):
 
         if not time and not flags.ends_in:
             return await ctx.send(
-                "You must specify a time greater than 10 seconds or use the `--ends-at` flag for a more accurate duration."
+                "You must specify a time greater than 10 seconds and less than 2 weeks or use the `--ends-at` flag for a more accurate duration."
             )
+            
+        if winners > 20:
+            return await ctx.send("You can not have more than 20 winners in a giveaway.")
 
         settings = await get_guild_settings(ctx.guild.id)
 
@@ -348,7 +352,7 @@ class Giveaways(commands.Cog):
         self.add_to_cache(giveaway)
 
     @g.command(name="flash", aliases=["f", "flashes"])
-    @g.command(2, 15, commands.BucketType.guild)
+    @commands.cooldown(2, 15, commands.BucketType.guild)
     @commands.guild_only()
     @is_manager()
     async def g_flash(self, ctx: commands.Context, amount: int, prize: str):
@@ -356,12 +360,12 @@ class Giveaways(commands.Cog):
         Start multiple flash giveaways with a given prize.
 
         <amount> is the number of giveaways to flash.
-        These giveaway will have 1 winner and will last for 10 seconds."""
+        These giveaway will have 1 winner and will last for 10 seconds each."""
         if amount < 3:
             return await ctx.send("You must flash atleast 3 giveaways.")
 
         if amount > 10:
-            return await ctx.send("You cant flash more than 20 giveaways.")
+            return await ctx.send("You cant flash more than 10 giveaways.")
 
         for i in range(amount):
             await self.g_start(
@@ -375,7 +379,7 @@ class Giveaways(commands.Cog):
     @commands.guild_only()
     @is_manager()
     async def g_end(
-        self, ctx: commands.Context, message: Optional[discord.Message] = None, reason: str = ""
+        self, ctx: commands.Context, message: Union[discord.Message, str] = None, reason: str = ""
     ):
         """
         End a giveaway prematurely.
@@ -383,7 +387,49 @@ class Giveaways(commands.Cog):
         This can also act as a second option for giveaways that are stuck because of some internal error.
         `Reason` is an optional argument to pass to why the giveaway was ended.
 
-        You can also reply to a giveaway message instead of passing its id."""
+        You can also reply to a giveaway message instead of passing its id.
+        Pass `all` to the message parameter to end all active giveaways in your server."""
+        
+        if isinstance(message, str):
+            if message.lower() == "all":
+                m = await ctx.send("Are you sure you want to end all giveaways? (yes/no)")
+                pred = MessagePredicate.yes_or_no(ctx)
+                try:
+                    await ctx.bot.wait_for("message", check=pred, timeout=30)
+                except asyncio.TimeoutError:
+                    return await ctx.send("You took too long to respond.")
+                
+                if pred.result:
+                    guild = self._CACHE.get(ctx.guild.id)
+                    if not guild:
+                        return await ctx.send(
+                            "It seems like this server has no giveaways, active or otherwise."
+                        )
+                        
+                    else:
+                        ended = []
+                        for giveaway in guild.values():
+                            if isinstance(giveaway, Giveaway):
+                                try:
+                                    g = await giveaway.end(reason=reason + f" Ended prematurely by {ctx.author}")
+                                    self.add_to_cache(g)
+                                    ended.append(g.message_id)
+                                    
+                                except Exception:
+                                    await ctx.send("An error occured while ending the giveaway with id {}.".format(giveaway.message_id))
+                                    
+                        if not ended:
+                            return await ctx.send("It appears there aren't any active giveaways to end.")
+                                    
+                        await ctx.send(f"Ended {len(ended)} giveaways with message ids: {humanize_list(ended)}")
+                        await ctx.tick()
+                        return
+                        
+                else:
+                    return await ctx.send("Aight. cancelling...")
+                
+            else:
+                return await ctx.send_help()
 
         message = message or await self.message_from_reply(ctx.message)
 
@@ -717,10 +763,18 @@ class Giveaways(commands.Cog):
     @g.command(name="explain")
     @commands.cooldown(1, 5, commands.BucketType.guild)
     @commands.bot_has_permissions(embed_links=True)
-    async def g_explain(self, ctx):
+    async def g_explain(self, ctx, query: str = None):
         """Start a paginated embeds session explaining how
-        to use the commands of this cog and how it works."""
-        embeds = []
+        to use the commands of this cog and how it works.
+        
+        You can pass the query parameter to see a specific explanation page.
+        Valid arguments are:
+            - basics - requirements - flags - customization -"""
+        page_names = ["basic", "requirements", "flags", "customization"]
+        
+        if query is not None and not query.lower() in page_names:
+            return await ctx.send("Valid arguments for the query parameter are: " + humanize_list(page_names))
+        
         something = (
             f"""
 ***__Basics:__ ***
@@ -837,7 +891,7 @@ class Giveaways(commands.Cog):
         This is useful if people will spam messages to fulfil the requirements.
 """
             + (
-                """
+"""
     > *--amt*
         This adds the given amount to the donor's (or the command author if donor is not provided) donation balance.
 
@@ -888,10 +942,18 @@ class Giveaways(commands.Cog):
         `{ctx.prefix}gset color`
         """
         )
+        
         pages = list(pagify(something, delims=["\n***"], page_length=2800))
-        for ind, page in enumerate(pages):
+        
+        final = {}
+        
+        for ind, page in enumerate(pages, 1):
             embed = discord.Embed(title="Giveaway Explanation!", description=page, color=0x303036)
             embed.set_footer(text=f"Page {ind} out of {len(pages)}")
-            embeds.append(embed)
+            final[page_names[ind-1]] = embed
 
-        await menu(ctx, embeds, DEFAULT_CONTROLS)
+        if not query:
+            await menu(ctx, list(final.values()), DEFAULT_CONTROLS)
+
+        else:
+            await ctx.send(embed=final[query])
