@@ -74,7 +74,7 @@ class GiveawayMeta:
     @property
     def ended(self) -> bool:
         return datetime.now(tz=timezone.utc) > self.ends_at
-    
+
     @property
     def jump_url(self) -> str:
         return f"https://discord.com/channels/{self.guild_id}/{self.channel_id}/{self.message_id}"
@@ -394,14 +394,14 @@ class Giveaway(GiveawayMeta):
 
         if member.id in self.entrants:
             return False
-        
+
         self._entrants.add(member.id)
         return True
-    
+
     async def remove_entrant(self, member: discord.Member):
         if not member.id in self._entrants:
             return False
-        
+
         self._entrants.remove(member.id)
         return True
 

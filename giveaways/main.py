@@ -50,7 +50,7 @@ class Giveaways(commands.Cog):
         self.config.init_custom("giveaway", 2)
 
         self._CACHE: Dict[int, Dict[int, Union[Giveaway, EndedGiveaway]]] = {}
-        
+
     # < ----------------- Internal Private Methods ----------------- > #
 
     async def initialize(self):
@@ -159,7 +159,7 @@ class Giveaways(commands.Cog):
             delattr(self.bot, "amari")
         for i in Giveaway._tasks:
             i.cancel()  # cancel all running tasks
-            
+
     # < ----------------- Giveaway Ending Task ----------------- > #
 
     @tasks.loop(seconds=5)
@@ -188,7 +188,7 @@ class Giveaways(commands.Cog):
                 f"Error occurred while ending a giveaway with message id: {getattr(giveaway, 'message_id', None)}",
                 exc_info=e,
             )
-            
+
     # < ----------------- Event Listeners ----------------- > #
 
     @commands.Cog.listener()
@@ -221,7 +221,7 @@ class Giveaways(commands.Cog):
                     await payload.member.send(embed=embed)
                 except discord.HTTPException:
                     pass
-                
+
                 message = await giveaway.message
                 try:
                     await message.remove_reaction(payload.emoji, payload.member)
@@ -231,14 +231,14 @@ class Giveaways(commands.Cog):
 
         except Exception as e:
             log.debug(f"Error occurred in on_reaction_add: ", exc_info=e)
-            
+
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         member = payload.member or await self.bot.get_or_fetch_user(payload.user_id)
-        
+
         if member.bot:
             return
-        
+
         guild = self._CACHE.get(payload.guild_id)
 
         if not guild:
@@ -251,21 +251,25 @@ class Giveaways(commands.Cog):
 
         if not str(payload.emoji) == giveaway.emoji:
             return
-        
-        member = giveaway.guild.get_member(member.id) # needs to be a proper member object for the below check
 
-        if (await giveaway.verify_entry(member))[0] is False: # to check that the bot didnt remove the reaction.
+        member = giveaway.guild.get_member(
+            member.id
+        )  # needs to be a proper member object for the below check
+
+        if (await giveaway.verify_entry(member))[
+            0
+        ] is False:  # to check that the bot didnt remove the reaction.
             return
-        
+
         await giveaway.remove_entrant(member)
         embed = discord.Embed(
             title="Entry removed!",
             description=f"I detected your reaction was removed on [this]({giveaway.jump_url}) giveaway.\n"
-                        f"As such, your entry for this giveaway has been removed.\n"
-                        f"If you think this was a mistake, please go and react again to the giveaway :)",
-            color=await giveaway.get_embed_color()
+            f"As such, your entry for this giveaway has been removed.\n"
+            f"If you think this was a mistake, please go and react again to the giveaway :)",
+            color=await giveaway.get_embed_color(),
         ).set_thumbnail(url=giveaway.guild.icon_url)
-        
+
         await member.send(embed=embed)
 
     @commands.Cog.listener()
@@ -300,13 +304,13 @@ class Giveaways(commands.Cog):
             except Exception:
                 pass
 
-        if ctx.command != (com:=self.bot.get_command("giveaway start")):
+        if ctx.command != (com := self.bot.get_command("giveaway start")):
             return
 
         async with guildconf.guild(ctx.guild).top_managers() as top_managers:
             top_managers.setdefault(str(ctx.author.id), 0)
             top_managers[str(ctx.author.id)] += 1
-            
+
     # < ----------------- The Actual Commands ----------------- > #
 
     @commands.group(
@@ -363,7 +367,7 @@ class Giveaways(commands.Cog):
             return await ctx.send(
                 "You must specify a time greater than 10 seconds and less than 2 weeks or use the `--ends-at` flag for a more accurate duration."
             )
-            
+
         if winners > 20:
             return await ctx.send("You can not have more than 20 winners in a giveaway.")
 
@@ -442,7 +446,7 @@ class Giveaways(commands.Cog):
 
         You can also reply to a giveaway message instead of passing its id.
         Pass `all` to the message parameter to end all active giveaways in your server."""
-        
+
         if isinstance(message, str):
             if message.lower() == "all":
                 m = await ctx.send("Are you sure you want to end all giveaways? (yes/no)")
@@ -451,36 +455,46 @@ class Giveaways(commands.Cog):
                     await ctx.bot.wait_for("message", check=pred, timeout=30)
                 except asyncio.TimeoutError:
                     return await ctx.send("You took too long to respond.")
-                
+
                 if pred.result:
                     guild = self._CACHE.get(ctx.guild.id)
                     if not guild:
                         return await ctx.send(
                             "It seems like this server has no giveaways, active or otherwise."
                         )
-                        
+
                     else:
                         ended = []
                         for giveaway in guild.values():
                             if isinstance(giveaway, Giveaway):
                                 try:
-                                    g = await giveaway.end(reason=reason + f" Ended prematurely by {ctx.author}")
+                                    g = await giveaway.end(
+                                        reason=reason + f" Ended prematurely by {ctx.author}"
+                                    )
                                     self.add_to_cache(g)
                                     ended.append(g.message_id)
-                                    
+
                                 except Exception:
-                                    await ctx.send("An error occured while ending the giveaway with id {}.".format(giveaway.message_id))
-                                    
+                                    await ctx.send(
+                                        "An error occured while ending the giveaway with id {}.".format(
+                                            giveaway.message_id
+                                        )
+                                    )
+
                         if not ended:
-                            return await ctx.send("It appears there aren't any active giveaways to end.")
-                                    
-                        await ctx.send(f"Ended {len(ended)} giveaways with message ids: {humanize_list(ended)}")
+                            return await ctx.send(
+                                "It appears there aren't any active giveaways to end."
+                            )
+
+                        await ctx.send(
+                            f"Ended {len(ended)} giveaways with message ids: {humanize_list(ended)}"
+                        )
                         await ctx.tick()
                         return
-                        
+
                 else:
                     return await ctx.send("Aight. cancelling...")
-                
+
             else:
                 return await ctx.send_help()
 
@@ -792,13 +806,13 @@ class Giveaways(commands.Cog):
         )
         embed.set_thumbnail(url=ctx.guild.icon_url)
         await ctx.send(embed=embed)
-        
+
     @g.command(name="entrants", aliasers=["entries"])
     @commands.guild_only()
     async def g_entrants(self, ctx: commands.Context, message: discord.Message = None):
         """
         Check who has entered the giveaway until now.
-        
+
         You can also reply to a giveaway message instead of passing its id."""
         guild = self._CACHE.get(ctx.guild.id)
         if not guild:
@@ -812,15 +826,17 @@ class Giveaways(commands.Cog):
         giveaway = guild.get(message.id)
         if giveaway is None:
             return await ctx.send("This server has no giveaway with that message id.")
-        
+
         embed = discord.Embed(
             title="Current Entrants for {}".format(giveaway.prize),
             description="\n\n".join(
-                [f"{i.mention} - {i} ({i.id})" for i in giveaway.entrants] if giveaway._entrants else ["This giveaway has no entrants!"]
+                [f"{i.mention} - {i} ({i.id})" for i in giveaway.entrants]
+                if giveaway._entrants
+                else ["This giveaway has no entrants!"]
             ),
             color=await giveaway.get_embed_color(),
         ).set_thumbnail(url=ctx.guild.icon_url)
-        
+
         await ctx.send(embed=embed)
 
     @g.command(name="top", aliases=["topmanagers"])
@@ -850,15 +866,17 @@ class Giveaways(commands.Cog):
     async def g_explain(self, ctx, query: str = None):
         """Start a paginated embeds session explaining how
         to use the commands of this cog and how it works.
-        
+
         You can pass the query parameter to see a specific explanation page.
         Valid arguments are:
             - basics - requirements - flags - customization -"""
         page_names = ["basic", "requirements", "flags", "customization"]
-        
+
         if query is not None and not query.lower() in page_names:
-            return await ctx.send("Valid arguments for the query parameter are: " + humanize_list(page_names))
-        
+            return await ctx.send(
+                "Valid arguments for the query parameter are: " + humanize_list(page_names)
+            )
+
         something = (
             f"""
 ***__Basics:__ ***
@@ -975,7 +993,7 @@ class Giveaways(commands.Cog):
         This is useful if people will spam messages to fulfil the requirements.
 """
             + (
-"""
+                """
     > *--amt*
         This adds the given amount to the donor's (or the command author if donor is not provided) donation balance.
 
@@ -1026,15 +1044,15 @@ class Giveaways(commands.Cog):
         `{ctx.prefix}gset color`
         """
         )
-        
+
         pages = list(pagify(something, delims=["\n***"], page_length=2800))
-        
+
         final = {}
-        
+
         for ind, page in enumerate(pages, 1):
             embed = discord.Embed(title="Giveaway Explanation!", description=page, color=0x303036)
             embed.set_footer(text=f"Page {ind} out of {len(pages)}")
-            final[page_names[ind-1]] = embed
+            final[page_names[ind - 1]] = embed
 
         if not query:
             await menu(ctx, list(final.values()), DEFAULT_CONTROLS)
