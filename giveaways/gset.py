@@ -10,6 +10,10 @@ from .models import config, get_guild_settings, get_role
 
 
 class Gset(Giveaways, name="Giveaways"):
+    """
+    Host embedded giveaways in your server with the help of reactions.
+    This cog is a very complex cog and could be resource intensive on your bot.
+    Use `giveaway explain` command for an indepth explanation on how to use the commands."""	
     def __init__(self, bot: Red):
         super().__init__(bot)
 
