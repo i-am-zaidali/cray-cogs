@@ -14,6 +14,7 @@ from ..utils import Coordinate, SafeMember
 from .flags import GiveawayFlags
 from .guildsettings import apply_multi, get_guild_settings
 from .requirements import Requirements
+from .views import GiveawayView
 
 
 class GiveawayMeta:
@@ -78,6 +79,10 @@ class GiveawayMeta:
     @property
     def jump_url(self) -> str:
         return f"https://discord.com/channels/{self.guild_id}/{self.channel_id}/{self.message_id}"
+    
+    @property
+    def get_embed_colour(self): # alias cause i mix up spellings alot :p
+        return self.get_embed_color
 
     @property
     def json(self):
@@ -221,6 +226,8 @@ class Giveaway(GiveawayMeta):
 
         if self.flags.message_count or self.requirements.messages:
             self._message_cache = {}
+            
+        self.view = GiveawayView(self.bot, self.emoji, False)
 
     async def _wait_until_start(self):
         while True:
@@ -230,6 +237,11 @@ class Giveaway(GiveawayMeta):
 
             await self.start()
             break
+        
+    async def start_listening_for_entrants(self):
+        msg = await self.message
+        if msg:
+            msg._state.store_view(self.view, msg.id) # haha internal method go brrr
 
     async def hdm(self):
         host = self.host
@@ -248,7 +260,7 @@ class Giveaway(GiveawayMeta):
                     description=f"Your giveaway for {prize} has ended.\n{winners}\n\nClick [here]({jump_url}) to jump to the giveaway.",
                     color=discord.Color.random(),
                 )
-                embed.set_thumbnail(url=self.guild.icon_url)
+                embed.set_thumbnail(url=self.guild.icon.url)
                 await host.send(embed=embed)
 
             except discord.HTTPException:
@@ -266,7 +278,7 @@ class Giveaway(GiveawayMeta):
                         title="Congratulations!",
                         description=f"You have won the giveaway for `{prize}` in **__{self.guild}__**.\nClick [here]({jump_url}) to jump to the giveaway.",
                         color=discord.Color.random(),
-                    ).set_thumbnail(url=self.guild.icon_url)
+                    ).set_thumbnail(url=self.guild.icon.url)
                     await winner.send(embed=embed)
 
                 except discord.HTTPException:
@@ -392,7 +404,7 @@ class Giveaway(GiveawayMeta):
         if not result:
             return statement
 
-        if member.id in self.entrants:
+        if member.id in self._entrants:
             return False
 
         self._entrants.add(member.id)
@@ -464,9 +476,8 @@ class Giveaway(GiveawayMeta):
         embed = await self.create_embed()
 
         settings = await get_guild_settings(self.guild_id)
-
-        gmsg: discord.Message = await self.channel.send(settings.msg, embed=embed)
-        await gmsg.add_reaction(self.emoji)
+        
+        gmsg: discord.Message = await self.channel.send(settings.msg, embed=embed, view=self.view)
 
         self.message_id = gmsg.id
         self.cog.add_to_cache(self)
@@ -509,14 +520,18 @@ class Giveaway(GiveawayMeta):
 
         except IndexError:  # there were no entrants
             w_list = []
+            
+        self.view.stop()
+        
+        view = GiveawayView(self.bot, self.emoji, True)
 
         if len(w_list) == 0 or winners == 0:
             embed = gmsg.embeds[0]
             embed.description = (
                 f"This giveaway has ended.\nThere were 0 winners.\n**Host:** {host.mention}"
             )
-            embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=guild.icon_url)
-            await gmsg.edit(embed=embed)
+            embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=guild.icon.url)
+            await gmsg.edit(embed=embed, view=view)
 
             await gmsg.reply(
                 f"The giveaway for ***{prize}*** has ended. There were 0 users who qualified for the prize."
@@ -525,7 +540,7 @@ class Giveaway(GiveawayMeta):
             )
             if hostdm == True:
                 await self.hdm()
-
+                
             return EndedGiveaway.from_giveaway(self, reason)
 
         self._winners = [i.id for i in w_list]
@@ -537,8 +552,8 @@ class Giveaway(GiveawayMeta):
         embed: discord.Embed = gmsg.embeds[0]
         embed.color = discord.Color.red()
         embed.description = f"This giveaway has ended.\n**Winners:** {w}\n**Host:** {host.mention}"
-        embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=guild.icon_url)
-        await gmsg.edit(embed=embed)
+        embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=guild.icon.url)
+        await gmsg.edit(embed=embed, view=view)
 
         await gmsg.reply(endmsg.format_map(formatdict))
 

@@ -9,7 +9,6 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import box, humanize_list, humanize_timedelta, pagify
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
-from redbot.core.utils.predicates import MessagePredicate
 
 from .constants import commands_to_delete
 from .converters import PrizeConverter, TimeConverter, WinnerConverter
@@ -21,6 +20,8 @@ from .models import (
     Requirements,
     get_guild_settings,
     model_from_time,
+    YesOrNoView,
+    PaginationView
 )
 from .models.guildsettings import config as guildconf
 from .utils import (
@@ -86,11 +87,14 @@ class Giveaways(commands.Cog):
         all = await dict_keys_to(all)
         await self.bot.wait_until_red_ready()
         for guild_id, data in all.items():
-            guild = self._CACHE.setdefault(guild_id, {})
-            for message_id, more_data in data.items():
+            self._CACHE.setdefault(guild_id, {})
+            for more_data in data.values():
                 g = model_from_time(more_data.get("ends_at"))
                 more_data.update(bot=self.bot)
                 g = g.from_json(more_data)
+                if isinstance(g, Giveaway):
+                    await g.start_listening_for_entrants()
+                    
                 self.add_to_cache(g)
 
         self.end_giveaways_task = self.end_giveaway.start()
@@ -132,15 +136,18 @@ class Giveaways(commands.Cog):
         except:
             return
 
-    async def to_config(self):
+    async def to_config(self, unload=False):
         try:
             copy = self._CACHE.copy()
             for guild_id, data in copy.items():
                 for message_id, giveaway in data.items():
                     json = giveaway.json
+                    
                     await self.config.custom("giveaway", guild_id, message_id).set(json)
 
             log.debug("Saved cache to config!")
+            if unload:
+                self._CACHE.clear()
 
         except Exception as e:
             log.exception("Exception occurred when backing up cache: ", exc_info=e)
@@ -158,13 +165,15 @@ class Giveaways(commands.Cog):
         return time_to_end
 
     def cog_unload(self):
-        self.bot.loop.create_task(self.to_config())
+        self.bot.loop.create_task(self.to_config(True))
         self.end_giveaways_task.cancel()
         if getattr(self.bot, "amari", None):
             self.bot.loop.create_task(self.bot.amari.close())
             delattr(self.bot, "amari")
         for i in Giveaway._tasks:
             i.cancel()  # cancel all running tasks
+            
+        self.giveaway_view.stop()
 
     # < ----------------- Giveaway Ending Task ----------------- > #
 
@@ -196,94 +205,6 @@ class Giveaways(commands.Cog):
             )
 
     # < ----------------- Event Listeners ----------------- > #
-
-    @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        if payload.member.bot:
-            return
-
-        guild = self._CACHE.get(payload.guild_id)
-
-        if not guild:
-            return
-
-        giveaway: Optional[Union[Giveaway, EndedGiveaway]] = guild.get(payload.message_id)
-
-        if not giveaway or isinstance(giveaway, EndedGiveaway):
-            return
-
-        if not str(payload.emoji) == giveaway.emoji:
-            return
-
-        try:
-            result = await giveaway.add_entrant(payload.member)
-            if isinstance(result, str):
-                embed = discord.Embed(
-                    title="Entry Invalidated!",
-                    description=result,
-                    color=discord.Color.red(),
-                ).set_thumbnail(url=payload.member.guild.icon_url)
-                try:
-                    await payload.member.send(embed=embed)
-                except discord.HTTPException:
-                    pass
-
-                message = await giveaway.message
-                try:
-                    await message.remove_reaction(payload.emoji, payload.member)
-
-                except discord.HTTPException:
-                    return
-
-        except Exception as e:
-            log.debug(f"Error occurred in on_reaction_add: ", exc_info=e)
-
-    @commands.Cog.listener()
-    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        member = payload.member or await self.bot.get_or_fetch_user(payload.user_id)
-
-        if member.bot:
-            return
-
-        guild = self._CACHE.get(payload.guild_id)
-
-        if not guild:
-            return
-
-        giveaway: Optional[Union[Giveaway, EndedGiveaway]] = guild.get(payload.message_id)
-
-        if not giveaway or isinstance(giveaway, EndedGiveaway):
-            return
-
-        if not str(payload.emoji) == giveaway.emoji:
-            return
-
-        member = giveaway.guild.get_member(
-            member.id
-        )  # needs to be a proper member object for the below check
-
-        if (await giveaway.verify_entry(member))[
-            0
-        ] is False:  # to check that the bot didnt remove the reaction.
-            return
-
-        unreactdm = (await get_guild_settings(giveaway.guild_id)).unreactdm
-
-        await giveaway.remove_entrant(member)
-        if unreactdm:
-            embed = discord.Embed(
-                title="Entry removed!",
-                description=f"I detected your reaction was removed on [this]({giveaway.jump_url}) giveaway.\n"
-                f"As such, your entry for this giveaway has been removed.\n"
-                f"If you think this was a mistake, please go and react again to the giveaway :)",
-                color=await giveaway.get_embed_color(),
-            ).set_thumbnail(url=giveaway.guild.icon_url)
-
-            try:
-                await member.send(embed=embed)
-
-            except discord.HTTPException:
-                pass
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -425,7 +346,7 @@ class Giveaways(commands.Cog):
     @commands.cooldown(2, 15, commands.BucketType.guild)
     @commands.guild_only()
     @is_manager()
-    async def g_flash(self, ctx: commands.Context, amount: int, prize: str):
+    async def g_flash(self, ctx: commands.Context, amount: int, *, prize: str):
         """
         Start multiple flash giveaways with a given prize.
 
@@ -437,12 +358,12 @@ class Giveaways(commands.Cog):
         if amount > 10:
             return await ctx.send("You cant flash more than 10 giveaways.")
 
-        for i in range(amount):
+        for _ in range(amount):
             await self.g_start(
                 ctx=ctx,
                 time=datetime.now(timezone.utc) + timedelta(seconds=10),
                 winners=1,
-                prize=prize,
+                prize=prize.split(""),
             )
 
     @g.command(name="end")
@@ -462,14 +383,9 @@ class Giveaways(commands.Cog):
 
         if isinstance(message, str):
             if message.lower() == "all":
-                m = await ctx.send("Are you sure you want to end all giveaways? (yes/no)")
-                pred = MessagePredicate.yes_or_no(ctx)
-                try:
-                    await ctx.bot.wait_for("message", check=pred, timeout=30)
-                except asyncio.TimeoutError:
-                    return await ctx.send("You took too long to respond.")
-
-                if pred.result:
+                view = YesOrNoView(ctx, None, "Aight. Cancelling...", timeout=60)
+                view.message = await ctx.send("Are you sure you want to end all giveaways? (yes/no)", view=view)
+                if view.value:
                     guild = self._CACHE.get(ctx.guild.id)
                     if not guild:
                         return await ctx.send(
@@ -504,9 +420,6 @@ class Giveaways(commands.Cog):
                         )
                         await ctx.tick()
                         return
-
-                else:
-                    return await ctx.send("Aight. cancelling...")
 
             else:
                 return await ctx.send_help()
@@ -703,7 +616,7 @@ class Giveaways(commands.Cog):
             giveaways: list[Giveaway] = []
 
             for guild, data in self._CACHE.items():
-                for mid, giveaway in data.items():
+                for giveaway in data.values():
                     if not isinstance(giveaway, Giveaway):
                         continue
 
@@ -768,15 +681,12 @@ class Giveaways(commands.Cog):
 
         embeds = [
             embed.set_footer(text=f"Page {ind}/{len(embeds)}").set_thumbnail(
-                url=ctx.guild.icon_url if not _global else ctx.bot.user.avatar_url
+                url=ctx.guild.icon.url if not _global else ctx.bot.user.avatar.url
             )
             for ind, embed in enumerate(embeds, 1)
         ]
 
-        if len(embeds) == 1:
-            return await ctx.send(embed=embeds[0])
-        else:
-            await menu(ctx, embeds, DEFAULT_CONTROLS)
+        await PaginationView(ctx, embeds, 60, True).start()
 
     @g.command(name="show")
     @commands.guild_only()
@@ -815,9 +725,10 @@ class Giveaways(commands.Cog):
                 if isinstance(giveaway, Giveaway)
                 else f"> Ended at: **<t:{int(giveaway.ends_at.timestamp())}:f>**\n"
                 f"> Winner(s): {giveaway.get_winners_str()}"
+                f"> Reason: {giveaway.reason}"
             )
         )
-        embed.set_thumbnail(url=ctx.guild.icon_url)
+        embed.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.send(embed=embed)
 
     @g.command(name="entrants", aliasers=["entries"])
@@ -848,7 +759,7 @@ class Giveaways(commands.Cog):
                 else ["This giveaway has no entrants!"]
             ),
             color=await giveaway.get_embed_color(),
-        ).set_thumbnail(url=ctx.guild.icon_url)
+        ).set_thumbnail(url=ctx.guild.icon.url)
 
         await ctx.send(embed=embed)
 
@@ -870,7 +781,7 @@ class Giveaways(commands.Cog):
                 [f"<@{k}> : {v} giveaway(s) performed." for k, v in _sorted.items()]
             ),
         )
-        embed.set_footer(text=ctx.guild.name, icon_url=ctx.guild.icon_url)
+        embed.set_footer(text=ctx.guild.name, icon_url=ctx.guild.icon.url)
         return await ctx.send(embed=embed)
 
     @g.command(name="explain")
@@ -1068,7 +979,7 @@ class Giveaways(commands.Cog):
             final[page_names[ind - 1]] = embed
 
         if not query:
-            await menu(ctx, list(final.values()), DEFAULT_CONTROLS)
+            await PaginationView(ctx, final, 60, True).start()
 
         else:
-            await ctx.send(embed=final[query])
+            await PaginationView(ctx, [final[query]], 60, True).start()
