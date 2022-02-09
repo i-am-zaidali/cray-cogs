@@ -238,7 +238,7 @@ class DonationLogging(commands.Cog):
         view.message = await ctx.send(embed=emb, view=view)
         await view.wait()
         if not view.value:
-            return await self.category_remove(ctx, bank.name)
+            return await self.category_remove(ctx, bank)
 
         await self.config.guild(ctx.guild).logchannel.set(channel.id if channel else None)
         await self.config.guild(ctx.guild).managers.set([role.id for role in roles])
