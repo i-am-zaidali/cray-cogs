@@ -17,11 +17,11 @@ from .models import (
     EndedGiveaway,
     Giveaway,
     GiveawayFlags,
+    PaginationView,
     Requirements,
+    YesOrNoView,
     get_guild_settings,
     model_from_time,
-    YesOrNoView,
-    PaginationView
 )
 from .models.guildsettings import config as guildconf
 from .utils import (
@@ -94,7 +94,7 @@ class Giveaways(commands.Cog):
                 g = g.from_json(more_data)
                 if isinstance(g, Giveaway):
                     await g.start_listening_for_entrants()
-                    
+
                 self.add_to_cache(g)
 
         self.end_giveaways_task = self.end_giveaway.start()
@@ -142,7 +142,7 @@ class Giveaways(commands.Cog):
             for guild_id, data in copy.items():
                 for message_id, giveaway in data.items():
                     json = giveaway.json
-                    
+
                     await self.config.custom("giveaway", guild_id, message_id).set(json)
 
             log.debug("Saved cache to config!")
@@ -172,7 +172,7 @@ class Giveaways(commands.Cog):
             delattr(self.bot, "amari")
         for i in Giveaway._tasks:
             i.cancel()  # cancel all running tasks
-            
+
         self.giveaway_view.stop()
 
     # < ----------------- Giveaway Ending Task ----------------- > #
@@ -384,7 +384,9 @@ class Giveaways(commands.Cog):
         if isinstance(message, str):
             if message.lower() == "all":
                 view = YesOrNoView(ctx, None, "Aight. Cancelling...", timeout=60)
-                view.message = await ctx.send("Are you sure you want to end all giveaways? (yes/no)", view=view)
+                view.message = await ctx.send(
+                    "Are you sure you want to end all giveaways? (yes/no)", view=view
+                )
                 if view.value:
                     guild = self._CACHE.get(ctx.guild.id)
                     if not guild:
