@@ -306,4 +306,4 @@ class PaginationView(ViewDisableOnTimeout):
             content = self.contents[self.index]
 
         self.update_items()
-        self.message = await inter.response.edit_message(content=content, embed=embed, view=self)
+        await inter.response.edit_message(content=content, embed=embed, view=self)
