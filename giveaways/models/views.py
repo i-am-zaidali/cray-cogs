@@ -1,83 +1,104 @@
-import discord
 from typing import List, Union
-from discord.ui import View, Button, button, Select
-from redbot.core.bot import Red
+
+import discord
+from discord.ui import Button, Select, View, button
 from redbot.core import commands
+from redbot.core.bot import Red
+
 
 class JoinGiveawayButton(Button):
     def __init__(self, bot: Red, emoji, disabled: bool = False):
         self.bot = bot
-        super().__init__(label="Join Giveaway", emoji=emoji, style=discord.ButtonStyle.green, disabled=disabled, custom_id="JOIN_GIVEAWAY_BUTTON")
-        
+        super().__init__(
+            label="Join Giveaway",
+            emoji=emoji,
+            style=discord.ButtonStyle.green,
+            disabled=disabled,
+            custom_id="JOIN_GIVEAWAY_BUTTON",
+        )
+
     @property
     def cog(self):
         return self.bot.get_cog("Giveaways")
-        
+
     async def callback(self, interaction: discord.Interaction):
-        
+
         if not self.cog:
-            return await interaction.response.send_message("Giveaways cog is not loaded so i cannot add your entry.", ephemeral=True)
-        
+            return await interaction.response.send_message(
+                "Giveaways cog is not loaded so i cannot add your entry.", ephemeral=True
+            )
+
         cache: dict = self.cog._CACHE
-        
+
         guild: dict = cache.get(interaction.guild_id)
-        
+
         if not guild:
-            return await interaction.response.send_message("This giveaway doesn't exist within my cache for some reason.", ephemeral=True)
-        
+            return await interaction.response.send_message(
+                "This giveaway doesn't exist within my cache for some reason.", ephemeral=True
+            )
+
         giveaway = guild.get(interaction.message.id)
-        
+
         if not giveaway:
-            return await interaction.response.send_message("This giveaway doesn't exist within my cache for some reason.", ephemeral=True)
-        
-        if giveaway.__class__.__name__ == "EndedGiveaway": # doing it this way since importing the class will probably create a circular import
+            return await interaction.response.send_message(
+                "This giveaway doesn't exist within my cache for some reason.", ephemeral=True
+            )
+
+        if (
+            giveaway.__class__.__name__ == "EndedGiveaway"
+        ):  # doing it this way since importing the class will probably create a circular import
             # we will disable the button if the giveaway is ended but handling this just incase something goes wrong.
-            return await interaction.response.send_message("This giveaway has already ended. No more entries are being accepted.", ephemeral=True)
+            return await interaction.response.send_message(
+                "This giveaway has already ended. No more entries are being accepted.",
+                ephemeral=True,
+            )
 
         message = await giveaway.message
 
         result = await giveaway.add_entrant(interaction.user)
-        if isinstance(result, str): # entry wasn't valid. User didnt meet requirements
+        if isinstance(result, str):  # entry wasn't valid. User didnt meet requirements
             embed = discord.Embed(
                 title="Entry Invalidated!",
                 description=result,
                 color=discord.Color.red(),
             ).set_thumbnail(url=interaction.user.display_avatar.url)
             await interaction.response.send_message(embed=embed, ephemeral=True)
-            
-        elif result is False: # User was already in entrants but reacted again.
+
+        elif result is False:  # User was already in entrants but reacted again.
             await giveaway.remove_entrant(interaction.user)
             embed = discord.Embed(
                 title="Entry Removed!",
                 description="Your entry for this giveaway has been removed.\n"
-                            "Reacting multiple times after your entry has been added, removes it.\n"
-                            "If this wasn't intentional, Click on the `Join Giveaway` button again to re-add your entry!",
+                "Reacting multiple times after your entry has been added, removes it.\n"
+                "If this wasn't intentional, Click on the `Join Giveaway` button again to re-add your entry!",
                 color=discord.Color.red(),
             ).set_thumbnail(url=interaction.user.display_avatar.url)
             await interaction.response.send_message(embed=embed, ephemeral=True)
-            
-        elif result is True: # User has been added to the entrants
+
+        elif result is True:  # User has been added to the entrants
             embed = discord.Embed(
                 title="Entry Verified!",
                 description=f"You have been added as an entrant to [this]({giveaway.jump_url}) giveaway.\n"
-                            f"The winners for this giveaway will be announced **<t:{int(giveaway.ends_at.timestamp())}:R>**.\n"
-                            "Please have patience till then. Clicking on the button multiple times won't increase your chances of winning.",
+                f"The winners for this giveaway will be announced **<t:{int(giveaway.ends_at.timestamp())}:R>**.\n"
+                "Please have patience till then. Clicking on the button multiple times won't increase your chances of winning.",
                 color=await giveaway.get_embed_colour(),
             ).set_thumbnail(url=interaction.user.display_avatar.url)
             await interaction.response.send_message(embed=embed, ephemeral=True)
-            
+
         entrants = len(giveaway._entrants)
         self.label = "Join Giveaway ({} Entrants)".format(entrants)
-        
+
         await message.edit(view=self.view)
+
 
 class GiveawayView(View):
     def __init__(self, bot, emoji, disabled=False):
         super().__init__(timeout=None)
         self.add_item(JoinGiveawayButton(bot, emoji, disabled))
-        
-        
+
+
 # < ------------------------- Confirmation Stuff ------------------------- >
+
 
 def disable_items(self: View):
     for i in self.children:
@@ -152,8 +173,8 @@ class YesOrNoView(ViewDisableOnTimeout):
             await self.ctx.send(self.no_response)
         self.value = False
         self.stop()
-        
-        
+
+
 # <-------------------Paginaion Stuff Below------------------->
 
 

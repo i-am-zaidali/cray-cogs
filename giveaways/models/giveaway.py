@@ -79,9 +79,9 @@ class GiveawayMeta:
     @property
     def jump_url(self) -> str:
         return f"https://discord.com/channels/{self.guild_id}/{self.channel_id}/{self.message_id}"
-    
+
     @property
-    def get_embed_colour(self): # alias cause i mix up spellings alot :p
+    def get_embed_colour(self):  # alias cause i mix up spellings alot :p
         return self.get_embed_color
 
     @property
@@ -226,7 +226,7 @@ class Giveaway(GiveawayMeta):
 
         if self.flags.message_count or self.requirements.messages:
             self._message_cache = {}
-            
+
         self.view = GiveawayView(self.bot, self.emoji, False)
 
     async def _wait_until_start(self):
@@ -237,11 +237,11 @@ class Giveaway(GiveawayMeta):
 
             await self.start()
             break
-        
+
     async def start_listening_for_entrants(self):
         msg = await self.message
         if msg:
-            msg._state.store_view(self.view, msg.id) # haha internal method go brrr
+            msg._state.store_view(self.view, msg.id)  # haha internal method go brrr
 
     async def hdm(self):
         host = self.host
@@ -476,7 +476,7 @@ class Giveaway(GiveawayMeta):
         embed = await self.create_embed()
 
         settings = await get_guild_settings(self.guild_id)
-        
+
         gmsg: discord.Message = await self.channel.send(settings.msg, embed=embed, view=self.view)
 
         self.message_id = gmsg.id
@@ -520,9 +520,9 @@ class Giveaway(GiveawayMeta):
 
         except IndexError:  # there were no entrants
             w_list = []
-            
+
         self.view.stop()
-        
+
         view = GiveawayView(self.bot, self.emoji, True)
 
         if len(w_list) == 0 or winners == 0:
@@ -540,7 +540,7 @@ class Giveaway(GiveawayMeta):
             )
             if hostdm == True:
                 await self.hdm()
-                
+
             return EndedGiveaway.from_giveaway(self, reason)
 
         self._winners = [i.id for i in w_list]
