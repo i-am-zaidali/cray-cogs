@@ -25,7 +25,6 @@ class Gset(Giveaways, name="Giveaways"):
         Customize giveaways to how you want them.
 
         All subcommands represent a separate settings."""
-        pass
 
     @gset.command(name="gmsg", usage="<message>")
     @commands.admin_or_permissions(administrator=True)

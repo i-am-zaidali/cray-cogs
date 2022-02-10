@@ -335,7 +335,6 @@ class Giveaways(commands.Cog):
 
         Including `start`, `end` and `reroll`
         """
-        pass
 
     @g.command(
         name="start", aliases=["s"], usage="[time] <winners> [requirements] <prize> [flags]"
