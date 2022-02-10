@@ -70,15 +70,15 @@ class Giveaways(commands.Cog):
             else:
                 if not await self.config.sent_message():
                     await self.bot.send_to_owners(
-                        f"Thanks for installing and using my Giveaways cog. "
-                        f"This cog has a requirements system for the giveaways and one of "
-                        f"these requirements type is amari levels. "
-                        f"If you don't know what amari is, ignore this message. "
-                        f"But if u do, you need an Amari auth key for these to work, "
-                        f"go to this website: https://forms.gle/TEZ3YbbMPMEWYuuMA "
-                        f"and apply to get the key. You should probably get a response within "
-                        f"24 hours but if you don't, visit this server for information: https://discord.gg/6FJhupDHS6 "
-                        f"You can then set the amari api key with the `[p]set api amari auth,<api key>` command"
+                        "Thanks for installing and using my Giveaways cog. "
+                        "This cog has a requirements system for the giveaways and one of "
+                        "these requirements type is amari levels. "
+                        "If you don't know what amari is, ignore this message. "
+                        "But if u do, you need an Amari auth key for these to work, "
+                        "go to this website: <https://forms.gle/TEZ3YbbMPMEWYuuMA> "
+                        "and apply to get the key. You should probably get a response within "
+                        "24 hours but if you don't, visit this server for information: https://discord.gg/6FJhupDHS6 "
+                        "You can then set the amari api key with the `[p]set api amari auth,<api key>` command"
                     )
                     await self.config.sent_message.set(True)
 
@@ -326,9 +326,7 @@ class Giveaways(commands.Cog):
 
     # < ----------------- The Actual Commands ----------------- > #
 
-    @commands.group(
-        name="giveaway", aliases=["g"], invoke_without_command=True, cooldown_after_parsing=True
-    )
+    @commands.group(name="giveaway", aliases=["g"], cooldown_after_parsing=True)
     @commands.guild_only()
     @is_manager()
     async def g(self, ctx: commands.Context):
@@ -337,7 +335,7 @@ class Giveaways(commands.Cog):
 
         Including `start`, `end` and `reroll`
         """
-        await ctx.send_help(ctx.command)
+        pass
 
     @g.command(
         name="start", aliases=["s"], usage="[time] <winners> [requirements] <prize> [flags]"
@@ -897,27 +895,27 @@ class Giveaways(commands.Cog):
     > is that the bot sends an embed containing information such as the prize,
     > the amount of winners, the requirements and the time it ends.
 
-    > People have to react to an emoji set by you through the `{ctx.prefix}gset emoji` command (defaults to :tada: )
+    > People have to react to an emoji set by you through the `{ctx.clean_prefix}gset emoji` command (defaults to :tada: )
     > and after the time to end has come for the giveaway to end, the bot will choose winners from the list of
     > people who reacted and send their mentions in the channel and edit the original embedded message.
 
-    > You can also set multipliers for roles which increase the chances of people with that role to win in a giveaway. `{ctx.prefix}gset multi`
+    > You can also set multipliers for roles which increase the chances of people with that role to win in a giveaway. `{ctx.clean_prefix}gset multi`
     > These multipliers stack and a user's entries in a giveaway add up for each role multiplier they have.
 
     > The format to add multis is:
-        `{ctx.prefix}gset multi add <role id or mention> <multi>`
+        `{ctx.clean_prefix}gset multi add <role id or mention> <multi>`
 
     > And to remove is the same:
-        `{ctx.prefix}gset multi remove <role id or mention>`
+        `{ctx.clean_prefix}gset multi remove <role id or mention>`
 
     > To see all active role multipliers:
-        `{ctx.prefix}gset multi`
+        `{ctx.clean_prefix}gset multi`
 
 ***__Requirements:__ ***
     > You can set requirements for the people who wish to join the giveaways.
     > These requirements can be either of role requirements or AmariBot level requirements.
     > Requirements are provided after the time and no. of winners like so:
-        *{ctx.prefix}g start <time> <no. of winners> <requirements> <prize> [flags]*
+        *{ctx.clean_prefix}g start <time> <no. of winners> <requirements> <prize> [flags]*
 
     > The format to specify a requirements is as follows:
 
@@ -953,7 +951,7 @@ class Giveaways(commands.Cog):
 
     > Here's another more complicated example:
 
-    >    **{ctx.prefix}g start 1h30m 1 somerolemention[bypass];;123456789[blacklist];;12[alvl]**
+    >    **{ctx.clean_prefix}g start 1h30m 1 somerolemention[bypass];;123456789[blacklist];;12[alvl]**
 
     ***NOTE***:
         Bypass overrides blacklist, so users with even one bypass role specified
@@ -979,13 +977,13 @@ class Giveaways(commands.Cog):
         This sends a separate embed after the main giveaway one stating a message give by you.
 
     > *--ping* [argless]
-        This flag pings the set role. ({ctx.prefix}gset pingrole)
+        This flag pings the set role. ({ctx.clean_prefix}gset pingrole)
 
     > *--thank* [argless]
-        This flag also sends a separate embed with a message thanking the donor. The message can be changed with `{ctx.prefix}gset tmsg`
+        This flag also sends a separate embed with a message thanking the donor. The message can be changed with `{ctx.clean_prefix}gset tmsg`
 
     > *--no-defaults* [argless]
-        This disables the default bypass and blacklist roles set by you with the `{ctx.prefix}gset blacklist` and `{ctx.prefix}gset bypass`
+        This disables the default bypass and blacklist roles set by you with the `{ctx.clean_prefix}gset blacklist` and `{ctx.clean_prefix}gset bypass`
 
     > *--ends-at*/*--end-in*
         This flag allows you to pass a date/time to end the giveaway at or just a duration. This will override the duration you give in the command invocation.
@@ -1025,32 +1023,32 @@ class Giveaways(commands.Cog):
     > There are a bunch of giveaway settings that you can change.
 
     > **Auto deletion of giveaway commands**
-        You can set whether giveaway command invocations get deleted themselves or not. `{ctx.prefix}gset autodelete true`
+        You can set whether giveaway command invocations get deleted themselves or not. `{ctx.clean_prefix}gset autodelete true`
 
     > **Giveaway headers**
-        The message above the giveaway can also be changed. `{ctx.prefix}gset gmsg`
+        The message above the giveaway can also be changed. `{ctx.clean_prefix}gset gmsg`
 
     > **Giveaway emoji**
-        The emoji to which people must react to enter a giveaway. This defaults to :tada: but can be changed to anything. `{ctx.prefix}gset emoji`
+        The emoji to which people must react to enter a giveaway. This defaults to :tada: but can be changed to anything. `{ctx.clean_prefix}gset emoji`
 
     > **Giveaway pingrole**
-        The role that gets pinged when you use the `--ping` flag. `{ctx.prefix}gset pingrole`
+        The role that gets pinged when you use the `--ping` flag. `{ctx.clean_prefix}gset pingrole`
 
     > **Thank message**
-        The message sent when you use the `--thank` flag. `{ctx.prefix}gset tmsg`
+        The message sent when you use the `--thank` flag. `{ctx.clean_prefix}gset tmsg`
 
     > **Ending message**
-        The message sent when the giveaway ends containing the winner mentions. `{ctx.prefix}gset endmsg`
+        The message sent when the giveaway ends containing the winner mentions. `{ctx.clean_prefix}gset endmsg`
 
     > **Default blacklist**
-        The roles that are by default blacklisted from giveaways. `{ctx.prefix}gset blacklist`
+        The roles that are by default blacklisted from giveaways. `{ctx.clean_prefix}gset blacklist`
 
     > **Default bypass**
-        The roles that are by default able to bypass requirements in giveaways. `{ctx.prefix}gset bypass`
+        The roles that are by default able to bypass requirements in giveaways. `{ctx.clean_prefix}gset bypass`
 
     > **Show defaults in giveaway embed**
         It gets kinda janky when you have multiple defaults set and the giveaway embed becomes too long.
-        Easy way out, is to simply disable showing the defaults in the embed ;) `{ctx.prefix}gset showdefaults`
+        Easy way out, is to simply disable showing the defaults in the embed ;) `{ctx.clean_prefix}gset showdefaults`
 
     > **Embed Color**
         The default embed color doesn't look good to you? now worries, you can now customize the color for your server.
