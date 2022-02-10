@@ -18,16 +18,14 @@ class Gset(Giveaways, name="Giveaways"):
     def __init__(self, bot: Red):
         super().__init__(bot)
 
-    @commands.group(
-        name="giveawaysettings", aliases=["gset", "giveawaysetting"], invoke_without_command=True
-    )
+    @commands.group(name="giveawaysettings", aliases=["gset", "giveawaysetting"])
     @commands.admin_or_permissions(administrator=True)
     async def gset(self, ctx):
         """
         Customize giveaways to how you want them.
 
         All subcommands represent a separate settings."""
-        await ctx.send_help("gset")
+        pass
 
     @gset.command(name="gmsg", usage="<message>")
     @commands.admin_or_permissions(administrator=True)
@@ -432,31 +430,22 @@ class Gset(Giveaways, name="Giveaways"):
         color = discord.Color(settings.color) if settings.color else await ctx.embed_color()
         show_defaults = settings.show_defaults
 
+        message = (
+            f"**Message:** {message}\n"
+            f"**Reaction Emoji:** {emoji}\n"
+            f"**Will the winner be dm'ed?:** {winnerdm}\n"
+            f"**Will the host be dm'ed?:** {hostdm}\n"
+            f"**Will users be dmed if their reaction is removed?:** {settings.unreactdm}\n"
+            f"**Auto delete Giveaway Commands?:** {autodelete}\n"
+            f"**Embed color: **{color}\n"
+            f"**Show defaults in giveaway embed?: **{show_defaults}\n"
+            f"**Giveaway Thank message:** {box(tmsg)}\n"
+            f"**Giveaway Ending message:** {box(endmsg)}\n"
+            f"**Giveaway Managers:** {humanize_list([ctx.guild.get_role(manager).mention for manager in managers if ctx.guild.get_role(manager)]) if managers else 'No Managers set. Requires manage message permission or bots mod role.'}"
+        )
         embed = discord.Embed(
             title=f"Giveaway Settings for **__{ctx.guild.name}__**",
-            description=f"""
-**Giveaway Managers:** {humanize_list([ctx.guild.get_role(manager).mention for manager in managers if ctx.guild.get_role(manager)]) if managers else "No managers set. Requires manage message permission or bot's mod role."}
-
-**Message:** {message}
-
-**Reaction Emoji:** {emoji}
-
-**Will the winner be dm'ed?:** {winnerdm}
-
-**Will the host be dm'ed?:** {hostdm}
-
-**Will users be dmed if their reaction is removed?:** {settings.unreactdm}
-
-**Auto delete Giveaway Commands?:** {autodelete}
-
-**Embed color: **{color}
-
-**Show defaults in giveaway embed?: **{show_defaults}
-
-**Giveaway Thank message:** {box(tmsg)}
-
-**Giveaway Ending message:** {box(endmsg)}\n
-			""",
+            description=message,
             color=color,
         )
 
