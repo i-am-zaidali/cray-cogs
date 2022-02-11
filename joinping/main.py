@@ -143,7 +143,7 @@ class JoinPing(commands.Cog):
         await self.config.guild(ctx.guild).ping_channels.set(list(final))
         await self._build_cache()
         await ctx.send(
-            f"The channel to ping in have been removed. There are currently {len(cached_chans)} channels."
+            f"The channel to ping in have been removed. There are currently {len(final)} channels."
         )
 
     @jpset_channels.command(name="add", aliases=["a"])
@@ -194,6 +194,6 @@ class JoinPing(commands.Cog):
             )
             .add_field(name="Message", value=box(message, "py"), inline=False)
             .add_field(
-                name="Delete After (seconds)", value=box(delete_after + " seconds"), inline=False
+                name="Delete After (seconds)", value=box(f"{delete_after} seconds"), inline=False
             )
         )
