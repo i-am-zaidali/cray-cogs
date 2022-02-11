@@ -151,7 +151,7 @@ class JoinPing(commands.Cog):
         """
         Remove the channels from the list of channels where the pings will be sent on member join."""
         cached_chans = self.cache.setdefault(ctx.guild.id, guild_defaults).get("ping_channels")
-        al_present = (channels:={a.id for a in channels}) & set(cached_chans)
+        al_present = (channels := {a.id for a in channels}) & set(cached_chans)
         channels -= al_present
         cached_chans += channels
         await self.config.guild(ctx.guild).ping_channels.set(cached_chans)
