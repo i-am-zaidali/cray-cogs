@@ -1,5 +1,6 @@
 import asyncio
 import re
+from typing import Any, Awaitable, Callable, Dict, List, Tuple
 
 import discord
 from discord.ext.commands.converter import EmojiConverter, RoleConverter, TextChannelConverter
@@ -10,7 +11,6 @@ from redbot.core import commands
 from redbot.core.utils import mod
 from redbot.core.utils.chat_formatting import box
 from redbot.core.utils.predicates import MessagePredicate
-from typing import List, Tuple, Awaitable, Callable, Any, Dict
 
 from .exceptions import CategoryAlreadyExists, CategoryDoesNotExist
 from .models import DonoBank
@@ -38,7 +38,9 @@ class CategoryMaker(commands.Converter):
         try:
             name, emoji = argument.strip().split(",")
         except:
-            raise BadArgument(f"You need to provide a name and emoji for the category separated by a comma (`name,emoji`). You only provided `{argument}`.")
+            raise BadArgument(
+                f"You need to provide a name and emoji for the category separated by a comma (`name,emoji`). You only provided `{argument}`."
+            )
         if not emoji == "⏣":
             if not emoji in UNICODE_EMOJI_ENGLISH.keys():
                 try:
@@ -186,7 +188,8 @@ class AmountRoleConverter(commands.Converter):
             final.update({await mconv(ctx, amount): act_roles})
 
         return final
-    
+
+
 async def ask_for_answers(
     ctx: commands.Context,
     questions: List[Tuple[str, str, str, Callable[[discord.Message], Awaitable[Any]]]],
@@ -295,40 +298,45 @@ def is_dmgr():
 
     return commands.check(predicate)
 
+
 # ______________ AFA check funcs ______________
+
 
 def manager_roles(ctx):
     async def predicate(answer: str):
         roleids = answer.split(",")
         rc = RoleConverter()
-        
+
         roles = []
-        
+
         for id in roleids:
             role = await rc.convert(ctx, id)
-                
+
             roles.append(role)
-                
+
         return roles
-    
+
     return predicate
+
 
 def channel_conv(ctx):
     async def predicate(answer: str):
         if answer.lower() == "none":
             return None
         return await TextChannelConverter().convert(ctx, answer)
-    
+
     return predicate
+
 
 def category_conv(ctx):
     async def predicate(answer: str):
         return await CategoryMaker().convert(ctx, answer)
-    
+
     return predicate
+
 
 def amountrole_conv(ctx):
     async def predicate(answer: str):
         return await AmountRoleConverter().convert(ctx, answer)
-    
+
     return predicate

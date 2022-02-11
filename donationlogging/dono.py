@@ -9,7 +9,7 @@ from discord.ext.commands.errors import ChannelNotFound
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.commands import RedHelpFormatter
-from redbot.core.utils.chat_formatting import humanize_list, humanize_number, pagify, box
+from redbot.core.utils.chat_formatting import box, humanize_list, humanize_number, pagify
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu, start_adding_reactions
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
 from tabulate import tabulate
@@ -125,20 +125,20 @@ class DonationLogging(commands.Cog):
                 "Which roles do you want to be able to manage donations?",
                 "You can provide multiple roles. Send their ids/mentions/names all in one message separated by a comma.",
                 "roles",
-                manager_roles(ctx)
+                manager_roles(ctx),
             ),
             (
                 "Which channel do you want the donations to be logged to?",
                 "Type 'None' if you dont want that",
                 "channel",
-                channel_conv(ctx)
+                channel_conv(ctx),
             ),
             (
                 "What would you like your first donation logging currency category to be named?",
                 "Send its name and emoji (id only) separated by a comma."
                 "You can use custom emojis as long as the bot has access to it.\nFor example: `dank,⏣`",
                 "category",
-                category_conv(ctx)
+                category_conv(ctx),
             ),
             (
                 "Are there any roles that you would like to be assigned at certain milestones in this category?",
@@ -148,15 +148,15 @@ class DonationLogging(commands.Cog):
                     "\nFor example: `10000,someroleid:onemoreroleid 15k,@rolemention 20e4,arolename`"
                 ),
                 "milestones",
-                amountrole_conv(ctx)
+                amountrole_conv(ctx),
             ),
         ]
 
         answers = await ask_for_answers(ctx, questions, 60)
-        
+
         if not answers:
             return
-        
+
         roles = answers["roles"]
         channel = answers["channel"]
         bank = answers["category"]
@@ -678,18 +678,17 @@ class DonationLogging(commands.Cog):
         embed.set_footer(text=f"{ctx.guild.name}", icon_url=ctx.guild.icon_url)
 
         await ctx.send(embed=embed)
-        
-    @dono.command(
-        name="amountcheck",
-        aliases=["ac"]
-    )
+
+    @dono.command(name="amountcheck", aliases=["ac"])
     @commands.guild_only()
     @is_dmgr()
     @setup_done()
-    async def dono_amountcheck(self, ctx: commands.Context, category: CategoryConverter, amount: MoniConverter):
+    async def dono_amountcheck(
+        self, ctx: commands.Context, category: CategoryConverter, amount: MoniConverter
+    ):
         """
         See who has donated more than the given amount in the given category.
-        
+
         This sends an embedded list of user mentions alonside their ids.
         The category must be the name of a registered category. These can be seen with `[p]donoset category list`
         This requires either one of the donation manager roles or the bot mod role."""
@@ -697,13 +696,12 @@ class DonationLogging(commands.Cog):
         lb = cat.get_leaderboard()
 
         if not lb:
-            return await ctx.send("No donations have been made yet for the category **`{}`**".format(cat.name))
-        
-        lb = filter(
-            lambda x: x.donations >= amount,
-            lb
-        )
-        
+            return await ctx.send(
+                "No donations have been made yet for the category **`{}`**".format(cat.name)
+            )
+
+        lb = filter(lambda x: x.donations >= amount, lb)
+
         final = [(x.user, f"{x.donations:,}") for x in lb]
 
         headers = ["UserName", "Donations"]
@@ -711,7 +709,7 @@ class DonationLogging(commands.Cog):
         msg = tabulate(final, tablefmt="rst", showindex=True, headers=headers)
         pages = []
         title = f"Donation Leaderboard for {cat.name}\n\tMore than {amount:,}"
-        
+
         for page in pagify(msg, delims=["\n"], page_length=700):
             page = title + "\n\n" + page + "\n\n"
             pages.append(box(page, lang="html"))
