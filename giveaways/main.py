@@ -402,7 +402,7 @@ class Giveaways(commands.Cog):
             bot=ctx.bot,
             message_id=ctx.message.id,  # istg theres a reason behind this. I will only explain if anyone wants it.
             guild_id=ctx.guild.id,
-            channel_id=ctx.channel.id,
+            channel_id=getattr(flags.channel, "id", ctx.channel.id),
             requirements=requirements or await Requirements.empty(ctx),
             flags=flags,
             prize=prize,
