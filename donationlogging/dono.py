@@ -1,11 +1,11 @@
+import operator
 import asyncio
 import time
 from collections import namedtuple
 from typing import List, Optional
 
 import discord
-from discord.ext.commands.converter import Greedy, RoleConverter, TextChannelConverter
-from discord.ext.commands.errors import ChannelNotFound
+from discord.ext.commands.converter import Greedy
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.commands import RedHelpFormatter
@@ -433,6 +433,7 @@ class DonationLogging(commands.Cog):
         else:
             role = await category.addroles(ctx, user)
         await self.dono_log(ctx, "add", user, amount, donos, category, role, note)
+        await self.cache._back_to_config() 
 
     @dono.command(name="remove", usage="[category] <amount> [user] [--note]")
     @is_dmgr()
@@ -469,6 +470,7 @@ class DonationLogging(commands.Cog):
         note = await self.add_note(user, ctx.message, flag if flag else {}, category)
 
         await self.dono_log(ctx, "remove", user, amount, donation, category, role, note)
+        await self.cache._back_to_config()
 
     @dono.command(
         name="reset",
@@ -684,14 +686,20 @@ class DonationLogging(commands.Cog):
     @is_dmgr()
     @setup_done()
     async def dono_amountcheck(
-        self, ctx: commands.Context, category: CategoryConverter, amount: MoniConverter
+        self, ctx: commands.Context, category: CategoryConverter, function: str, amount: MoniConverter
     ):
         """
-        See who has donated more than the given amount in the given category.
+        See who has donated more/less than the given amount in the given category.
 
+        The fuction is one of `less` or `more`. Pretty much self explanatory but if u pass `less`,
+        it will return users that have doanted less than that amount, and more does the opposite.
         This sends an embedded list of user mentions alonside their ids.
         The category must be the name of a registered category. These can be seen with `[p]donoset category list`
         This requires either one of the donation manager roles or the bot mod role."""
+        
+        if not function.lower() in ["less", "more"]:
+            return await ctx.send("Valid function arguments are: `less` or `more`")
+        
         cat: DonoBank = category
         lb = cat.get_leaderboard()
 
@@ -699,16 +707,24 @@ class DonationLogging(commands.Cog):
             return await ctx.send(
                 "No donations have been made yet for the category **`{}`**".format(cat.name)
             )
+            
+        op = operator.ge if function == "more" else operator.le
 
-        lb = filter(lambda x: x.donations >= amount, lb)
+        lb = filter(lambda x: op(x.donations, amount), lb)
 
         final = [(x.user, f"{x.donations:,}") for x in lb]
+        if not final:
+            return await ctx.send(
+                "No users have donated `{}` than **`{}`** in the category **`{}`**".format(
+                    function, amount, cat.name
+                )
+            )
 
         headers = ["UserName", "Donations"]
 
         msg = tabulate(final, tablefmt="rst", showindex=True, headers=headers)
         pages = []
-        title = f"Donation Leaderboard for {cat.name}\n\tMore than {amount:,}"
+        title = f"Donation Leaderboard for {cat.name}\n\t{function.capitalize()} than {amount:,}"
 
         for page in pagify(msg, delims=["\n"], page_length=700):
             page = title + "\n\n" + page + "\n\n"
