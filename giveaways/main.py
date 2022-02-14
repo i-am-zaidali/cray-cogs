@@ -37,7 +37,6 @@ from .utils import (
 
 log = logging.getLogger("red.craycogs.giveaways")
 
-
 class Giveaways(commands.Cog):
 
     """
@@ -240,21 +239,22 @@ class Giveaways(commands.Cog):
                 return
 
             else:
-                if (await get_guild_settings(payload.guild_id)).reactdm:
+                reactdm = (await get_guild_settings(payload.guild_id)).reactdm
+                if reactdm:
                     embed = discord.Embed(
                         title="Entry Accepted!",
                         description=f"Your entry has been accepted into [this]({giveaway.jump_url}) giveaway.\n"
                         f"Currently, {len(giveaway._entrants)} people have entered.\n"
-                        f"This giveaway ends in {humanize_timedelta(giveaway.ends_at - datetime.now(timezone.utc))}.",
+                        f"This giveaway ends in {humanize_timedelta(timedelta=giveaway.ends_at - datetime.now(timezone.utc))}.",
                         color=discord.Color.green(),
                     ).set_thumbnail(url=payload.member.guild.icon_url)
                     try:
                         await payload.member.send(embed=embed)
-                    except discord.HTTPException:
+                    except discord.HTTPException as e:
                         pass
 
         except Exception as e:
-            log.debug(f"Error occurred in on_reaction_add: ", exc_info=e)
+            log.exception(f"Error occurred in on_reaction_add: ", exc_info=e)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
@@ -281,14 +281,13 @@ class Giveaways(commands.Cog):
                 member.id
             )  # needs to be a proper member object for the below check
 
-            if (await giveaway.verify_entry(member))[
-                0
-            ] is False:  # to check that the bot didnt remove the reaction.
+            if (await giveaway.verify_entry(member))[0] is False: 
+                # to check that the bot didnt remove the reaction.
                 return
 
-            unreactdm = (await get_guild_settings(giveaway.guild_id)).unreactdm
-
             await giveaway.remove_entrant(member)
+
+            unreactdm = (await get_guild_settings(giveaway.guild_id)).unreactdm
             if unreactdm:
                 embed = discord.Embed(
                     title="Entry removed!",
