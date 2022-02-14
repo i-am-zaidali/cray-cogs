@@ -223,29 +223,29 @@ class Giveaways(commands.Cog):
                     description=result,
                     color=discord.Color.red(),
                 ).set_thumbnail(url=payload.member.guild.icon_url)
-                
+
                 message = await giveaway.message
                 try:
                     await message.remove_reaction(payload.emoji, payload.member)
 
                 except discord.HTTPException:
                     return
-                
+
                 try:
                     await payload.member.send(embed=embed)
                 except discord.HTTPException:
                     pass
-                
+
             elif result is False:
                 return
-            
+
             else:
                 if (await get_guild_settings(payload.guild_id)).reactdm:
                     embed = discord.Embed(
                         title="Entry Accepted!",
                         description=f"Your entry has been accepted into [this]({giveaway.jump_url}) giveaway.\n"
-                                    f"Currently, {len(giveaway._entrants)} people have entered.\n"
-                                    f"This giveaway ends in {humanize_timedelta(giveaway.ends_at - datetime.now(timezone.utc))}.",
+                        f"Currently, {len(giveaway._entrants)} people have entered.\n"
+                        f"This giveaway ends in {humanize_timedelta(giveaway.ends_at - datetime.now(timezone.utc))}.",
                         color=discord.Color.green(),
                     ).set_thumbnail(url=payload.member.guild.icon_url)
                     try:
