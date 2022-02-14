@@ -1,5 +1,5 @@
-import operator
 import asyncio
+import operator
 import time
 from collections import namedtuple
 from typing import List, Optional
@@ -433,7 +433,7 @@ class DonationLogging(commands.Cog):
         else:
             role = await category.addroles(ctx, user)
         await self.dono_log(ctx, "add", user, amount, donos, category, role, note)
-        await self.cache._back_to_config() 
+        await self.cache._back_to_config()
 
     @dono.command(name="remove", usage="[category] <amount> [user] [--note]")
     @is_dmgr()
@@ -686,7 +686,11 @@ class DonationLogging(commands.Cog):
     @is_dmgr()
     @setup_done()
     async def dono_amountcheck(
-        self, ctx: commands.Context, category: CategoryConverter, function: str, amount: MoniConverter
+        self,
+        ctx: commands.Context,
+        category: CategoryConverter,
+        function: str,
+        amount: MoniConverter,
     ):
         """
         See who has donated more/less than the given amount in the given category.
@@ -696,10 +700,10 @@ class DonationLogging(commands.Cog):
         This sends an embedded list of user mentions alonside their ids.
         The category must be the name of a registered category. These can be seen with `[p]donoset category list`
         This requires either one of the donation manager roles or the bot mod role."""
-        
+
         if not function.lower() in ["less", "more"]:
             return await ctx.send("Valid function arguments are: `less` or `more`")
-        
+
         cat: DonoBank = category
         lb = cat.get_leaderboard()
 
@@ -707,7 +711,7 @@ class DonationLogging(commands.Cog):
             return await ctx.send(
                 "No donations have been made yet for the category **`{}`**".format(cat.name)
             )
-            
+
         op = operator.ge if function == "more" else operator.le
 
         lb = filter(lambda x: op(x.donations, amount), lb)
