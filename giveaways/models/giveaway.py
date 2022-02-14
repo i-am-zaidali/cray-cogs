@@ -617,7 +617,7 @@ class EndedGiveaway(GiveawayMeta):
             )
             return
 
-        winner = [random.choice(entrants).mention for i in range(winners)]
+        winner = [random.choice(entrants).id for i in range(winners)]
         self._winners = winner
 
         w = self.get_winners_str()
