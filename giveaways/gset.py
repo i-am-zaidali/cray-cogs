@@ -139,7 +139,7 @@ class Gset(Giveaways, name="Giveaways"):
         settings = await get_guild_settings(ctx.guild.id, False)
         async with settings.manager() as managers:
             roles = set(roles)
-            managers += [role.id for role in roles  if role.id not in managers]
+            managers += [role.id for role in roles if role.id not in managers]
         await ctx.reply(
             f"{humanize_list([role.mention for role in roles])} have been set as the giveaway managers!",
             allowed_mentions=discord.AllowedMentions(roles=False, replied_user=False),
