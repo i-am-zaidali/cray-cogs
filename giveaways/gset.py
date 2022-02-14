@@ -396,12 +396,25 @@ class Gset(Giveaways, name="Giveaways"):
         return await ctx.send(
             f"Showing default requirements in giveaway embeds has been {'enabled' if not current else 'disabled'}."
         )
+        
+    @gset.command(name="reactdm", aliases=["rdm"])
+    @commands.admin_or_permissions(administrator=True)
+    async def gset_rdm(self, ctx: commands.Context, status: bool):
+        """
+        Set whether the user is informed in dms if their entry is added to the giveaway."""
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.reactdm.set(status)
+        await ctx.reply(
+            "The user will be dmed when their entry is added to the giveaway."
+            if status == True
+            else "The user will not be dm'ed when their entry is added."
+        )
 
     @gset.command(name="unreactdm", aliases=["urdm"])
     @commands.admin_or_permissions(administrator=True)
     async def gset_urdm(self, ctx: commands.Context, status: bool):
         """
-        Set whether the user is informed when their reaction is removed from a giveaway message.
+        Set whether the user is informed in dms when their reaction is removed from a giveaway message.
         """
         settings = await get_guild_settings(ctx.guild.id, False)
         await settings.unreactdm.set(status)

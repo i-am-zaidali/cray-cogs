@@ -223,67 +223,89 @@ class Giveaways(commands.Cog):
                     description=result,
                     color=discord.Color.red(),
                 ).set_thumbnail(url=payload.member.guild.icon_url)
-                try:
-                    await payload.member.send(embed=embed)
-                except discord.HTTPException:
-                    pass
-
+                
                 message = await giveaway.message
                 try:
                     await message.remove_reaction(payload.emoji, payload.member)
 
                 except discord.HTTPException:
                     return
+                
+                try:
+                    await payload.member.send(embed=embed)
+                except discord.HTTPException:
+                    pass
+                
+            elif result is False:
+                return
+            
+            else:
+                if (await get_guild_settings(payload.guild_id)).reactdm:
+                    embed = discord.Embed(
+                        title="Entry Accepted!",
+                        description=f"Your entry has been accepted into [this]({giveaway.jump_url}) giveaway.\n"
+                                    f"Currently, {len(giveaway._entrants)} people have entered.\n"
+                                    f"This giveaway ends in {humanize_timedelta(giveaway.ends_at - datetime.now(timezone.utc))}.",
+                        color=discord.Color.green(),
+                    ).set_thumbnail(url=payload.member.guild.icon_url)
+                    try:
+                        await payload.member.send(embed=embed)
+                    except discord.HTTPException:
+                        pass
 
         except Exception as e:
             log.debug(f"Error occurred in on_reaction_add: ", exc_info=e)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        member = payload.member or await self.bot.get_or_fetch_user(payload.user_id)
+        try:
+            member = payload.member or await self.bot.get_or_fetch_user(payload.user_id)
 
-        if member.bot:
-            return
+            if member.bot:
+                return
 
-        guild = self._CACHE.get(payload.guild_id)
+            guild = self._CACHE.get(payload.guild_id)
 
-        if not guild:
-            return
+            if not guild:
+                return
 
-        giveaway: Optional[Union[Giveaway, EndedGiveaway]] = guild.get(payload.message_id)
+            giveaway: Optional[Union[Giveaway, EndedGiveaway]] = guild.get(payload.message_id)
 
-        if not giveaway or isinstance(giveaway, EndedGiveaway):
-            return
+            if not giveaway or isinstance(giveaway, EndedGiveaway):
+                return
 
-        if not str(payload.emoji) == giveaway.emoji:
-            return
+            if not str(payload.emoji) == giveaway.emoji:
+                return
 
-        member = giveaway.guild.get_member(
-            member.id
-        )  # needs to be a proper member object for the below check
+            member = giveaway.guild.get_member(
+                member.id
+            )  # needs to be a proper member object for the below check
 
-        if (await giveaway.verify_entry(member))[
-            0
-        ] is False:  # to check that the bot didnt remove the reaction.
-            return
+            if (await giveaway.verify_entry(member))[
+                0
+            ] is False:  # to check that the bot didnt remove the reaction.
+                return
 
-        unreactdm = (await get_guild_settings(giveaway.guild_id)).unreactdm
+            unreactdm = (await get_guild_settings(giveaway.guild_id)).unreactdm
 
-        await giveaway.remove_entrant(member)
-        if unreactdm:
-            embed = discord.Embed(
-                title="Entry removed!",
-                description=f"I detected your reaction was removed on [this]({giveaway.jump_url}) giveaway.\n"
-                f"As such, your entry for this giveaway has been removed.\n"
-                f"If you think this was a mistake, please go and react again to the giveaway :)",
-                color=await giveaway.get_embed_color(),
-            ).set_thumbnail(url=giveaway.guild.icon_url)
+            await giveaway.remove_entrant(member)
+            if unreactdm:
+                embed = discord.Embed(
+                    title="Entry removed!",
+                    description=f"I detected your reaction was removed on [this]({giveaway.jump_url}) giveaway.\n"
+                    f"As such, your entry for this giveaway has been removed.\n"
+                    f"If you think this was a mistake, please go and react again to the giveaway :)",
+                    color=await giveaway.get_embed_color(),
+                ).set_thumbnail(url=giveaway.guild.icon_url)
 
-            try:
-                await member.send(embed=embed)
+                try:
+                    await member.send(embed=embed)
 
-            except discord.HTTPException:
-                pass
+                except discord.HTTPException:
+                    pass
+
+        except Exception as e:
+            log.exception(f"Error occurred in on_reaction_remove: ", exc_info=e)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -723,6 +745,7 @@ class Giveaways(commands.Cog):
                 f"> Host: **{i.host}**\n"
                 f"> Message id: **{i.message_id}**\n"
                 f"> Amount of winners: **{i.amount_of_winners}**\n"
+                f"> Emoji: **{i.emoji}**\n"
                 + (
                     f"> Starts in: **{humanize_timedelta(timedelta=i.starts_at - datetime.now(timezone.utc))}**\n"
                     if i.starts_at > datetime.now(timezone.utc)
@@ -807,12 +830,14 @@ class Giveaways(commands.Cog):
             + f"> Host: **{giveaway.host}**\n"
             + f"> Message id: **{giveaway.message_id}**\n"
             + f"> Amount of winners: **{giveaway.amount_of_winners}**\n"
+            + f"> Emoji: **{giveaway.emoji}**\n"
             + (
                 f"> Ends in: **{humanize_timedelta(timedelta=giveaway.ends_at - datetime.now(timezone.utc))}**\n"
                 if isinstance(giveaway, Giveaway)
                 else f"> Ended at: **<t:{int(giveaway.ends_at.timestamp())}:f>**\n"
                 f"> Winner(s): {giveaway.get_winners_str()}"
             )
+            + f"> Requirements: {await giveaway.requirements.get_str()}"
         )
         embed.set_thumbnail(url=ctx.guild.icon_url)
         await ctx.send(embed=embed)

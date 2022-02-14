@@ -17,6 +17,7 @@ class GuildSettings:
     winnerdm: bool
     hostdm: bool
     endmsg: str
+    reactdm: bool
     unreactdm: bool
     tmsg: str
     manager: List[int]

@@ -10,6 +10,7 @@ guild_default_config = {
     "emoji": "🎉",
     "winnerdm": True,
     "hostdm": True,
+    "reactdm": True,
     "unreactdm": True,
     "endmsg": "Congratulations :tada:{winner}:tada:. You have won the giveaway for ***{prize}***.\n{link}",
     "tmsg": "Prize: {prize}\nDonor: {donor.mention}\n\nThank the donor in general chat",
