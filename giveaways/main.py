@@ -45,7 +45,7 @@ class Giveaways(commands.Cog):
     This cog is a very complex cog and could be resource intensive on your bot.
     Use `giveaway explain` command for an indepth explanation on how to use the commands."""
 
-    __version__ = "2.0.1"
+    __version__ = "2.1.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -85,8 +85,8 @@ class Giveaways(commands.Cog):
         all = await dict_keys_to(all)
         await self.bot.wait_until_red_ready()
         for guild_id, data in all.items():
-            guild = self._CACHE.setdefault(guild_id, {})
-            for message_id, more_data in data.items():
+            self._CACHE.setdefault(guild_id, {})
+            for more_data in data.values():
                 g = model_from_time(more_data.get("ends_at"))
                 more_data.update(bot=self.bot)
                 g = g.from_json(more_data)

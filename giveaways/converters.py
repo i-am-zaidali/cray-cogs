@@ -1,4 +1,5 @@
 import re
+import emoji
 from datetime import datetime, timedelta, timezone
 
 from redbot.core import commands
@@ -54,3 +55,10 @@ class PrizeConverter(commands.Converter):
             raise commands.BadArgument("You can't use flags in prize names.")
 
         return argument
+
+class EmojiConverter(commands.EmojiConverter):
+    async def convert(self, ctx: commands.Context, argument: str):
+        if argument in emoji.UNICODE_EMOJI_ENGLISH:
+            return argument
+        
+        return str(await super().convert(ctx, argument))

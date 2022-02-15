@@ -232,21 +232,26 @@ class Giveaway(GiveawayMeta):
             break
 
     async def hdm(self):
-        host = self.host
-        jump_url = self.jump_url
-        prize = self.prize
-        winners = self.winners
-        winners = (
-            f"The winners are: {humanize_list([getattr(m, 'mention', '') for m in winners])}"
-            if winners
-            else "There were no winners."
+        settings = await get_guild_settings(self.guild_id)
+        
+        winners = self.get_winners_str()
+        
+        hostdm_message = settings.hostdm_message.format_map(
+            Coordinate(
+                prize= self.prize,
+                winners=winners,
+                winners_amount= self.amount_of_winners,
+                server= self.guild.name,
+                jump_url= self.jump_url,
+            )
         )
-        if host:
+        
+        if host:=self.host:
             try:
                 embed = discord.Embed(
                     title="Your giveaway has ended!",
-                    description=f"Your giveaway for {prize} has ended.\n{winners}\n\nClick [here]({jump_url}) to jump to the giveaway.",
-                    color=discord.Color.random(),
+                    description=hostdm_message,
+                    color=await self.get_embed_color(),
                 )
                 embed.set_thumbnail(url=self.guild.icon_url)
                 await host.send(embed=embed)
@@ -255,17 +260,28 @@ class Giveaway(GiveawayMeta):
                 return False
 
     async def wdm(self):
-        winners = self.winners
-        jump_url = self.jump_url
-        prize = self.prize
-        winners = Counter(winners)
+        settings = await get_guild_settings(self.guild_id)
+        
+        winners = self.get_winners_str()
+        
+        winnerdm_message = settings.winnerdm_message.format_map(
+            Coordinate(
+                prize= self.prize,
+                winners=winners,
+                winners_amount= self.amount_of_winners,
+                server= self.guild.name,
+                jump_url= self.jump_url,
+            )
+        )
+        
+        winners = Counter(self.winners)
         for winner in winners.keys():
             if winner:
                 try:
                     embed = discord.Embed(
                         title="Congratulations!",
-                        description=f"You have won the giveaway for `{prize}` in **__{self.guild}__**.\nClick [here]({jump_url}) to jump to the giveaway.",
-                        color=discord.Color.random(),
+                        description=winnerdm_message,
+                        color=await self.get_embed_color(),
                     ).set_thumbnail(url=self.guild.icon_url)
                     await winner.send(embed=embed)
 
@@ -273,19 +289,49 @@ class Giveaway(GiveawayMeta):
                     return False
 
     async def create_embed(self) -> discord.Embed:
-        embed = giveaway_embed.copy()
-
+        settings = await get_guild_settings(self.guild.id)
+        
         timestamp_str = (
             f"<t:{int(self.ends_at.timestamp())}:R> (<t:{int(self.ends_at.timestamp())}:f>)"
         )
-
-        embed.title = embed.title.format(prize=self.prize)
-        embed.description = embed.description.format(
-            emoji=self.emoji, host=self.host.mention, timestamp=timestamp_str
+        embed_title = settings.embed_title.format_map(
+            Coordinate(prize=self.prize)
         )
+        embed_description = settings.embed_description.format_map(
+            Coordinate(
+                prize=self.prize,
+                emoji=self.emoji,
+                timestamp=timestamp_str,
+                raw_timestamp=int(self.ends_at.timestamp()),
+                server=self.guild.name,
+                host=SafeMember(self.host),
+                donor=SafeMember(self.flags.donor or self.host),
+                winners=self.amount_of_winners,
+            )
+        )
+        embed_footer_text = settings.embed_footer_text.format_map(
+            Coordinate(server=self.guild.name, winners=self.amount_of_winners)
+        )
+        embed_footer_icon = settings.embed_footer_icon.format_map(
+            Coordinate(server_icon_url=self.guild.icon_url, host_avatar_url=self.host.avatar_url)
+        )
+        embed_thumbnail = settings.embed_thumbnail.format_map(
+            Coordinate(server_icon_url=self.guild.icon_url, host_avatar_url=self.host.avatar_url)
+        )
+        
+        
+        embed = discord.Embed(
+            title=embed_title,
+            description=embed_description,
+            color=await self.get_embed_color()
+        ).set_footer(
+            text=embed_footer_text,
+            icon_url=embed_footer_icon
+        ).set_thumbnail(
+            url=embed_thumbnail
+        )
+
         embed.timestamp = self.flags.ends_in or self.ends_at
-        embed.color = await self.get_embed_color()
-        embed._footer["text"] = embed._footer["text"].format(winners=self.amount_of_winners)
 
         if self.flags.donor:
             embed.add_field(name="**Donor:**", value=f"{self.flags.donor.mention}", inline=False)

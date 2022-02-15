@@ -7,6 +7,7 @@ from redbot.core.utils.chat_formatting import box, humanize_list
 
 from .main import Giveaways
 from .models import config, get_guild_settings, get_role
+from .converters import EmojiConverter
 
 
 class Gset(Giveaways, name="Giveaways"):
@@ -36,6 +37,113 @@ class Gset(Giveaways, name="Giveaways"):
         settings = await get_guild_settings(ctx.guild.id, False)
         await settings.msg.set(message)
         await ctx.reply(f"The new giveaway message has been set to \n```\n{message}\n```")
+        
+    @gset.group(name="embed")
+    @commands.admin_or_permissions(administrator=True)
+    async def gset_embed(self, ctx: commands.Context):
+        """
+        Customize the giveaway embed.
+        
+        Each sub command changes a different attribute of the embed and supplies different variables to be replaced."""
+        pass
+    
+    @gset_embed.command(name="title")
+    async def gset_embed_title(self, ctx, *, title: str):
+        """
+        Set the title of the embed of the giveaway message.
+
+        Available variables are:
+            - {prize} - The prize of the giveaway"""
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.embed_title.set(title)
+        await ctx.send(f"The new embed title has been set to \n```\n{title}\n```")
+        
+    @gset_embed.command(name="description")
+    async def gset_embed_description(self, ctx: commands.Context, *, description: str):
+        """
+        Set the description of the embed of the giveaway message.
+        
+        Available variables are:
+            - {prize}: The prize of the giveaway.
+            - {emoji}: The emoji to react to.
+            - {timestamp}: A proper timestamp `<t:1644937496:R> (<t:1644937496:F>)`
+            - {raw_timestamp}: The timestamp in seconds so you can construct your own timestamp `<t:{raw_timestamp}:R>`
+            - {server}: The name of the server. 
+            - {host}: The host of the giveaway. Includes the `.mention .id .name` attributes.
+            - {donor}: The donor of the giveaway. Same as host.
+            - {winners}: The amount of winners the giveaway has."""
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.embed_description.set(description)
+        await ctx.send(f"The new embed description has been set to \n{box(description, 'py')}")
+
+    @gset_embed.group(name="footer")
+    async def gset_embed_footer(self, ctx: commands.Context):
+        """
+        Custom the giveaway embed footer.
+        
+        Use subcommands to customize the text and icon."""
+        pass
+    
+    @gset_embed_footer.command(name="text")
+    async def gset_embed_footer_text(self, ctx: commands.Context, *, text: str):
+        """
+        Change the giveaway embed footer text.
+        
+        Available variables are:
+            - {winners}: the number of winners of the giveaway.
+            - {server}: the name of the server."""
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.embed_footer_text.set(text)
+        await ctx.send(f"The new embed footer text has been set to \n{box(text, 'py')}")
+        
+    @gset_embed_footer.command(name="icon")
+    async def gset_embed_footer_icon(self, ctx: commands.Context, *, icon: str):
+        """
+        Change the giveaway embed footer icon.
+        
+        Provide a link to an image or video to set as the footer icon.
+        Usable variables are:
+            - {server_icon_url}: The server icon url.
+            - {host_avatar_url}: The host's avatar url.
+            
+        If you use these variables, please don't add anything else."""
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.embed_footer_icon.set(icon)
+        await ctx.send(f"The new embed footer icon has been set to \n{icon}")
+        
+    @gset_embed.command(name="thumbnail")
+    async def gset_embed_thumbnail(self, ctx: commands.Context, *, thumbnail: str):
+        """
+        Change the giveaway embed thumbnail.
+        
+        Provide a link to an image or video to set as the thumbnail.
+        Usable variables are:
+            - {server_icon_url}: The server icon url.
+            - {host_avatar_url}: The host's avatar url.
+            
+        If you use these variables, please don't add anything else."""
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.embed_thumbnail.set(thumbnail)
+        await ctx.send(f"The new embed thumbnail has been set to \n{thumbnail}")
+        
+    @gset_embed.command(name="color", aliases=["colour"])
+    async def gset_embed_colour(self, ctx, colour: discord.Colour = discord.Color(0x303036)):
+        """
+        Set the colour of giveaways embeds.
+
+        if color is not passed, it will default to invisible embeds.
+        Before this command is used, the global bot color will be used.
+        Default is invisible (0x303036)."""
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.color.set(colour.value)
+        embed = discord.Embed(
+            title="Color successfully set!",
+            description=f"Embed colors for giveaways will now be set to `{colour.value}`",
+            color=colour,
+        ).set_image(
+            url=f"https://singlecolorimage.com/get/{str(colour)[1:]}/400x100.png"
+        )  # i love this api *chef kiss*
+        return await ctx.send(embed=embed)
 
     @gset.command(name="tmsg")
     @commands.admin_or_permissions(administrator=True)
@@ -65,7 +173,7 @@ class Gset(Giveaways, name="Giveaways"):
 
     @gset.command(name="emoji", usage="<emoji>")
     @commands.admin_or_permissions(administrator=True)
-    async def gset_emoji(self, ctx, emoji: Union[discord.Emoji, discord.PartialEmoji]):
+    async def gset_emoji(self, ctx, emoji: EmojiConverter):
         """
         Set a custom giveaway emoji that the bot reacts with on giveaway embeds.
 
@@ -74,35 +182,76 @@ class Gset(Giveaways, name="Giveaways"):
         await settings.emoji.set(str(emoji))
         await ctx.reply(f"The new giveaway emoji has been set to {emoji}")
 
-    @gset.command(name="winnerdm", usage="<status>")
+    @gset.group(name="winnerdm", usage="<status>")
     @commands.admin_or_permissions(administrator=True)
-    async def gset_winnerdm(self, ctx, status: bool):
+    async def gset_winnerdm(self, ctx: commands.Context):
+        """
+        Customize the winner dm settings."""
+        pass
+    
+    @gset_winnerdm.command(name="toggle")
+    async def gset_winnerdm_toggle(self, ctx: commands.Context, toggle: bool):
         """
         Set whether the bot dms the winners when the giveaway ends.
 
         This won't be able to dm if the winners have their dms closed."""
         settings = await get_guild_settings(ctx.guild.id, False)
-        await settings.winnerdm.set(status)
+        await settings.winnerdm.set(toggle)
         await ctx.reply(
             "The winner will be dm'ed when the giveaway ends now."
-            if status == True
+            if toggle == True
             else "The winner will not be dm'ed when the giveaway ends."
         )
+        
+    @gset_winnerdm.command(name="message")
+    async def gset_winnerdm_message(self, ctx: commands.Context, *, message: str):
+        """
+        Change the message that is sent to the winners when the giveaway ends.
+        
+        Available variables are:
+            - {prize}: the prize of the giveaway.
+            - {winners}: a formatted list of winners if somebody won else "There were no winners."
+            - {winners_amount}: the number of winners of the giveaway.
+            - {server}: the name of the server.
+            - {jump_url}: the url to the giveaway."""
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.winnerdm_message.set(message)
+        await ctx.reply(f"The new winner dm message has been set to \n{box(message, 'py')}")
 
-    @gset.command(name="hostdm", usage="<status>")
+    @gset.group(name="hostdm")
     @commands.admin_or_permissions(administrator=True)
-    async def gset_hostdm(self, ctx, status: bool):
+    async def gset_hostdm(self, ctx: commands.Context):
+        """
+        Customize the host dm settings."""
+        
+    @gset_hostdm.command(name="toggle")
+    async def gset_hostdm_toggle(self, ctx: commands.Context, toggle: bool):
         """
         Set whether the bot dms the host when the giveaway ends.
 
         This won't be able to dm if the host has their dms closed."""
         settings = await get_guild_settings(ctx.guild.id, False)
-        await settings.hostdm.set(status)
+        await settings.hostdm.set(toggle)
         await ctx.reply(
             "The host will be dm'ed when the giveaway ends now."
-            if status == True
+            if toggle == True
             else "The host will not be dm'ed when the giveaway ends."
         )
+        
+    @gset_hostdm.command(name="message")
+    async def gset_hostdm_message(self, ctx: commands.Context, *, message: str):
+        """
+        Change the message that is sent to the host when the giveaway ends.
+
+        Available variables are:
+            - {prize}: the prize of the giveaway.
+            - {winners}: a formatted list of winners if somebody won else "There were no winners."
+            - {winners_amount}: the number of winners of the giveaway.
+            - {server}: the name of the server.
+            - {jump_url}: the url to the giveaway."""
+        settings = await get_guild_settings(ctx.guild.id, False)
+        await settings.hostdm_message.set(message)
+        await ctx.reply(f"The new host dm message has been set to \n{box(message, 'py')}")
 
     @gset.command(name="endmsg", usage="<message>")
     @commands.admin_or_permissions(administrator=True)
@@ -362,26 +511,6 @@ class Gset(Giveaways, name="Giveaways"):
         settings = await get_role(role.id)
         await settings.multi.set(None)
         return await ctx.send(f"Removed `{role.name}` from the server's role multipliers.")
-
-    @gset.command(name="color", aliases=["colour"])
-    @commands.admin_or_permissions(administrator=True)
-    async def gset_colour(self, ctx, colour: discord.Colour = discord.Color(0x303036)):
-        """
-        Set the colour of giveaways embeds.
-
-        if color is not passed, it will default to invisible embeds.
-        Before this command is used, the global bot color will be used.
-        Default is invisible (0x303036)."""
-        settings = await get_guild_settings(ctx.guild.id, False)
-        await settings.color.set(colour.value)
-        embed = discord.Embed(
-            title="Color successfully set!",
-            description=f"Embed colors for giveaways will now be set to `{colour.value}`",
-            color=colour,
-        ).set_image(
-            url=f"https://singlecolorimage.com/get/{str(colour)[1:]}/400x100.png"
-        )  # i love this api *chef kiss*
-        return await ctx.send(embed=embed)
 
     @gset.command(name="sdr", aliases=["show_default_requirements", "showdefault", "showdefaults"])
     @commands.admin_or_permissions(administrator=True)
