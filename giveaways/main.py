@@ -275,11 +275,11 @@ class Giveaways(commands.Cog):
             if not giveaway or isinstance(giveaway, EndedGiveaway):
                 return
 
-            if not (str_emoji:=str(payload.emoji)) == giveaway.emoji: 
-                # epic, i know you said to just match name and id 
+            if not (str_emoji := str(payload.emoji)) == giveaway.emoji:
+                # epic, i know you said to just match name and id
                 # but that wouldve been too much work to extract that from the giveaway.emoji
                 # since thats just a pure string. :p
-                # so i just do this. 
+                # so i just do this.
                 if not str_emoji.replace("<:", "<a:") == giveaway.emoji:
                     return
 
