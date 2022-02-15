@@ -17,7 +17,9 @@ hostdm_message: str = (
 )
 
 embed_title: str = "**`{prize}`**"
-embed_description: str = "React with {emoji} to enter\n" "Host: {host.mention}\n" "Ends {timestamp}\n"
+embed_description: str = (
+    "React with {emoji} to enter\n" "Host: {host.mention}\n" "Ends {timestamp}\n"
+)
 embed_footer_text: str = "Winners: {winners} | ends : "
 embed_footer_icon: str = "{host_avatar_url}"
 embed_thumbnail: str = "{server_icon_url}"
