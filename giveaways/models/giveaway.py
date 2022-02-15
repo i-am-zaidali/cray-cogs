@@ -233,20 +233,20 @@ class Giveaway(GiveawayMeta):
 
     async def hdm(self):
         settings = await get_guild_settings(self.guild_id)
-        
+
         winners = self.get_winners_str()
-        
+
         hostdm_message = settings.hostdm_message.format_map(
             Coordinate(
-                prize= self.prize,
+                prize=self.prize,
                 winners=winners,
-                winners_amount= self.amount_of_winners,
-                server= self.guild.name,
-                jump_url= self.jump_url,
+                winners_amount=self.amount_of_winners,
+                server=self.guild.name,
+                jump_url=self.jump_url,
             )
         )
-        
-        if host:=self.host:
+
+        if host := self.host:
             try:
                 embed = discord.Embed(
                     title="Your giveaway has ended!",
@@ -261,19 +261,19 @@ class Giveaway(GiveawayMeta):
 
     async def wdm(self):
         settings = await get_guild_settings(self.guild_id)
-        
+
         winners = self.get_winners_str()
-        
+
         winnerdm_message = settings.winnerdm_message.format_map(
             Coordinate(
-                prize= self.prize,
+                prize=self.prize,
                 winners=winners,
-                winners_amount= self.amount_of_winners,
-                server= self.guild.name,
-                jump_url= self.jump_url,
+                winners_amount=self.amount_of_winners,
+                server=self.guild.name,
+                jump_url=self.jump_url,
             )
         )
-        
+
         winners = Counter(self.winners)
         for winner in winners.keys():
             if winner:
@@ -290,13 +290,11 @@ class Giveaway(GiveawayMeta):
 
     async def create_embed(self) -> discord.Embed:
         settings = await get_guild_settings(self.guild.id)
-        
+
         timestamp_str = (
             f"<t:{int(self.ends_at.timestamp())}:R> (<t:{int(self.ends_at.timestamp())}:f>)"
         )
-        embed_title = settings.embed_title.format_map(
-            Coordinate(prize=self.prize)
-        )
+        embed_title = settings.embed_title.format_map(Coordinate(prize=self.prize))
         embed_description = settings.embed_description.format_map(
             Coordinate(
                 prize=self.prize,
@@ -318,17 +316,15 @@ class Giveaway(GiveawayMeta):
         embed_thumbnail = settings.embed_thumbnail.format_map(
             Coordinate(server_icon_url=self.guild.icon_url, host_avatar_url=self.host.avatar_url)
         )
-        
-        
-        embed = discord.Embed(
-            title=embed_title,
-            description=embed_description,
-            color=await self.get_embed_color()
-        ).set_footer(
-            text=embed_footer_text,
-            icon_url=embed_footer_icon
-        ).set_thumbnail(
-            url=embed_thumbnail
+
+        embed = (
+            discord.Embed(
+                title=embed_title,
+                description=embed_description,
+                color=await self.get_embed_color(),
+            )
+            .set_footer(text=embed_footer_text, icon_url=embed_footer_icon)
+            .set_thumbnail(url=embed_thumbnail)
         )
 
         embed.timestamp = self.flags.ends_in or self.ends_at
