@@ -37,6 +37,7 @@ from .utils import (
 
 log = logging.getLogger("red.craycogs.giveaways")
 
+
 class Giveaways(commands.Cog):
 
     """
@@ -281,7 +282,7 @@ class Giveaways(commands.Cog):
                 member.id
             )  # needs to be a proper member object for the below check
 
-            if (await giveaway.verify_entry(member))[0] is False: 
+            if (await giveaway.verify_entry(member))[0] is False:
                 # to check that the bot didnt remove the reaction.
                 return
 
