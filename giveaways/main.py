@@ -275,8 +275,9 @@ class Giveaways(commands.Cog):
             if not giveaway or isinstance(giveaway, EndedGiveaway):
                 return
 
-            if not str(payload.emoji) == giveaway.emoji:
-                return
+            if not (str_emoji:=str(payload.emoji)) == giveaway.emoji:
+                if not str_emoji.replace("<:", "<a:") == giveaway.emoji:
+                    return
 
             member = giveaway.guild.get_member(
                 member.id
