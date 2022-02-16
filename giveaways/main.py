@@ -840,7 +840,7 @@ class Giveaways(commands.Cog):
                 f"> Ends in: **{humanize_timedelta(timedelta=giveaway.ends_at - datetime.now(timezone.utc))}**\n"
                 if isinstance(giveaway, Giveaway)
                 else f"> Ended at: **<t:{int(giveaway.ends_at.timestamp())}:f>**\n"
-                f"> Winner(s): {giveaway.get_winners_str()}"
+                f"> Winner(s): {giveaway.get_winners_str()}\n"
             )
             + f"> Requirements: {await giveaway.requirements.get_str(giveaway.guild_id)}"
         )
