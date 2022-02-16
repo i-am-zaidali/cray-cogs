@@ -842,7 +842,7 @@ class Giveaways(commands.Cog):
                 else f"> Ended at: **<t:{int(giveaway.ends_at.timestamp())}:f>**\n"
                 f"> Winner(s): {giveaway.get_winners_str()}"
             )
-            + f"> Requirements: {await giveaway.requirements.get_str()}"
+            + f"> Requirements: {await giveaway.requirements.get_str(giveaway.guild_id)}"
         )
         embed.set_thumbnail(url=ctx.guild.icon_url)
         await ctx.send(embed=embed)
