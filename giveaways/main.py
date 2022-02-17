@@ -37,7 +37,6 @@ from .utils import (
 
 log = logging.getLogger("red.craycogs.giveaways")
 
-
 class Giveaways(commands.Cog):
 
     """
@@ -46,7 +45,7 @@ class Giveaways(commands.Cog):
     This cog is a very complex cog and could be resource intensive on your bot.
     Use `giveaway explain` command for an indepth explanation on how to use the commands."""
 
-    __version__ = "2.1.0"
+    __version__ = "2.1.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -56,6 +55,8 @@ class Giveaways(commands.Cog):
         self.config.init_custom("giveaway", 2)
 
         self._CACHE: Dict[int, Dict[int, Union[Giveaway, EndedGiveaway]]] = {}
+
+        self.gs = get_guild_settings
 
     # < ----------------- Internal Private Methods ----------------- > #
 
@@ -91,9 +92,16 @@ class Giveaways(commands.Cog):
                 g = model_from_time(more_data.get("ends_at"))
                 more_data.update(bot=self.bot)
                 g = g.from_json(more_data)
+                if isinstance(g, EndedGiveaway) and (datetime.now(timezone.utc) - g.ended_at).days > 2 and g.duration < (5*60):
+                    # if giveaway is over 2 days old and the duration is under 5 minutes, remove it from config
+                    # no need for it to occupy space anyways.
+                    await self.config.custom("giveaway").clear_raw(guild_id, g.message_id)
+                    continue
                 self.add_to_cache(g)
 
         self.end_giveaways_task = self.end_giveaway.start()
+        
+        self.bot.add_dev_env_value("giveaways", lambda x: self)
 
         return self
 
@@ -109,6 +117,7 @@ class Giveaways(commands.Cog):
                         )
 
                     self._CACHE[guild_id].pop(msg_id)
+                    self.config.custom("giveaway").clear_raw(guild_id, msg_id)
 
     def format_help_for_context(self, ctx: commands.Context) -> str:
         pre_processed = super().format_help_for_context(ctx) or ""
@@ -160,6 +169,7 @@ class Giveaways(commands.Cog):
     def cog_unload(self):
         self.bot.loop.create_task(self.to_config())
         self.end_giveaways_task.cancel()
+        self.bot.remove_dev_env_value("giveaways")
         if getattr(self.bot, "amari", None):
             self.bot.loop.create_task(self.bot.amari.close())
             delattr(self.bot, "amari")
