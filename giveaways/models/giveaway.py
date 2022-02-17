@@ -78,7 +78,7 @@ class GiveawayMeta:
     @property
     def jump_url(self) -> str:
         return f"https://discord.com/channels/{self.guild_id}/{self.channel_id}/{self.message_id}"
-    
+
     @property
     def duration(self) -> int:
         return (self.ends_at - self.starts_at).total_seconds()
@@ -595,6 +595,7 @@ class Giveaway(GiveawayMeta):
             await self.hdm()
 
         return EndedGiveaway.from_giveaway(self, reason)
+
 
 class EndedGiveaway(GiveawayMeta):
     def __init__(

@@ -37,6 +37,7 @@ from .utils import (
 
 log = logging.getLogger("red.craycogs.giveaways")
 
+
 class Giveaways(commands.Cog):
 
     """
@@ -92,7 +93,11 @@ class Giveaways(commands.Cog):
                 g = model_from_time(more_data.get("ends_at"))
                 more_data.update(bot=self.bot)
                 g = g.from_json(more_data)
-                if isinstance(g, EndedGiveaway) and (datetime.now(timezone.utc) - g.ended_at).days > 2 and g.duration < (5*60):
+                if (
+                    isinstance(g, EndedGiveaway)
+                    and (datetime.now(timezone.utc) - g.ended_at).days > 2
+                    and g.duration < (5 * 60)
+                ):
                     # if giveaway is over 2 days old and the duration is under 5 minutes, remove it from config
                     # no need for it to occupy space anyways.
                     await self.config.custom("giveaway").clear_raw(guild_id, g.message_id)
@@ -100,7 +105,7 @@ class Giveaways(commands.Cog):
                 self.add_to_cache(g)
 
         self.end_giveaways_task = self.end_giveaway.start()
-        
+
         self.bot.add_dev_env_value("giveaways", lambda x: self)
 
         return self
