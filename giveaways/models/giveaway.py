@@ -83,7 +83,7 @@ class GiveawayMeta:
     @property
     def get_embed_colour(self):  # alias cause i mix up spellings alot :p
         return self.get_embed_color
-    
+
     def duration(self) -> int:
         return (self.ends_at - self.starts_at).total_seconds()
 
