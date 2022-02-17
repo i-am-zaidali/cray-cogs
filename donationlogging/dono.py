@@ -1,15 +1,20 @@
 import asyncio
+import operator
 import time
 from typing import Dict, List, Optional
 
 import discord
 from discord.embeds import EmptyEmbed
-from discord.ext.commands.converter import Greedy, RoleConverter, TextChannelConverter
-from discord.ext.commands.errors import ChannelNotFound
+from discord.ext.commands.converter import Greedy
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import box, humanize_list, humanize_number
+from redbot.core.commands import RedHelpFormatter
+from redbot.core.utils.chat_formatting import box, humanize_list, humanize_number, pagify
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu, start_adding_reactions
+from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
 from tabulate import tabulate
+
+from donationlogging.models import DonationManager, DonoUser
 
 from .models import DonationManager, DonoUser
 from .utils import *
@@ -80,24 +85,6 @@ class DonationLogging(commands.Cog):
             return
         self.cache.delete_all_user_data(user_id)
 
-    async def GetMessage(self, ctx: commands.Context, contentOne, contentTwo, timeout=100):
-        embed = discord.Embed(
-            title=f"{contentOne}", description=f"{contentTwo}", color=await ctx.embed_color()
-        )
-        sent = await ctx.send(embed=embed)
-        try:
-            msg = await self.bot.wait_for(
-                "message",
-                timeout=timeout,
-                check=lambda message: message.author == ctx.author
-                and message.channel == ctx.channel,
-            )
-            if msg:
-                return msg.content
-
-        except asyncio.TimeoutError:
-            return False
-
     @commands.group(name="dono", invoke_without_command=True)
     async def dono(self, ctx):
         """
@@ -134,81 +121,51 @@ class DonationLogging(commands.Cog):
             return
 
         questions = [
-            [
+            (
                 "Which roles do you want to be able to manage donations?",
                 "You can provide multiple roles. Send their ids/mentions/names all in one message separated by a comma.",
-            ],
-            [
+                "roles",
+                manager_roles(ctx),
+            ),
+            (
                 "Which channel do you want the donations to be logged to?",
                 "Type 'None' if you dont want that",
-            ],
-            [
+                "channel",
+                channel_conv(ctx),
+            ),
+            (
                 "What would you like your first donation logging currency category to be named?",
                 "Send its name and emoji (id only) separated by a comma."
                 "You can use custom emojis as long as the bot has access to it.\nFor example: `dank,⏣`",
-            ],
-            [
+                "category",
+                category_conv(ctx),
+            ),
+            (
                 "Are there any roles that you would like to be assigned at certain milestones in this category?",
                 (
                     "Send amount and roles separate by a comma. "
                     "Multiple roles should also be separated by a colon (:) or just send `none`"
                     "\nFor example: `10000,someroleid:onemoreroleid 15k,@rolemention 20e4,arolename`"
                 ),
-            ],
+                "milestones",
+                amountrole_conv(ctx),
+            ),
         ]
-        answers = {}
 
-        for i, question in enumerate(questions):
-            answer = await self.GetMessage(ctx, question[0], question[1], timeout=180)
-            if not answer:
-                await ctx.send("You didn't answer in time. Please try again and answer faster.")
-                return
+        answers = await ask_for_answers(ctx, questions, 60)
 
-            answers[i] = answer
+        if not answers:
+            return
 
-        roleids = answers[0].split(",")
-        roles = []
-        failed = []
-        rc = RoleConverter()
-        cc = TextChannelConverter()
-        for id in roleids:
-            try:
-                role = await rc.convert(ctx, id)
-            except:
-                failed.append(id)
-            else:
-                roles.append(role)
-
-        if (
-            chan := answers[1]
-        ).lower() != "none":  # apparently .lower() messes up the mention so that should be called after assignment
-            try:
-                channel = await cc.convert(ctx, str(chan))
-            except ChannelNotFound:
-                await ctx.send("You didn't provide a proper channel.")
-                return
-
-        else:
-            channel = None
-
-        if answers[3] == "none":
-            pairs = {}
-        else:
-            try:
-                pairs = await AmountRoleConverter().convert(ctx, answers[3])
-            except Exception as e:
-                return await ctx.send(e)
-
-        try:
-            bank = await CategoryMaker().convert(ctx, answers[2])
-        except Exception as e:
-            return await ctx.send(e)
+        roles = answers["roles"]
+        channel = answers["channel"]
+        bank = answers["category"]
+        pairs = answers["milestones"]
 
         emb = discord.Embed(title="Is all this information valid?", color=await ctx.embed_color())
         emb.add_field(
             name=f"Question: `{questions[0][0]}`",
-            value=f"Answer: `{' '.join([role.name for role in roles])}"
-            f"{'Couldnt find roles with following ids'+' '.join([i for i in failed]) if failed else ''}`",
+            value=f"Answer: `{' '.join([role.name for role in roles])}`",
             inline=False,
         )
         emb.add_field(
@@ -467,6 +424,7 @@ class DonationLogging(commands.Cog):
         else:
             role = await category.addroles(ctx, user)
         await self.dono_log(ctx, "add", user, amount, donos, category, role, note)
+        await self.cache._back_to_config()
 
     @dono.command(name="remove", usage="[category] <amount> [user] [--note]")
     @is_dmgr()
@@ -503,6 +461,7 @@ class DonationLogging(commands.Cog):
         note = await self.add_note(user, ctx.message, flag if flag else {}, category)
 
         await self.dono_log(ctx, "remove", user, amount, donation, category, role, note)
+        await self.cache._back_to_config()
 
     @dono.command(
         name="reset",
@@ -704,6 +663,63 @@ class DonationLogging(commands.Cog):
             ctx, banks, embeds, True, placeholder="Select a category...", timeout=60
         )
         view.message = await ctx.send(embed=final_embed, view=view)
+
+    @dono.command(name="amountcheck", aliases=["ac"])
+    @commands.guild_only()
+    @is_dmgr()
+    @setup_done()
+    async def dono_amountcheck(
+        self,
+        ctx: commands.Context,
+        category: CategoryConverter,
+        function: str,
+        amount: MoniConverter,
+    ):
+        """
+        See who has donated more/less than the given amount in the given category.
+
+        The fuction is one of `less` or `more`. Pretty much self explanatory but if u pass `less`,
+        it will return users that have doanted less than that amount, and more does the opposite.
+        This sends an embedded list of user mentions alonside their ids.
+        The category must be the name of a registered category. These can be seen with `[p]donoset category list`
+        This requires either one of the donation manager roles or the bot mod role."""
+
+        if not function.lower() in ["less", "more"]:
+            return await ctx.send("Valid function arguments are: `less` or `more`")
+
+        cat: DonoBank = category
+        lb = cat.get_leaderboard()
+
+        if not lb:
+            return await ctx.send(
+                "No donations have been made yet for the category **`{}`**".format(cat.name)
+            )
+
+        op = operator.ge if function == "more" else operator.le
+
+        lb = filter(lambda x: op(x.donations, amount), lb)
+
+        final = [(x.user, f"{x.donations:,}") for x in lb]
+        if not final:
+            return await ctx.send(
+                "No users have donated `{}` than **`{}`** in the category **`{}`**".format(
+                    function, amount, cat.name
+                )
+            )
+
+        headers = ["UserName", "Donations"]
+
+        msg = tabulate(final, tablefmt="rst", showindex=True, headers=headers)
+        pages = []
+        title = f"Donation Leaderboard for {cat.name}\n\t{function.capitalize()} than {amount:,}"
+
+        for page in pagify(msg, delims=["\n"], page_length=700):
+            page = title + "\n\n" + page + "\n\n"
+            pages.append(box(page, lang="html"))
+
+        if len(pages) == 1:
+            return await ctx.send(pages[0])
+        return await menu(ctx, pages, DEFAULT_CONTROLS)
 
     @dono.command(
         name="leaderboard",

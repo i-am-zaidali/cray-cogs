@@ -11,10 +11,13 @@ from redbot.core.utils.chat_formatting import humanize_list
 from .exceptions import CategoryAlreadyExists, CategoryDoesNotExist, SimilarCategoryExists
 
 log = logging.getLogger("red.craycogs.donationlogging.models")
+log.setLevel(logging.INFO)
 
 
 class DonoUser:
-    def __init__(self, bot: Red, dono_bank, guild_id: int, user_id: int, data: int = 0):
+    def __init__(
+        self, bot: Red, dono_bank: "DonoBank", guild_id: int, user_id: int, data: int = 0
+    ):
         self.bot = bot
         self.dono_bank = dono_bank
         self.guild_id = guild_id
@@ -46,7 +49,13 @@ class DonoUser:
 
 class DonoBank:
     def __init__(
-        self, bot: Red, manager, name: str, emoji: str, guild_id: int, data: Dict[int, int] = {}
+        self,
+        bot: Red,
+        manager: "DonationManager",
+        name: str,
+        emoji: str,
+        guild_id: int,
+        data: Dict[int, int] = {},
     ):
         self.bot = bot
         self.manager = manager

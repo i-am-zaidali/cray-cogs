@@ -8,6 +8,7 @@ from ..constants import guild_default_config
 
 config: Config = Config.get_conf(None, 234_6969_420, True, cog_name="Giveaways")
 config.register_guild(**guild_default_config)
+config.register_role(multi=0)
 
 
 @dataclass(init=True, repr=True)
@@ -15,9 +16,18 @@ class GuildSettings:
     msg: str
     emoji: str
     winnerdm: bool
+    winnerdm_message: str
     hostdm: bool
+    hostdm_message: str
     endmsg: str
+    reactdm: bool
     unreactdm: bool
+    embed_title: str
+    embed_description: str
+    embed_footer_text: str
+    embed_footer_icon: str
+    embed_thumbnail: str
+    color: Optional[int]
     tmsg: str
     manager: List[int]
     pingrole: Optional[int]
@@ -25,7 +35,6 @@ class GuildSettings:
     blacklist: List[int]
     bypass: List[int]
     top_managers: Dict[int, int]
-    color: Optional[int]
     show_defaults: bool
     edit_timer: bool = False
 
