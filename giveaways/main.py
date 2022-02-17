@@ -285,11 +285,11 @@ class Giveaways(commands.Cog):
             if not giveaway or isinstance(giveaway, EndedGiveaway):
                 return
 
-            if not (str_emoji:=str(payload.emoji)) == giveaway.emoji: 
-                # epic, i know you said to just match name and id 
+            if not (str_emoji := str(payload.emoji)) == giveaway.emoji:
+                # epic, i know you said to just match name and id
                 # but that wouldve been too much work to extract that from the giveaway.emoji
                 # since thats just a pure string. :p
-                # so i just do this. 
+                # so i just do this.
                 if not str_emoji.replace("<:", "<a:") == giveaway.emoji:
                     return
 
@@ -850,9 +850,9 @@ class Giveaways(commands.Cog):
                 f"> Ends in: **{humanize_timedelta(timedelta=giveaway.ends_at - datetime.now(timezone.utc))}**\n"
                 if isinstance(giveaway, Giveaway)
                 else f"> Ended at: **<t:{int(giveaway.ends_at.timestamp())}:f>**\n"
-                f"> Winner(s): {giveaway.get_winners_str()}"
+                f"> Winner(s): {giveaway.get_winners_str()}\n"
             )
-            + f"> Requirements: {await giveaway.requirements.get_str()}"
+            + f"> Requirements: {await giveaway.requirements.get_str(giveaway.guild_id)}"
         )
         embed.set_thumbnail(url=ctx.guild.icon_url)
         await ctx.send(embed=embed)
