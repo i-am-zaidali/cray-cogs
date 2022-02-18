@@ -1,5 +1,3 @@
-from typing import Type
-import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list

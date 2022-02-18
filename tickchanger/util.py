@@ -1,4 +1,3 @@
-import discord
 from discord.ext.commands.converter import EmojiConverter as ec
 from emoji import UNICODE_EMOJI_ENGLISH
 
