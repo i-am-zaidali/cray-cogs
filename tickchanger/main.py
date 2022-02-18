@@ -1,4 +1,4 @@
-from typing import Type
+
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
@@ -7,6 +7,7 @@ from redbot.core.utils.chat_formatting import humanize_list
 from .util import EmojiConverter
 
 old_tick = commands.context.TICK
+
 
 class TickChanger(commands.Cog):
     """
@@ -33,7 +34,7 @@ class TickChanger(commands.Cog):
             f"Author: {humanize_list(self.__author__)}",
         ]
         return "\n".join(text)
-    
+
     @classmethod
     async def initialize(cls, bot: Red):
         s = cls(bot)
@@ -41,7 +42,7 @@ class TickChanger(commands.Cog):
         commands.context.TICK = emoji
         return s
 
-    def cog_unload(self): 
+    def cog_unload(self):
         commands.context.TICK = old_tick
 
     @commands.command(name="settickemoji", aliases=["ste"])
