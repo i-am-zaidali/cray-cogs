@@ -90,7 +90,11 @@ class Gset(Giveaways, name="Giveaways"):
             - {server}: the name of the server."""
         settings = await get_guild_settings(ctx.guild.id, False)
         await settings.embed_footer_text.set(text)
-        await ctx.send(f"The new embed footer text has been set to \n{box(text, 'py')}" if text else "The embed footer text has been removed.")
+        await ctx.send(
+            f"The new embed footer text has been set to \n{box(text, 'py')}"
+            if text
+            else "The embed footer text has been removed."
+        )
 
     @gset_embed_footer.command(name="icon")
     async def gset_embed_footer_icon(self, ctx: commands.Context, *, icon: str = ""):
@@ -105,7 +109,11 @@ class Gset(Giveaways, name="Giveaways"):
         If you use these variables, please don't add anything else."""
         settings = await get_guild_settings(ctx.guild.id, False)
         await settings.embed_footer_icon.set(icon)
-        await ctx.send(f"The new embed footer icon has been set to \n{icon}" if icon else "The embed footer icon has been removed.")
+        await ctx.send(
+            f"The new embed footer icon has been set to \n{icon}"
+            if icon
+            else "The embed footer icon has been removed."
+        )
 
     @gset_embed.command(name="thumbnail")
     async def gset_embed_thumbnail(self, ctx: commands.Context, *, thumbnail: str = ""):
@@ -120,7 +128,11 @@ class Gset(Giveaways, name="Giveaways"):
         If you use these variables, please don't add anything else."""
         settings = await get_guild_settings(ctx.guild.id, False)
         await settings.embed_thumbnail.set(thumbnail)
-        await ctx.send(f"The new embed thumbnail has been set to \n{thumbnail}" if thumbnail else "The embed thumbnail has been removed.")
+        await ctx.send(
+            f"The new embed thumbnail has been set to \n{thumbnail}"
+            if thumbnail
+            else "The embed thumbnail has been removed."
+        )
 
     @gset_embed.command(name="color", aliases=["colour"])
     async def gset_embed_colour(self, ctx, colour: discord.Colour = discord.Color(0x303036)):
