@@ -11,7 +11,6 @@ from redbot.core.utils.chat_formatting import humanize_list
 from .exceptions import CategoryAlreadyExists, CategoryDoesNotExist, SimilarCategoryExists
 
 log = logging.getLogger("red.craycogs.donationlogging.models")
-log.setLevel(logging.INFO)
 
 
 class DonoUser:
