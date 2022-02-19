@@ -52,9 +52,9 @@ class DonationLogging(commands.Cog):
     async def initialize(cls, bot):
         self = cls(bot)
 
-        if (task:=getattr(bot, "_backing_up_task", None)) is not None:
+        if (task := getattr(bot, "_backing_up_task", None)) is not None:
             await task
-            
+
         self.cache = await DonationManager.initialize(bot)
 
         return self
