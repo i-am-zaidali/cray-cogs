@@ -797,6 +797,7 @@ class DonationLogging(commands.Cog):
     async def donoset(self, ctx):
         """
         Base command for changing donation settings for your server."""
+        return await ctx.send_help()
 
     @donoset.group(name="autorole", invoke_without_command=True)
     @commands.mod_or_permissions(administrator=True)
