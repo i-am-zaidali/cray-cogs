@@ -326,10 +326,10 @@ class Giveaway(GiveawayMeta):
             Coordinate(server=self.guild.name, winners=self.amount_of_winners)
         )
         embed_footer_icon = settings.embed_footer_icon.format_map(
-            Coordinate(server_icon_url=self.guild.icon_url, host_avatar_url=self.host.avatar_url)
+            Coordinate(server_icon_url=self.guild.icon_url, host_avatar_url=self.host.avatar.url)
         )
         embed_thumbnail = settings.embed_thumbnail.format_map(
-            Coordinate(server_icon_url=self.guild.icon_url, host_avatar_url=self.host.avatar_url)
+            Coordinate(server_icon_url=self.guild.icon_url, host_avatar_url=self.host.avatar.url)
         )
 
         embed = (

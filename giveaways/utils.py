@@ -78,7 +78,7 @@ class SafeMember:
         self.id = member.id
         self.name = member.name
         self.mention = member.mention
-        self.avatar_url = member.avatar_url
+        self.avatar.url = member.avatar.url
 
     def __str__(self) -> str:
         return self._org.__str__()
