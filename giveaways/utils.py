@@ -23,6 +23,12 @@ async def dict_keys_to(d: dict, conv: Callable = int):
 
     return final
 
+def has_repeats(l: list):
+    for ind, i in enumerate(l, 1):
+        if i in l[ind:]:
+            return True
+    return False
+
 
 async def group_embeds_by_fields(
     *fields: Dict[str, Union[str, bool]], per_embed: int = 3, **kwargs
@@ -54,7 +60,7 @@ def is_manager():
 
         if any(
             [
-                ctx.author.id in settings.manager,
+                [role in ctx.author.roles for role in settings.manager],
                 await ctx.bot.is_owner(ctx.author),
                 await ctx.bot.is_mod(ctx.author),
                 ctx.author.guild_permissions.manage_messages,
