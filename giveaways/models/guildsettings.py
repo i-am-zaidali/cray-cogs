@@ -46,9 +46,9 @@ async def get_guild_settings(guild_id: int, obj=True):
 
     settings = await config.guild_from_id(guild_id).all()
 
-    if settings["managers"] and settings["blacklist"] and settings["bypass"]:
-        if any(has_repeats(settings[i]) for i in ["managers", "blacklist", "bypass"]):
-            settings["managers"] = list({role_id for role_id in settings["managers"]})
+    if settings["manager"] and settings["blacklist"] and settings["bypass"]:
+        if any(has_repeats(settings[i]) for i in ["manager", "blacklist", "bypass"]):
+            settings["manager"] = list({role_id for role_id in settings["manager"]})
             settings["blacklist"] = list({role_id for role_id in settings["blacklist"]})
             settings["bypass"] = list({role_id for role_id in settings["bypass"]})
             
