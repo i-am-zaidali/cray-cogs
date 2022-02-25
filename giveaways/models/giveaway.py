@@ -685,10 +685,10 @@ class EndedGiveaway(GiveawayMeta):
         kwargs.update(reason=reason, bot=giveaway.bot)
         return cls.from_json(kwargs)
 
+
 class FirstToReactGiveaway(GiveawayMeta):
     def __init__(self, **kwargs):
         # TODO:
         # this won't be stored in config
         # but ofc it is still a valid giveaway, we will keep it in cache still till the next reload/restart
         pass
-    

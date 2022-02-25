@@ -51,7 +51,7 @@ async def get_guild_settings(guild_id: int, obj=True):
             settings["managers"] = list({role_id for role_id in settings["managers"]})
             settings["blacklist"] = list({role_id for role_id in settings["blacklist"]})
             settings["bypass"] = list({role_id for role_id in settings["bypass"]})
-            
+
             await config.guild_from_id(guild_id).set(settings)
 
     return GuildSettings(**settings)
