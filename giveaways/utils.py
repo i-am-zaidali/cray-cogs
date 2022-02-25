@@ -61,7 +61,7 @@ def is_manager():
 
         if any(
             [
-                [role in ctx.author.roles for role in settings.manager],
+                [True for role in settings.manager if role in ctx.author.roles],
                 await ctx.bot.is_owner(ctx.author),
                 await ctx.bot.is_mod(ctx.author),
                 ctx.author.guild_permissions.manage_messages,
