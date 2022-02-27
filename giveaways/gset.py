@@ -311,6 +311,10 @@ class Gset(Giveaways, name="Giveaways"):
 
     @gset_manager.command(name="add")
     async def gset_manager_add(self, ctx: commands.Context, *roles: discord.Role):
+        """
+        Add a role that can manage giveaways.
+        
+        Users with any of these roles will be able to start, end and reroll giveaways."""
         if not roles:
             return await ctx.send(
                 "You need to provide proper role ids or mentions to add them as managers"
@@ -327,6 +331,8 @@ class Gset(Giveaways, name="Giveaways"):
 
     @gset_manager.command(name="remove")
     async def gset_manager_remove(self, ctx: commands.Context, *roles: discord.Role):
+        """
+        Remove a role that can manage giveaways."""
         if not roles:
             return await ctx.send(
                 "You need to provide proper role ids or mentions to remove them as managers"
