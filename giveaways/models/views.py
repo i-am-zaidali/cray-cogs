@@ -19,10 +19,10 @@ class JoinGiveawayButton(Button):
             disabled=disabled,
             custom_id="JOIN_GIVEAWAY_BUTTON",
         )
-        
+
         if not iscoroutinefunction(callback):
             raise TypeError("Callback must be a coroutine.")
-        
+
         self._callback = callback
 
     @property
@@ -37,7 +37,7 @@ class GiveawayView(View):
     def __init__(self, bot, emoji, disabled=False):
         super().__init__(timeout=None)
         self.add_item(JoinGiveawayButton(bot, emoji, disabled, self.callback))
-        
+
     @staticmethod
     async def callback(self: JoinGiveawayButton, interaction: discord.Interaction):
 
@@ -165,7 +165,9 @@ class YesOrNoView(ViewDisableOnTimeout):
         self.no_response = no_response
         self.value = None
         self.message = None
-        super().__init__(timeout=timeout, ctx=ctx, timeout_message="You took too long to respond. Cancelling...")
+        super().__init__(
+            timeout=timeout, ctx=ctx, timeout_message="You took too long to respond. Cancelling..."
+        )
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return await interaction_check(self.ctx, interaction)
@@ -346,36 +348,44 @@ class PaginationView(ViewDisableOnTimeout):
 
 # <---------------- First To React Stuff Below ---------------->
 
+
 class FTRView(ViewDisableOnTimeout):
     def __init__(self, ctx: commands.Context, timeout, giveaway):
         self.giveaway = giveaway
-        super().__init__(timeout=timeout, ctx=ctx, timeout_message="Nobody reacted in time. This giveaway has ended.")
-        
-        self.add_item(
-            JoinGiveawayButton(ctx.bot, self.giveaway.emoji, False, self.clicked)
+        super().__init__(
+            timeout=timeout,
+            ctx=ctx,
+            timeout_message="Nobody reacted in time. This giveaway has ended.",
         )
-        
+
+        self.add_item(JoinGiveawayButton(ctx.bot, self.giveaway.emoji, False, self.clicked))
+
     @staticmethod
-    async def clicked(self:JoinGiveawayButton, interaction: discord.Interaction):
+    async def clicked(self: JoinGiveawayButton, interaction: discord.Interaction):
         giveaway = self.view.giveaway
         giveaway._entrants = [interaction.user.id]
         embed = interaction.message.embeds[0]
         embed.description = f"This giveaway has ended.\n**Winners:** {interaction.user.mention}\n**Host:** {giveaway.host.mention}"
         embed.color = discord.Color.red()
         embed.set_footer(
-            text=f"{giveaway.guild.name} - Winners: 1", icon_url=getattr(giveaway.guild.icon, "url", None)
+            text=f"{giveaway.guild.name} - Winners: 1",
+            icon_url=getattr(giveaway.guild.icon, "url", None),
         )
-        
+
         disable_items(self.view)
-        
+
         await interaction.response.edit_message(
-            content="GIVEAWAY ENDED!",
-            embed=embed,
-            view=self.view
+            content="GIVEAWAY ENDED!", embed=embed, view=self.view
         )
-        
+
         settings = await get_guild_settings(giveaway.guild_id)
-        
+
         await interaction.followup.send(
-            content=settings.endmsg.format_map({"winner": interaction.user.mention, "prize": giveaway.prize, "link": giveaway.jump_url})
+            content=settings.endmsg.format_map(
+                {
+                    "winner": interaction.user.mention,
+                    "prize": giveaway.prize,
+                    "link": giveaway.jump_url,
+                }
+            )
         )

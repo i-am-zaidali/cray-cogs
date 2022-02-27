@@ -491,23 +491,23 @@ class Giveaways(commands.Cog):
                 winners=1,
                 prize=prize.split(""),
             )
-            
+
     @g.command(name="drop", aliases=["firsttoreact", "ftr"])
     @commands.cooldown(5, 2, commands.BucketType.guild)
     async def g_drop(self, ctx: commands.Context, *, prize: str):
         """
         Start a `first to react`` giveaway.
-        
+
         The giveaway will be won by whoever clicks on the join button first. It has only 1 winner
         and lasts only 20 seconds."""
         await FirstToReactGiveaway(
-            bot=ctx.bot, 
+            bot=ctx.bot,
             message_id=ctx.message.id,
             channel_id=ctx.channel.id,
             guild_id=ctx.guild.id,
             prize=prize,
             host=ctx.author.id,
-            emoji=(await get_guild_settings(ctx.guild.id)).emoji
+            emoji=(await get_guild_settings(ctx.guild.id)).emoji,
         ).start(ctx)
 
     @g.command(name="end")

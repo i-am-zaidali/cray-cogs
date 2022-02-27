@@ -135,7 +135,7 @@ class GiveawayMeta:
 
     def __repr__(self) -> str:
         return self.__str__()
-    
+
     async def create_embed(self):
         settings = await get_guild_settings(self.guild.id)
 
@@ -719,7 +719,7 @@ class FirstToReactGiveaway(GiveawayMeta):
         prize: str = None,
         host: str = None,
         emoji: str = None,
-        ):
+    ):
         super().__init__(
             bot=bot,
             message_id=message_id,
@@ -736,7 +736,7 @@ class FirstToReactGiveaway(GiveawayMeta):
             starts_at=datetime.now(tz=timezone.utc),
             amount_of_winners=1,
         )
-        
+
     async def start(self, ctx: commands.Context):
         embed = await self.create_embed()
         settings = await get_guild_settings(self.guild_id)
