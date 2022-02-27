@@ -37,7 +37,7 @@ class VoteTracker(commands.Cog):
         )
         bot.topgg_client = self.topgg_client
         self.topgg_webhook = WebhookManager(bot).dbl_webhook("/dbl", password)
-        
+
         self._task = self.remove_role_from_members.start()
 
         self.cache: Dict[int, Dict[str, int]] = {}
