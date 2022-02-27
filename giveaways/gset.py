@@ -313,7 +313,7 @@ class Gset(Giveaways, name="Giveaways"):
     async def gset_manager_add(self, ctx: commands.Context, *roles: discord.Role):
         """
         Add a role that can manage giveaways.
-        
+
         Users with any of these roles will be able to start, end and reroll giveaways."""
         if not roles:
             return await ctx.send(
