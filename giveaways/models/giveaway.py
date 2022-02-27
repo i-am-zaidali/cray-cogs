@@ -324,10 +324,16 @@ class Giveaway(GiveawayMeta):
             Coordinate(server=self.guild.name, winners=self.amount_of_winners)
         )
         embed_footer_icon = settings.embed_footer_icon.format_map(
-            Coordinate(server_icon_url=getattr(self.guild.icon, "url", None), host_avatar_url=self.host.display_avatar.url)
+            Coordinate(
+                server_icon_url=getattr(self.guild.icon, "url", None),
+                host_avatar_url=self.host.display_avatar.url,
+            )
         )
         embed_thumbnail = settings.embed_thumbnail.format_map(
-            Coordinate(server_icon_url=getattr(self.guild.icon, "url", None), host_avatar_url=self.host.display_avatar.url)
+            Coordinate(
+                server_icon_url=getattr(self.guild.icon, "url", None),
+                host_avatar_url=self.host.display_avatar.url,
+            )
         )
 
         embed = (
@@ -573,7 +579,10 @@ class Giveaway(GiveawayMeta):
             embed.description = (
                 f"This giveaway has ended.\nThere were 0 winners.\n**Host:** {host.mention}"
             )
-            embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=getattr(guild.icon, "url", None))
+            embed.set_footer(
+                text=f"{guild.name} - Winners: {winners}",
+                icon_url=getattr(guild.icon, "url", None),
+            )
             await gmsg.edit(embed=embed, view=view)
 
             await gmsg.reply(
@@ -595,7 +604,9 @@ class Giveaway(GiveawayMeta):
         embed: discord.Embed = gmsg.embeds[0]
         embed.color = discord.Color.red()
         embed.description = f"This giveaway has ended.\n**Winners:** {w}\n**Host:** {host.mention}"
-        embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=getattr(guild.icon, "url", None))
+        embed.set_footer(
+            text=f"{guild.name} - Winners: {winners}", icon_url=getattr(guild.icon, "url", None)
+        )
         await gmsg.edit(embed=embed, view=view)
 
         await gmsg.reply(endmsg.format_map(formatdict))

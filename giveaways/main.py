@@ -808,7 +808,9 @@ class Giveaways(commands.Cog):
 
         embeds = [
             embed.set_footer(text=f"Page {ind}/{len(embeds)}").set_thumbnail(
-                url=getattr(ctx.guild.icon, "url", None) if not _global else ctx.bot.user.display_avatar.url
+                url=getattr(ctx.guild.icon, "url", None)
+                if not _global
+                else ctx.bot.user.display_avatar.url
             )
             for ind, embed in enumerate(embeds, 1)
         ]
