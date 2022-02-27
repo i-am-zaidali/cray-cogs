@@ -20,7 +20,7 @@ log = logging.getLogger("red.craycogs.VoteTracker")
 class VoteTracker(commands.Cog):
     """Track votes for your bot on [Top.gg](https://top.gg)"""
 
-    __version__ = "1.5.1"
+    __version__ = "1.6.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red, token: str, password: str):
@@ -37,6 +37,8 @@ class VoteTracker(commands.Cog):
         )
         bot.topgg_client = self.topgg_client
         self.topgg_webhook = WebhookManager(bot).dbl_webhook("/dbl", password)
+        
+        self._task = self.remove_role_from_members.start()
 
         self.cache: Dict[int, Dict[str, int]] = {}
 
@@ -129,6 +131,7 @@ class VoteTracker(commands.Cog):
             return s
 
     async def _unload(self):
+        self._task.cancel()
         await self.topgg_webhook.close()
         if self.cache:
             for k, v in self.cache.items():
@@ -304,33 +307,38 @@ class VoteTracker(commands.Cog):
 
     @tasks.loop(minutes=10)
     async def remove_role_from_members(self):
-        if not (g := await self.get_guild()):
-            return
-
-        await g.chunk()
-
-        if not (r := await self.config.role_id()):
-            return
-
         if not self.cache:
             return
 
-        if not (role := g.get_role(r)):
-            return
+        guild = await self.get_guild()
+        role_id = await self.config.role_id()
 
         for k, v in self.cache.items():
-            if not (mem := g.get_member(k)):
-                continue
-            if not role in mem.roles:
-                continue
             if not v["vote_cd"]:
                 continue
-            if v["vote_cd"] > time.time():
+
+            if v["vote_cd"] > int(time.time()):
                 continue
-            if not g.me.guild_permissions.manage_roles:
+
+            else:
+                v["vote_cd"] = None
+
+            if not guild:
                 continue
-            if not g.me.top_role.position > mem.top_role.position:
+
+            if not role_id:
                 continue
-            mem: discord.Member
-            await mem.remove_roles(role, reason="Automatic voter role removal after timeout.")
-            self.cache[k]["vote_cd"] = None
+
+            role = guild.get_role(role_id)
+            member = guild.get_member(k)
+
+            if not member or not role:
+                continue
+
+            if not guild.me.guild_permissions.manage_roles:
+                continue
+
+            if not guild.me.top_role > member.top_role:
+                continue
+
+            await member.remove_roles(role)
