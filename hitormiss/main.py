@@ -338,7 +338,7 @@ class HitOrMiss(commands.Cog):
             title=f"HitOrMiss stats for {user}",
             description=user.stats,
             color=await ctx.embed_color(),
-        ).set_thumbnail(url=ctx.bot.user.avatar_url)
+        ).set_thumbnail(url=ctx.bot.user.display_avatar.url)
 
         await ctx.send(embed=embed)
 

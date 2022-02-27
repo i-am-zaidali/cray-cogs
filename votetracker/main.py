@@ -14,14 +14,13 @@ from topgg import DBLClient, WebhookManager
 
 from .models import VoteInfo
 
-global log
 log = logging.getLogger("red.craycogs.VoteTracker")
 
 
 class VoteTracker(commands.Cog):
     """Track votes for your bot on [Top.gg](https://top.gg)"""
 
-    __version__ = "1.5.0"
+    __version__ = "1.5.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red, token: str, password: str):
@@ -112,7 +111,9 @@ class VoteTracker(commands.Cog):
                 "To get these, you must visit the top.gg website, go to your profile, click on your bot's edit buttons "
                 "Go to the webhooks section and click the `reveal` button to get your token. "
                 "Scroll down to find the `Webhook url` field and replace it with `https://<Your-vps-ip-here>:5400/dbl`. "
-                "Below that will be the password field and set that to whatever you want."
+                "Below that will be the password field and set that to whatever you want. "
+                "You will have to allow the port 5400 on your vps. Contact your network admin or "
+                "search on google on how to enable ports on your vps's OS."
                 "Then use the following command on your bot: `[p]set api topgg api_key,<api_token> pass,<password>` "
                 "to add the token to the bot's shared tokens and then try reloading the cog "
                 "again. If it still doesnt work, contact crayyy_zee#2900. "
