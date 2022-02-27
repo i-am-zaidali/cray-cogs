@@ -6,9 +6,7 @@ from typing import Any, Coroutine, Counter, List, Optional
 import discord
 from redbot.core import commands
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import humanize_list
 
-from ..constants import giveaway_embed
 from ..exceptions import GiveawayAlreadyEnded, GiveawayError, GiveawayNotStarted
 from ..utils import Coordinate, SafeMember
 from .flags import GiveawayFlags
