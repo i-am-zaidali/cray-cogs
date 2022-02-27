@@ -285,30 +285,30 @@ class Gset(Giveaways, name="Giveaways"):
     async def gset_manager(self, ctx):
         """
         Shows the list of manager roles for this server.
-        
+
         Use subcommands to add or remove roles that can manage giveaways.
-        
-        If these aren't set, 
+
+        If these aren't set,
         then `manage message` permissions or the bot's mod role will be required."""
-        
+
         settings = await get_guild_settings(ctx.guild.id)
         mod_roles = await self.bot.get_mod_roles(ctx.guild)
         if not settings.manager:
             statement = (
-                "is required." 
-                if not mod_roles 
-                else 
-                "or one of the following roles are required:\n"
+                "is required."
+                if not mod_roles
+                else "or one of the following roles are required:\n"
                 f"{humanize_list([i.mention for i in mod_roles])}"
             )
             return await ctx.send(f"No managers set. `Manage Message` permissions {statement}")
-        
+
         return await ctx.send(
-            "The following roles can manage giveaways:\n" +
-            "\n".join(f"<@&{i}>" for i in settings.manager) + "\n" +
-            "\n".join(i.mention for i in mod_roles)
+            "The following roles can manage giveaways:\n"
+            + "\n".join(f"<@&{i}>" for i in settings.manager)
+            + "\n"
+            + "\n".join(i.mention for i in mod_roles)
         )
-        
+
     @gset_manager.command(name="add")
     async def gset_manager_add(self, ctx: commands.Context, *roles: discord.Role):
         if not roles:
@@ -324,24 +324,24 @@ class Gset(Giveaways, name="Giveaways"):
             f"{humanize_list([role.mention for role in roles])} have been set as the giveaway managers!",
             allowed_mentions=discord.AllowedMentions(roles=False, replied_user=False),
         )
-        
+
     @gset_manager.command(name="remove")
     async def gset_manager_remove(self, ctx: commands.Context, *roles: discord.Role):
         if not roles:
             return await ctx.send(
                 "You need to provide proper role ids or mentions to remove them as managers"
             )
-            
+
         settings = await get_guild_settings(ctx.guild.id, False)
         async with settings.manager() as managers:
             roles = set(roles)
             for role in roles:
                 if role.id in managers:
                     managers.remove(role.id)
-                    
+
         await ctx.reply(
-            f"{humanize_list([role.mention for role in roles])} have been removed as the giveaway managers!", 
-            allowed_mentions=discord.AllowedMentions(roles=False, replied_user=False)
+            f"{humanize_list([role.mention for role in roles])} have been removed as the giveaway managers!",
+            allowed_mentions=discord.AllowedMentions(roles=False, replied_user=False),
         )
 
     @gset.command(name="pingrole", usage="<role>")
