@@ -61,7 +61,7 @@ def is_manager():
 
         if any(
             [
-                [True for role in settings.manager if role in ctx.author.roles],
+                [True for role in settings.manager if role in ctx.author._roles], #_roles is internal but its just a list of role ids
                 await ctx.bot.is_owner(ctx.author),
                 await ctx.bot.is_mod(ctx.author),
                 ctx.author.guild_permissions.manage_messages,
