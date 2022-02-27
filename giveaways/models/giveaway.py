@@ -6,9 +6,7 @@ from typing import Any, Coroutine, Counter, List, Optional
 import discord
 from redbot.core import commands
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import humanize_list
 
-from ..constants import giveaway_embed
 from ..exceptions import GiveawayAlreadyEnded, GiveawayError, GiveawayNotStarted
 from ..utils import Coordinate, SafeMember
 from .flags import GiveawayFlags
@@ -268,7 +266,7 @@ class Giveaway(GiveawayMeta):
                     description=hostdm_message,
                     color=await self.get_embed_color(),
                 )
-                embed.set_thumbnail(url=self.guild.icon.url)
+                embed.set_thumbnail(url=getattr(self.guild.icon, "url", None))
                 await host.send(embed=embed)
 
             except discord.HTTPException:
@@ -297,7 +295,7 @@ class Giveaway(GiveawayMeta):
                         title="Congratulations!",
                         description=winnerdm_message,
                         color=await self.get_embed_color(),
-                    ).set_thumbnail(url=self.guild.icon_url)
+                    ).set_thumbnail(url=getattr(self.guild.icon, "url", None))
                     await winner.send(embed=embed)
 
                 except discord.HTTPException:
@@ -326,10 +324,10 @@ class Giveaway(GiveawayMeta):
             Coordinate(server=self.guild.name, winners=self.amount_of_winners)
         )
         embed_footer_icon = settings.embed_footer_icon.format_map(
-            Coordinate(server_icon_url=self.guild.icon_url, host_avatar_url=self.host.avatar_url)
+            Coordinate(server_icon_url=getattr(self.guild.icon, "url", None), host_avatar_url=self.host.display_avatar.url)
         )
         embed_thumbnail = settings.embed_thumbnail.format_map(
-            Coordinate(server_icon_url=self.guild.icon_url, host_avatar_url=self.host.avatar_url)
+            Coordinate(server_icon_url=getattr(self.guild.icon, "url", None), host_avatar_url=self.host.display_avatar.url)
         )
 
         embed = (
@@ -575,7 +573,7 @@ class Giveaway(GiveawayMeta):
             embed.description = (
                 f"This giveaway has ended.\nThere were 0 winners.\n**Host:** {host.mention}"
             )
-            embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=guild.icon.url)
+            embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=getattr(guild.icon, "url", None))
             await gmsg.edit(embed=embed, view=view)
 
             await gmsg.reply(
@@ -597,7 +595,7 @@ class Giveaway(GiveawayMeta):
         embed: discord.Embed = gmsg.embeds[0]
         embed.color = discord.Color.red()
         embed.description = f"This giveaway has ended.\n**Winners:** {w}\n**Host:** {host.mention}"
-        embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=guild.icon.url)
+        embed.set_footer(text=f"{guild.name} - Winners: {winners}", icon_url=getattr(guild.icon, "url", None))
         await gmsg.edit(embed=embed, view=view)
 
         await gmsg.reply(endmsg.format_map(formatdict))
@@ -698,3 +696,11 @@ class EndedGiveaway(GiveawayMeta):
         kwargs = giveaway.json
         kwargs.update(reason=reason, bot=giveaway.bot)
         return cls.from_json(kwargs)
+
+
+class FirstToReactGiveaway(GiveawayMeta):
+    def __init__(self, **kwargs):
+        # TODO:
+        # this won't be stored in config
+        # but ofc it is still a valid giveaway, we will keep it in cache still till the next reload/restart
+        pass

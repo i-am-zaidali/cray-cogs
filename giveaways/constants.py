@@ -1,10 +1,3 @@
-import discord
-
-giveaway_embed: discord.Embed = discord.Embed(
-    title="**`{prize}`**",
-    description=("React with {emoji} to enter\n" "Host: {host}\n" "Ends {timestamp}\n"),
-).set_footer(text="Winners: {winners} | ends : ")
-
 winnerdm_message: str = (
     "You have won the giveaway for `{prize}` in **__{server}__**.\n"
     "Click [here]({jump_url}) to jump to the giveaway."

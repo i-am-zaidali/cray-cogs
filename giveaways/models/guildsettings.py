@@ -5,6 +5,7 @@ import discord
 from redbot.core import Config
 
 from ..constants import guild_default_config
+from ..utils import has_repeats
 
 config: Config = Config.get_conf(None, 234_6969_420, True, cog_name="Giveaways")
 config.register_guild(**guild_default_config)
@@ -43,7 +44,17 @@ async def get_guild_settings(guild_id: int, obj=True):
     if not obj:
         return config.guild_from_id(guild_id)
 
-    return GuildSettings(**(await config.guild_from_id(guild_id).all()))
+    settings = await config.guild_from_id(guild_id).all()
+
+    if settings["manager"] and settings["blacklist"] and settings["bypass"]:
+        if any(has_repeats(settings[i]) for i in ["manager", "blacklist", "bypass"]):
+            settings["manager"] = list({role_id for role_id in settings["manager"]})
+            settings["blacklist"] = list({role_id for role_id in settings["blacklist"]})
+            settings["bypass"] = list({role_id for role_id in settings["bypass"]})
+
+            await config.guild_from_id(guild_id).set(settings)
+
+    return GuildSettings(**settings)
 
 
 async def get_role(role_id: int):

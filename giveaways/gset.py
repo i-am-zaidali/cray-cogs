@@ -81,7 +81,7 @@ class Gset(Giveaways, name="Giveaways"):
         Use subcommands to customize the text and icon."""
 
     @gset_embed_footer.command(name="text")
-    async def gset_embed_footer_text(self, ctx: commands.Context, *, text: str):
+    async def gset_embed_footer_text(self, ctx: commands.Context, *, text: str = ""):
         """
         Change the giveaway embed footer text.
 
@@ -90,10 +90,14 @@ class Gset(Giveaways, name="Giveaways"):
             - {server}: the name of the server."""
         settings = await get_guild_settings(ctx.guild.id, False)
         await settings.embed_footer_text.set(text)
-        await ctx.send(f"The new embed footer text has been set to \n{box(text, 'py')}")
+        await ctx.send(
+            f"The new embed footer text has been set to \n{box(text, 'py')}"
+            if text
+            else "The embed footer text has been removed."
+        )
 
     @gset_embed_footer.command(name="icon")
-    async def gset_embed_footer_icon(self, ctx: commands.Context, *, icon: str):
+    async def gset_embed_footer_icon(self, ctx: commands.Context, *, icon: str = ""):
         """
         Change the giveaway embed footer icon.
 
@@ -105,10 +109,14 @@ class Gset(Giveaways, name="Giveaways"):
         If you use these variables, please don't add anything else."""
         settings = await get_guild_settings(ctx.guild.id, False)
         await settings.embed_footer_icon.set(icon)
-        await ctx.send(f"The new embed footer icon has been set to \n{icon}")
+        await ctx.send(
+            f"The new embed footer icon has been set to \n{icon}"
+            if icon
+            else "The embed footer icon has been removed."
+        )
 
     @gset_embed.command(name="thumbnail")
-    async def gset_embed_thumbnail(self, ctx: commands.Context, *, thumbnail: str):
+    async def gset_embed_thumbnail(self, ctx: commands.Context, *, thumbnail: str = ""):
         """
         Change the giveaway embed thumbnail.
 
@@ -120,7 +128,11 @@ class Gset(Giveaways, name="Giveaways"):
         If you use these variables, please don't add anything else."""
         settings = await get_guild_settings(ctx.guild.id, False)
         await settings.embed_thumbnail.set(thumbnail)
-        await ctx.send(f"The new embed thumbnail has been set to \n{thumbnail}")
+        await ctx.send(
+            f"The new embed thumbnail has been set to \n{thumbnail}"
+            if thumbnail
+            else "The embed thumbnail has been removed."
+        )
 
     @gset_embed.command(name="color", aliases=["colour"])
     async def gset_embed_colour(self, ctx, colour: discord.Colour = discord.Color(0x303036)):
@@ -268,13 +280,37 @@ class Gset(Giveaways, name="Giveaways"):
         await settings.endmsg.set(message)
         await ctx.reply(f"The ending message has been changed to\n```\n{message}\n```")
 
-    @gset.command(name="manager", aliases=["managers"])
+    @gset.group(name="manager", aliases=["managers"], invoke_without_command=True)
     @commands.admin_or_permissions(administrator=True)
-    async def gset_manager(self, ctx, *roles: discord.Role):
+    async def gset_manager(self, ctx):
         """
-        Set roles that can manage giveaways in your server.
+        Shows the list of manager roles for this server.
 
-        If you dont set this up, users will need either manage messages permission or the server's bot mod role."""
+        Use subcommands to add or remove roles that can manage giveaways.
+
+        If these aren't set,
+        then `manage message` permissions or the bot's mod role will be required."""
+
+        settings = await get_guild_settings(ctx.guild.id)
+        mod_roles = await self.bot.get_mod_roles(ctx.guild)
+        if not settings.manager:
+            statement = (
+                "is required."
+                if not mod_roles
+                else "or one of the following roles are required:\n"
+                f"{humanize_list([i.mention for i in mod_roles])}"
+            )
+            return await ctx.send(f"No managers set. `Manage Message` permissions {statement}")
+
+        return await ctx.send(
+            "The following roles can manage giveaways:\n"
+            + "\n".join(f"<@&{i}>" for i in settings.manager)
+            + "\n"
+            + "\n".join(i.mention for i in mod_roles)
+        )
+
+    @gset_manager.command(name="add")
+    async def gset_manager_add(self, ctx: commands.Context, *roles: discord.Role):
         if not roles:
             return await ctx.send(
                 "You need to provide proper role ids or mentions to add them as managers"
@@ -286,6 +322,25 @@ class Gset(Giveaways, name="Giveaways"):
             managers += [role.id for role in roles if role.id not in managers]
         await ctx.reply(
             f"{humanize_list([role.mention for role in roles])} have been set as the giveaway managers!",
+            allowed_mentions=discord.AllowedMentions(roles=False, replied_user=False),
+        )
+
+    @gset_manager.command(name="remove")
+    async def gset_manager_remove(self, ctx: commands.Context, *roles: discord.Role):
+        if not roles:
+            return await ctx.send(
+                "You need to provide proper role ids or mentions to remove them as managers"
+            )
+
+        settings = await get_guild_settings(ctx.guild.id, False)
+        async with settings.manager() as managers:
+            roles = set(roles)
+            for role in roles:
+                if role.id in managers:
+                    managers.remove(role.id)
+
+        await ctx.reply(
+            f"{humanize_list([role.mention for role in roles])} have been removed as the giveaway managers!",
             allowed_mentions=discord.AllowedMentions(roles=False, replied_user=False),
         )
 
@@ -567,16 +622,16 @@ class Gset(Giveaways, name="Giveaways"):
         show_defaults = settings.show_defaults
 
         message = (
-            f"**Message:** {message}\n"
-            f"**Reaction Emoji:** {emoji}\n"
-            f"**Will the winner be dm'ed?:** {winnerdm}\n"
-            f"**Will the host be dm'ed?:** {hostdm}\n"
-            f"**Will users be dmed if their reaction is removed?:** {settings.unreactdm}\n"
-            f"**Auto delete Giveaway Commands?:** {autodelete}\n"
-            f"**Embed color: **{color}\n"
-            f"**Show defaults in giveaway embed?: **{show_defaults}\n"
-            f"**Giveaway Thank message:** {box(tmsg)}\n"
-            f"**Giveaway Ending message:** {box(endmsg)}\n"
+            f"**Message:** {message}\n\n"
+            f"**Reaction Emoji:** {emoji}\n\n"
+            f"**Will the winner be dm'ed?:** {winnerdm}\n\n"
+            f"**Will the host be dm'ed?:** {hostdm}\n\n"
+            f"**Will users be dmed if their reaction is removed?:** {settings.unreactdm}\n\n"
+            f"**Auto delete Giveaway Commands?:** {autodelete}\n\n"
+            f"**Embed color: **{color}\n\n"
+            f"**Show defaults in giveaway embed?: **{show_defaults}\n\n"
+            f"**Giveaway Thank message:** {box(tmsg)}\n\n"
+            f"**Giveaway Ending message:** {box(endmsg)}\n\n"
             f"**Giveaway Managers:** {humanize_list([ctx.guild.get_role(manager).mention for manager in managers if ctx.guild.get_role(manager)]) if managers else 'No Managers set. Requires manage message permission or bots mod role.'}"
         )
         embed = discord.Embed(
@@ -585,7 +640,7 @@ class Gset(Giveaways, name="Giveaways"):
             color=color,
         )
 
-        embed.set_footer(text=ctx.guild.name, icon_url=ctx.guild.icon_url)
-        embed.set_thumbnail(url=ctx.guild.icon_url)
+        embed.set_footer(text=ctx.guild.name, icon_url=getattr(ctx.guild.icon, "url", None))
+        embed.set_thumbnail(url=getattr(ctx.guild.icon, "url", None))
 
         await ctx.send(embed=embed)

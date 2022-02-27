@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 
 import discord
 from discord.embeds import EmptyEmbed
+from discord.ext import tasks
 from discord.ext.commands.converter import Greedy
 from redbot.core import Config, commands
 from redbot.core.bot import Red
@@ -53,11 +54,14 @@ class DonationLogging(commands.Cog):
 
     @classmethod
     async def initialize(cls, bot):
-        s = cls(bot)
+        self = cls(bot)
 
-        s.cache = await DonationManager.initialize(bot)
+        if (task := getattr(bot, "_backing_up_task", None)) is not None:
+            await task
 
-        return s
+        self.cache = await DonationManager.initialize(bot)
+
+        return self
 
     def format_help_for_context(self, ctx: commands.Context):
         pre_processed = super().format_help_for_context(ctx)
@@ -70,7 +74,7 @@ class DonationLogging(commands.Cog):
         return "\n".join(text)
 
     def cog_unload(self):
-        asyncio.create_task(self.cache._back_to_config())
+        self.bot._backing_up_task = asyncio.create_task(self.cache._back_to_config())
 
     async def get_old_data(self, guild: discord.Guild):
         all_members = await self.config.all_members(guild)
@@ -84,6 +88,10 @@ class DonationLogging(commands.Cog):
         if requester not in ("discord_deleted_user", "user"):
             return
         self.cache.delete_all_user_data(user_id)
+
+    @tasks.loop(minutes=5)
+    async def _back_to_config(self):
+        await self.cache._back_to_config()
 
     @commands.group(name="dono", invoke_without_command=True)
     async def dono(self, ctx):
@@ -424,7 +432,6 @@ class DonationLogging(commands.Cog):
         else:
             role = await category.addroles(ctx, user)
         await self.dono_log(ctx, "add", user, amount, donos, category, role, note)
-        await self.cache._back_to_config()
 
     @dono.command(name="remove", usage="[category] <amount> [user] [--note]")
     @is_dmgr()
@@ -461,7 +468,6 @@ class DonationLogging(commands.Cog):
         note = await self.add_note(user, ctx.message, flag if flag else {}, category)
 
         await self.dono_log(ctx, "remove", user, amount, donation, category, role, note)
-        await self.cache._back_to_config()
 
     @dono.command(
         name="reset",
@@ -585,8 +591,6 @@ class DonationLogging(commands.Cog):
                 text=f"Note taken by {await self.bot.get_or_fetch_member(ctx.guild, note['author'])}"
             )
             return await ctx.send(embed=embed)
-
-        # Thanks to epic guy for this suggestion :D
 
         fields = []
 
@@ -815,6 +819,7 @@ class DonationLogging(commands.Cog):
     async def donoset(self, ctx):
         """
         Base command for changing donation settings for your server."""
+        return await ctx.send_help()
 
     @donoset.group(name="autorole", invoke_without_command=True)
     @commands.mod_or_permissions(administrator=True)

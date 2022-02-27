@@ -24,6 +24,13 @@ async def dict_keys_to(d: dict, conv: Callable = int):
     return final
 
 
+def has_repeats(l: list):
+    for ind, i in enumerate(l, 1):
+        if i in l[ind:]:
+            return True
+    return False
+
+
 async def group_embeds_by_fields(
     *fields: Dict[str, Union[str, bool]], per_embed: int = 3, **kwargs
 ) -> List[discord.Embed]:
@@ -54,7 +61,7 @@ def is_manager():
 
         if any(
             [
-                ctx.author.id in settings.manager,
+                [True for role in settings.manager if role in ctx.author.roles],
                 await ctx.bot.is_owner(ctx.author),
                 await ctx.bot.is_mod(ctx.author),
                 ctx.author.guild_permissions.manage_messages,
@@ -78,7 +85,7 @@ class SafeMember:
         self.id = member.id
         self.name = member.name
         self.mention = member.mention
-        self.avatar_url = member.avatar_url
+        self.avatar_url = member.display_avatar.url
 
     def __str__(self) -> str:
         return self._org.__str__()
