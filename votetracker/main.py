@@ -10,7 +10,7 @@ from discord.ext import tasks
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import box, humanize_list
-from topgg import DBLClient, WebhookManager
+from topgg import DBLClient, WebhookManager, WidgetOptions
 
 from .models import VoteInfo
 
@@ -143,6 +143,28 @@ class VoteTracker(commands.Cog):
         d = sorted(d.items(), key=lambda x: x[1], reverse=True)
         d = {i[0]: i[1] for i in d}
         return d
+    
+    @commands.command(name="vote")
+    async def vote(self, ctx: commands.Context):
+        description = (
+            f"You have already voted for {self.bot.user.name} on top.gg!\n"
+            f"You can vote again <t:{vote_cd}:R>"
+            if (vote_cd:=self.cache.get(ctx.author.id, {}).get("vote_cd", None))
+            else
+            f"You can vote for me right now by [clicking here](https://top.gg/bot/{self.bot.user.id}/vote)"
+        )
+        
+        options = WidgetOptions(ctx.bot.user.id, "png")
+        
+        widget_url = await self.topgg_client.generate_widget(options)
+        
+        embed = discord.Embed(
+            title=f"Vote for {ctx.bot.user} on **TOP.GG**",
+            description=description,
+            color=await ctx.embed_color()
+        ).set_image(url=widget_url)
+        
+        await ctx.send(embed=embed)
 
     @commands.command(name="listvotes", aliases=["lv"])
     @commands.guild_only()
