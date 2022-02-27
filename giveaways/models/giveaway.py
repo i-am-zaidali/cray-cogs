@@ -1,6 +1,6 @@
 import asyncio
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Coroutine, Counter, List, Optional
 
 import discord
@@ -12,7 +12,7 @@ from ..utils import Coordinate, SafeMember
 from .flags import GiveawayFlags
 from .guildsettings import apply_multi, get_guild_settings
 from .requirements import Requirements
-from .views import GiveawayView
+from .views import FTRView, GiveawayView
 
 
 class GiveawayMeta:
@@ -28,8 +28,8 @@ class GiveawayMeta:
         self.channel_id: int = cid
         self.guild_id: int = gid
         self.prize: str = kwargs.get("prize", "Giveaway prize")
-        self.requirements: Optional[Requirements] = kwargs.get("requirements")
-        self.flags: Optional[GiveawayFlags] = kwargs.get("flags")
+        self.requirements: Optional[Requirements] = kwargs.get("requirements") or Requirements()
+        self.flags: GiveawayFlags = kwargs.get("flags") or GiveawayFlags.none()
         self.emoji: str = kwargs.get("emoji", ":tada:")
         self.amount_of_winners: int = kwargs.get("amount_of_winners", 1)
         self._entrants: set[int] = set(kwargs.get("entrants", {}) or {})
@@ -82,6 +82,7 @@ class GiveawayMeta:
     def get_embed_colour(self):  # alias cause i mix up spellings alot :p
         return self.get_embed_color
 
+    @property
     def duration(self) -> int:
         return (self.ends_at - self.starts_at).total_seconds()
 
@@ -95,8 +96,8 @@ class GiveawayMeta:
             "guild_id": self.guild_id,
             "prize": self.prize,
             "amount_of_winners": self.amount_of_winners,
-            "requirements": self.requirements.json if self.requirements else {},
-            "flags": self.flags.json if self.flags else {},
+            "requirements": self.requirements.json,
+            "flags": self.flags.json,
             "emoji": self.emoji,
             "entrants": list(self._entrants),
             "winners": self._winners,
@@ -134,6 +135,71 @@ class GiveawayMeta:
 
     def __repr__(self) -> str:
         return self.__str__()
+    
+    async def create_embed(self):
+        settings = await get_guild_settings(self.guild.id)
+
+        timestamp_str = (
+            f"<t:{int(self.ends_at.timestamp())}:R> (<t:{int(self.ends_at.timestamp())}:f>)"
+        )
+        embed_title = settings.embed_title.format_map(Coordinate(prize=self.prize))
+        embed_description = settings.embed_description.format_map(
+            Coordinate(
+                prize=self.prize,
+                emoji=self.emoji,
+                timestamp=timestamp_str,
+                raw_timestamp=int(self.ends_at.timestamp()),
+                server=self.guild.name,
+                host=SafeMember(self.host),
+                donor=SafeMember(self.flags.donor or self.host),
+                winners=self.amount_of_winners,
+            )
+        )
+        embed_footer_text = settings.embed_footer_text.format_map(
+            Coordinate(server=self.guild.name, winners=self.amount_of_winners)
+        )
+        embed_footer_icon = settings.embed_footer_icon.format_map(
+            Coordinate(
+                server_icon_url=getattr(self.guild.icon, "url", None),
+                host_avatar_url=self.host.display_avatar.url,
+            )
+        )
+        embed_thumbnail = settings.embed_thumbnail.format_map(
+            Coordinate(
+                server_icon_url=getattr(self.guild.icon, "url", None),
+                host_avatar_url=self.host.display_avatar.url,
+            )
+        )
+
+        embed = (
+            discord.Embed(
+                title=embed_title,
+                description=embed_description,
+                color=await self.get_embed_color(),
+            )
+            .set_footer(text=embed_footer_text, icon_url=embed_footer_icon)
+            .set_thumbnail(url=embed_thumbnail)
+        )
+
+        embed.timestamp = self.flags.ends_in or self.ends_at
+
+        if self.flags.donor:
+            embed.add_field(name="**Donor:**", value=f"{self.flags.donor.mention}", inline=False)
+
+        if self.flags.no_defaults:
+            self.requirements = self.requirements.no_defaults(True)  # ignore defaults.
+
+        if not self.flags.no_defaults:
+            self.requirements = self.requirements.no_defaults()  # defaults will be used!!!
+
+        if self.flags.message_count != 0:
+            self.requirements.messages = self.flags.message_count
+
+        req_str = await self.requirements.get_str(self.guild_id)
+        if not self.requirements.null and not req_str == "":
+            embed.add_field(name="Requirements:", value=req_str, inline=False)
+
+        return embed
 
     def get_winners_str(self):
         wcounter = Counter(self.winners)
@@ -300,73 +366,6 @@ class Giveaway(GiveawayMeta):
 
                 except discord.HTTPException:
                     return False
-
-    async def create_embed(self) -> discord.Embed:
-        settings = await get_guild_settings(self.guild.id)
-
-        timestamp_str = (
-            f"<t:{int(self.ends_at.timestamp())}:R> (<t:{int(self.ends_at.timestamp())}:f>)"
-        )
-        embed_title = settings.embed_title.format_map(Coordinate(prize=self.prize))
-        embed_description = settings.embed_description.format_map(
-            Coordinate(
-                prize=self.prize,
-                emoji=self.emoji,
-                timestamp=timestamp_str,
-                raw_timestamp=int(self.ends_at.timestamp()),
-                server=self.guild.name,
-                host=SafeMember(self.host),
-                donor=SafeMember(self.flags.donor or self.host),
-                winners=self.amount_of_winners,
-            )
-        )
-        embed_footer_text = settings.embed_footer_text.format_map(
-            Coordinate(server=self.guild.name, winners=self.amount_of_winners)
-        )
-        embed_footer_icon = settings.embed_footer_icon.format_map(
-            Coordinate(
-                server_icon_url=getattr(self.guild.icon, "url", None),
-                host_avatar_url=self.host.display_avatar.url,
-            )
-        )
-        embed_thumbnail = settings.embed_thumbnail.format_map(
-            Coordinate(
-                server_icon_url=getattr(self.guild.icon, "url", None),
-                host_avatar_url=self.host.display_avatar.url,
-            )
-        )
-
-        embed = (
-            discord.Embed(
-                title=embed_title,
-                description=embed_description,
-                color=await self.get_embed_color(),
-            )
-            .set_footer(text=embed_footer_text, icon_url=embed_footer_icon)
-            .set_thumbnail(url=embed_thumbnail)
-        )
-
-        embed.timestamp = self.flags.ends_in or self.ends_at
-
-        if self.flags.donor:
-            embed.add_field(name="**Donor:**", value=f"{self.flags.donor.mention}", inline=False)
-
-        if self.flags.no_defaults:
-            requirements = self.requirements.no_defaults(True)  # ignore defaults.
-
-        if not self.flags.no_defaults:
-            requirements = self.requirements.no_defaults()  # defaults will be used!!!
-
-        if self.flags.message_count != 0:
-            requirements.messages = self.flags.message_count
-
-        self.requirements = requirements
-
-        req_str = await requirements.get_str(self.guild_id)
-        if not requirements.null and not req_str == "":
-            embed.add_field(name="Requirements:", value=req_str, inline=False)
-
-        return embed
 
     async def verify_entry(self, member: discord.Member):
         if self.flags.no_donor and member.id == (self.flags.donor or self.host).id:
@@ -710,8 +709,37 @@ class EndedGiveaway(GiveawayMeta):
 
 
 class FirstToReactGiveaway(GiveawayMeta):
-    def __init__(self, **kwargs):
-        # TODO:
-        # this won't be stored in config
-        # but ofc it is still a valid giveaway, we will keep it in cache still till the next reload/restart
-        pass
+    def __init__(
+        self,
+        *,
+        bot: Red,
+        message_id: int = None,
+        channel_id: int = None,
+        guild_id: int = None,
+        prize: str = None,
+        host: str = None,
+        emoji: str = None,
+        ):
+        super().__init__(
+            bot=bot,
+            message_id=message_id,
+            channel_id=channel_id,
+            guild_id=guild_id,
+            prize=prize,
+            requirements=None,
+            flags=None,
+            emoji=emoji,
+            entrants=None,
+            winners=None,
+            host=host,
+            ends_at=datetime.now(tz=timezone.utc) + timedelta(seconds=20),
+            starts_at=datetime.now(tz=timezone.utc),
+            amount_of_winners=1,
+        )
+        
+    async def start(self, ctx: commands.Context):
+        embed = await self.create_embed()
+        settings = await get_guild_settings(self.guild_id)
+        view = FTRView(ctx, 20, self)
+        view.message = await ctx.send(settings.msg, embed=embed, view=view)
+        await view.wait()

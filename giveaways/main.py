@@ -10,6 +10,8 @@ from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import box, humanize_list, humanize_timedelta, pagify
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 
+from giveaways.models.giveaway import FirstToReactGiveaway
+
 from .constants import commands_to_delete
 from .converters import PrizeConverter, TimeConverter, WinnerConverter
 from .models import (
@@ -47,7 +49,7 @@ class Giveaways(commands.Cog):
     This cog is a very complex cog and could be resource intensive on your bot.
     Use `giveaway explain` command for an indepth explanation on how to use the commands."""
 
-    __version__ = "2.2.1"
+    __version__ = "2.3.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -489,6 +491,24 @@ class Giveaways(commands.Cog):
                 winners=1,
                 prize=prize.split(""),
             )
+            
+    @g.command(name="drop", aliases=["firsttoreact", "ftr"])
+    @commands.cooldown(5, 2, commands.BucketType.guild)
+    async def g_drop(self, ctx: commands.Context, *, prize: str):
+        """
+        Start a `first to react`` giveaway.
+        
+        The giveaway will be won by whoever clicks on the join button first. It has only 1 winner
+        and lasts only 20 seconds."""
+        await FirstToReactGiveaway(
+            bot=ctx.bot, 
+            message_id=ctx.message.id,
+            channel_id=ctx.channel.id,
+            guild_id=ctx.guild.id,
+            prize=prize,
+            host=ctx.author.id,
+            emoji=(await get_guild_settings(ctx.guild.id)).emoji
+        ).start(ctx)
 
     @g.command(name="end")
     @commands.guild_only()
