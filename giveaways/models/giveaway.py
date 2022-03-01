@@ -480,7 +480,7 @@ class Giveaway(GiveawayMeta):
             )
 
         if any((kwargs["content"], kwargs["embed"])):
-            await self.channel.send(**kwargs)
+            await self.channel.send(**kwargs, allowed_mentions=discord.AllowedMentions(roles=True))
 
         if thank:
             tmsg = settings.tmsg
