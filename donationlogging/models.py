@@ -101,7 +101,11 @@ class DonoBank:
             self.manager.config.guild_from_id(self.guild_id).categories, self.name
         )()
         roles.pop("emoji")
-        return {amount: [ctx.guild.get_role(r) for r in role] for amount, role in roles.items() if isinstance(role, list)}
+        return {
+            amount: [ctx.guild.get_role(r) for r in role]
+            for amount, role in roles.items()
+            if isinstance(role, list)
+        }
 
     async def addroles(self, ctx, user: discord.Member):
         # if not await self.config.guild(ctx.guild).autoadd():
@@ -148,7 +152,7 @@ class DonoBank:
                 if key.isdigit() and amount < int(key):
                     roles = {ctx.guild.get_role(int(val)) for val in value}
                     removed_roles.update(roles)
-                    
+
             await user.remove_roles(
                 *removed_roles,
                 reason=f"Automatic role removal based on donation logging, requested by {ctx.author}",
