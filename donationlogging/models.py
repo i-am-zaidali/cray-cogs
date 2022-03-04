@@ -153,7 +153,7 @@ class DonoBank:
                 reason=f"Automatic role removal based on donation logging, requested by {ctx.author}",
             )
             roleadded = (
-                f"The following roles were added to `{user.name}`: {humanize_list([f'**{role.name}**' for role in added_roles]}"
+                f"The following roles were added to `{user.name}`: {humanize_list([f'**{role.name}**' for role in added_roles])}"
                 if removed_roles
                 else ""
             )
