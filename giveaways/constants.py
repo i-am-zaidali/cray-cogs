@@ -26,7 +26,7 @@ guild_default_config = {
     "hostdm_message": hostdm_message,
     "reactdm": True,
     "unreactdm": True,
-    "endmsg": "Congratulations :tada:{winner}:tada:. You have won the giveaway for ***{prize}***.\n{link}",
+    "endmsg": "This giveaway for prize `{prize}` has ended.\nWinners: {winner}\n{link}",
     "tmsg": "Prize: {prize}\nDonor: {donor.mention}\n\nThank the donor in general chat",
     "manager": [],
     "pingrole": None,

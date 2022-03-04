@@ -15,8 +15,12 @@ async def dict_keys_to(d: dict, conv: Callable = int):
     final = {}
     for key, value in d.items():
         if isinstance(value, dict):
-            final[conv(key)] = await dict_keys_to(value, conv)
-            continue
+            try:
+                final[conv(key)] = await dict_keys_to(value, conv)
+                continue
+            except:
+                # if the conversion fails, just pass
+                continue
 
         final[conv(key)] = value
 

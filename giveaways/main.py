@@ -46,7 +46,7 @@ class Giveaways(commands.Cog):
     This cog is a very complex cog and could be resource intensive on your bot.
     Use `giveaway explain` command for an indepth explanation on how to use the commands."""
 
-    __version__ = "2.2.1"
+    __version__ = "2.3.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -187,8 +187,8 @@ class Giveaways(commands.Cog):
     async def end_giveaway(self):
         try:
             c = self._CACHE.copy()
-            for guild_id, data in c.items():
-                for message_id, giveaway in data.items():
+            for data in c.values():
+                for giveaway in data.values():
                     if isinstance(giveaway, EndedGiveaway):
                         continue
 
@@ -1010,6 +1010,9 @@ class Giveaways(commands.Cog):
     **Types of flags**
     > *--no-multi* [argless]
         This flag will disallow role multipliers to determine the giveaway winner.
+        
+    > *--no-multiple-winners* [argless]
+        This flag will disallow a single person to be chosen multiple time.
 
     > *--donor*
         This sets a donor for the giveaway. This donor name shows up in the giveaway embed and also is used when using the `--amt` flag
