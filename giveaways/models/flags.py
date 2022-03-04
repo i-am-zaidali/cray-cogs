@@ -113,7 +113,9 @@ class GiveawayFlags(commands.Converter):
         )
         parser.add_argument("--no-defaults", action="store_true", dest="no_defaults")
         parser.add_argument("--no-multi", action="store_true", dest="no_multi")
-        parser.add_argument("--no-multiple-winners", action="store_true", dest="no_multiple_winners")
+        parser.add_argument(
+            "--no-multiple-winners", action="store_true", dest="no_multiple_winners"
+        )
         parser.add_argument("--no-donor", action="store_true", dest="no_donor")
         donolog = parser.add_argument_group()
         donolog.add_argument("--amount", "--amt", nargs="?", dest="amount", default=None)
