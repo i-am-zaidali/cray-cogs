@@ -523,7 +523,9 @@ class Gset(Giveaways, name="Giveaways"):
         See a list for all roles that have multipliers in giveaways in this server."""
         roles = (await get_guild_settings(ctx.guild.id)).multi_roles
         roles = {
-            role: multi for role_id, multi in roles.items() if (role:=ctx.guild.get_role(int(role_id)))
+            role: multi
+            for role_id, multi in roles.items()
+            if (role := ctx.guild.get_role(int(role_id)))
         }
         return await ctx.send(
             embed=discord.Embed(
@@ -569,7 +571,7 @@ class Gset(Giveaways, name="Giveaways"):
         async with settings.multi_roles() as mr:
             if str(role.id) in mr:
                 del mr[str(role.id)]
-                
+
             else:
                 return await ctx.send("That role doesn't have a multiplier set.")
         return await ctx.send(f"Removed `{role.name}` from the server's role multipliers.")

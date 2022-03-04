@@ -56,17 +56,17 @@ async def get_guild_settings(guild_id: int, obj=True):
 
     return GuildSettings(**settings)
 
+
 async def apply_multi(guild: discord.Guild, winners: list):
     _winners = winners.copy()
     roles = (await get_guild_settings(guild.id)).multi_roles
-    roles = {
-        guild.get_role(_id): multi for _id, multi in roles.items() if guild.get_role(_id)
-    }
+    roles = {guild.get_role(_id): multi for _id, multi in roles.items() if guild.get_role(_id)}
     for member in _winners:
         for key, value in roles.items():
             winners += [member for i in range(value) if member and key in member.roles]
 
     return winners
+
 
 async def _config_schema_0_to_1(bot):
     guilds = await config.all_guilds()
@@ -75,18 +75,18 @@ async def _config_schema_0_to_1(bot):
         guild: discord.Guild = bot.get_guild(guild_id)
         if not guild:
             continue
-        
+
         if guild_data.get("edit_timer") is not None:
             guild_data.pop("edit_timer")
 
         guild_data["multi_roles"] = {}
 
         guild_roles = [role.id for role in guild.roles if role.id in roles]
-        
+
         for role in guild_roles:
             guild_data["multi_roles"].update({role: roles.get(role, {}).get("multi")})
             await config.role_from_id(role).clear()
-            
+
         await config.guild_from_id(guild_id).set(guild_data)
-        
+
     await config.schema.set(1)

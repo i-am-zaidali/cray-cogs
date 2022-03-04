@@ -22,7 +22,8 @@ from .models import (
     get_guild_settings,
     model_from_time,
 )
-from .models.guildsettings import config as guildconf, _config_schema_0_to_1
+from .models.guildsettings import _config_schema_0_to_1
+from .models.guildsettings import config as guildconf
 from .utils import (
     ask_for_answers,
     channel_conv,
@@ -103,7 +104,7 @@ class Giveaways(commands.Cog):
                     await self.config.custom("giveaway").clear_raw(guild_id, g.message_id)
                     continue
                 self.add_to_cache(g)
-                
+
         if (await guildconf.schema()) == 0:
             print("yes")
             await _config_schema_0_to_1(self.bot)
@@ -365,8 +366,8 @@ class Giveaways(commands.Cog):
 
         if ctx.command != (self.bot.get_command("giveaway start")):
             return
-        
-        settings = (await get_guild_settings(ctx.guild.id, False))
+
+        settings = await get_guild_settings(ctx.guild.id, False)
 
         async with settings.top_managers() as top_managers:
             top_managers.setdefault(str(ctx.author.id), 0)
