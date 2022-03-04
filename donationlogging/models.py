@@ -147,13 +147,13 @@ class DonoBank:
             for key, value in data.items():
                 if amount < int(key):
                     roles = [ctx.guild.get_role(int(val)) for val in value]
-                    removed_roles.update({role.name for role in roles if role in user.roles})
+                    removed_roles.update({role for role in roles if role in user.roles})
             await user.remove_roles(
                 *removed_roles,
                 reason=f"Automatic role removal based on donation logging, requested by {ctx.author}",
             )
             roleadded = (
-                f"The following roles were added to `{user.name}`: {humanize_list(removed_roles)}"
+                f"The following roles were added to `{user.name}`: {humanize_list([f'**{role.name}**' for role in added_roles])}"
                 if removed_roles
                 else ""
             )
