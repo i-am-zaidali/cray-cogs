@@ -22,7 +22,7 @@ from .models import (
     get_guild_settings,
     model_from_time,
 )
-from .models.guildsettings import config as guildconf
+from .models.guildsettings import config as guildconf, _config_schema_0_to_1
 from .utils import (
     ask_for_answers,
     channel_conv,
@@ -46,7 +46,7 @@ class Giveaways(commands.Cog):
     This cog is a very complex cog and could be resource intensive on your bot.
     Use `giveaway explain` command for an indepth explanation on how to use the commands."""
 
-    __version__ = "2.3.0"
+    __version__ = "2.4.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -103,6 +103,10 @@ class Giveaways(commands.Cog):
                     await self.config.custom("giveaway").clear_raw(guild_id, g.message_id)
                     continue
                 self.add_to_cache(g)
+                
+        if (await guildconf.schema()) == 0:
+            print("yes")
+            await _config_schema_0_to_1(self.bot)
 
         self.end_giveaways_task = self.end_giveaway.start()
 
@@ -206,7 +210,7 @@ class Giveaways(commands.Cog):
 
         except Exception as e:
             log.exception(
-                f"Error occurred while ending a giveaway with message id: {getattr(giveaway, 'message_id', None)}",
+                f"Error occurred while ending a giveaway with message id: {giveaway.message_id}",
                 exc_info=e,
             )
 
@@ -361,8 +365,10 @@ class Giveaways(commands.Cog):
 
         if ctx.command != (self.bot.get_command("giveaway start")):
             return
+        
+        settings = (await get_guild_settings(ctx.guild.id, False))
 
-        async with guildconf.guild(ctx.guild).top_managers() as top_managers:
+        async with settings.top_managers() as top_managers:
             top_managers.setdefault(str(ctx.author.id), 0)
             top_managers[str(ctx.author.id)] += 1
 

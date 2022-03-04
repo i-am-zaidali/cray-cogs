@@ -33,6 +33,7 @@ guild_default_config = {
     "autodelete": False,
     "blacklist": [],
     "bypass": [],
+    "multi_roles": {},
     "top_managers": {},
     "show_defaults": True,
     "embed_title": embed_title,
