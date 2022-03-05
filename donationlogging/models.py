@@ -150,7 +150,11 @@ class DonoBank:
             removed_roles: set = set()
             for key, value in data.items():
                 if key.isdigit() and amount < int(key):
-                    roles = {role for val in value if (role:=ctx.guild.get_role(int(val)) and role in user.roles)}
+                    roles = {
+                        role
+                        for val in value
+                        if (role := ctx.guild.get_role(int(val)) and role in user.roles)
+                    }
                     removed_roles.update(roles)
             if removed_roles:
                 await user.remove_roles(
