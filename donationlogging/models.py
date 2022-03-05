@@ -153,7 +153,7 @@ class DonoBank:
                     roles = {
                         role
                         for val in value
-                        if (role := ctx.guild.get_role(int(val)) and role in user.roles)
+                        if (role := ctx.guild.get_role(int(val))) and role in user.roles
                     }
                     removed_roles.update(roles)
             if removed_roles:
