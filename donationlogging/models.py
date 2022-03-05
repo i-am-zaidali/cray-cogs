@@ -150,13 +150,13 @@ class DonoBank:
             removed_roles: set = set()
             for key, value in data.items():
                 if key.isdigit() and amount < int(key):
-                    roles = {ctx.guild.get_role(int(val)) for val in value}
+                    roles = {role for val in value if (role:=ctx.guild.get_role(int(val)) and role in user.roles)}
                     removed_roles.update(roles)
-
-            await user.remove_roles(
-                *removed_roles,
-                reason=f"Automatic role removal based on donation logging, requested by {ctx.author}",
-            )
+            if removed_roles:
+                await user.remove_roles(
+                    *removed_roles,
+                    reason=f"Automatic role removal based on donation logging, requested by {ctx.author}",
+                )
             roleadded = (
                 f"The following roles were removed from `{user.name}`: {humanize_list([f'**{role.name}**' for role in removed_roles])}"
                 if removed_roles
