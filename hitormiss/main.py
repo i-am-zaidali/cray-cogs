@@ -32,7 +32,7 @@ class HitOrMiss(commands.Cog):
     *Yet*."""
 
     __author__ = ["crayyy_zee#2900"]
-    __version__ = "1.3.0"
+    __version__ = "1.3.1"
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -462,7 +462,7 @@ class HitOrMiss(commands.Cog):
         if not _type.lower() == "all":
             users = sorted(users, key=lambda x: getattr(x, _type), reverse=True)
         for user in users:
-            if not global_or_local and not ctx.guild.get_member(user.id) or user.new_player:
+            if not global_or_local and not ctx.guild.get_member(user.id) or user.is_new:
                 continue
             f = [str(user)]
             if _type == "all":

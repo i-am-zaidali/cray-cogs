@@ -41,7 +41,7 @@ class BaseItem:
         self.price = int(price)
         self.emoji = emoji
         self._cooldown = commands.CooldownMapping.from_cooldown(1, self.cooldown, commands.BucketType.user)
-        self.cache: Dict[int, Dict[str, Optional[Union[int, float]]]] = {}
+        self.cache: Dict[int, Dict[str, int]] = {}
 
     def __init_subclass__(cls) -> None:
         cls.name = cls.__name__.lower()
@@ -49,7 +49,7 @@ class BaseItem:
     def __str__(self) -> str:
         return self.name
 
-    def _handle_usage(self, message: discord.Message):
+    def _handle_usage(self, message: discord.Message, user: "Player"):
         user = message.author
         u = self.cache.setdefault(user.id, {"uses": self.uses})
         bucket = self._cooldown.get_bucket(message)
@@ -130,7 +130,7 @@ class Player:
         if not self.inv.get(item.name):
             raise ValueError(f"You don't have a {item.name}")
 
-        item._handle_usage(message)  # let the exceptions raise. The command gonna handle those.
+        item._handle_usage(message, self)  # let the exceptions raise. The command gonna handle those.
         self.throws += 1
 
         if true_random() <= (item.damage + self.accuracy + (true_random() / 3)):
@@ -180,7 +180,7 @@ class Player:
 
     @property
     def kdr(self):
-        if self.deaths == 0 or self.kills:
+        if self.deaths == 0 or self.kills == 0:
             return 0
         return self.kills / self.deaths
 
