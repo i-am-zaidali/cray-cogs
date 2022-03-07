@@ -1,24 +1,26 @@
-import discord
 import asyncio
 import logging
-
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import Any, Coroutine, Dict, List, Optional
+
+import discord
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
-from typing import Optional, List, Coroutine, Any, Dict
 
 from .exceptions import TimerError
 
 log = logging.getLogger("red.craycogs.Timer.models")
+
 
 @dataclass
 class TimerSettings:
     notify_users: bool
     emoji: str
 
+
 class TimerObj:
-    
+
     _tasks: Dict[int, asyncio.Task] = {}
 
     # haha ctrl C + Ctrl V from giveaways go brrrrrrrrr
@@ -68,14 +70,20 @@ class TimerObj:
     @property
     def remaining_time(self):
         return self.ends_at - datetime.now(timezone.utc)
-    
+
     @property
     def ended(self):
         return datetime.now(timezone.utc) > self.ends_at
-    
+
     @property
-    def edit_wait_duration(self): 
-        return 15 if (secs:=self.remaining_time.total_seconds()) <= 120 else 60 if secs < 300 else 300
+    def edit_wait_duration(self):
+        return (
+            15
+            if (secs := self.remaining_time.total_seconds()) <= 120
+            else 60
+            if secs < 300
+            else 300
+        )
 
     @property
     def json(self):
@@ -117,17 +125,16 @@ class TimerObj:
 
     def __repr__(self) -> str:
         return self.__str__()
-    
+
     def __hash__(self) -> int:
         return hash((self.message_id, self.channel_id))
 
     async def get_embed_description(self):
         return (
             f"React with {self.emoji} to be notified when the timer ends.\n"
-            f"Remaining time: **{cf.humanize_timedelta(timedelta=self.remaining_time)}**" 
-            if (await self.cog.get_guild_settings(self.guild_id)).notify_users
-            else
             f"Remaining time: **{cf.humanize_timedelta(timedelta=self.remaining_time)}**"
+            if (await self.cog.get_guild_settings(self.guild_id)).notify_users
+            else f"Remaining time: **{cf.humanize_timedelta(timedelta=self.remaining_time)}**"
         )
 
     async def get_embed_color(self):
@@ -143,75 +150,78 @@ class TimerObj:
         except Exception:
             msg = None
         return msg
-    
+
     async def add_entrant(self, user_id: int):
         if user_id == self._host:
             return
         self._entrants.add(user_id)
-    
+
     async def start(self):
-        embed = discord.Embed(
-            title=f"Timer for **{self.name}**",
-            description=await self.get_embed_description(),
-            color=await self.get_embed_color(),
-        ).set_thumbnail(
-            url=self.guild.icon_url
-        ).set_footer(
-            text=f"Hosted by: {self.host}",
-            icon_url=self.host.avatar_url
+        embed = (
+            discord.Embed(
+                title=f"Timer for **{self.name}**",
+                description=await self.get_embed_description(),
+                color=await self.get_embed_color(),
+            )
+            .set_thumbnail(url=self.guild.icon_url)
+            .set_footer(text=f"Hosted by: {self.host}", icon_url=self.host.avatar_url)
         )
-        
+
         msg: discord.Message = await self.channel.send(embed=embed)
         if (await self.cog.get_guild_settings(self.guild_id)).notify_users:
             await msg.add_reaction(self.emoji)
         self.message_id = msg.id
-        
+
         self._tasks[self.message_id] = asyncio.create_task(self._start_edit_task())
         await self.cog.add_timer(self)
-        
+
     async def _start_edit_task(self):
         try:
             while True:
                 await asyncio.sleep(self.edit_wait_duration)
-                
+
                 if self.ended:
                     await self.end()
                     break
-                                
+
                 msg = await self.message
                 if not msg:
-                    raise TimerError(f"Couldn't find timer message with id {self.message_id}. Removing from cache.")
-                
+                    raise TimerError(
+                        f"Couldn't find timer message with id {self.message_id}. Removing from cache."
+                    )
+
                 embed: discord.Embed = msg.embeds[0]
-                
+
                 embed.description = await self.get_embed_description()
 
                 await msg.edit(embed=embed)
-                
+
             return True
-        
+
         except Exception as e:
             log.exception("Error when editing timer: ", exc_info=e)
 
     async def end(self):
         msg = await self.message
         if not msg:
-            raise TimerError(f"Couldn't find timer message with id {self.message_id}. Removing from cache.")
-        
+            raise TimerError(
+                f"Couldn't find timer message with id {self.message_id}. Removing from cache."
+            )
+
         embed: discord.Embed = msg.embeds[0]
-        
+
         embed.description = "This timer has ended!"
-        
+
         await msg.edit(embed=embed)
-        
+
         notify = (await self.cog.get_guild_settings(self.guild_id)).notify_users
-        
+
         await msg.reply(
-            f"{self.host.mention} your timer for **{self.name}** has ended!\n" +
-            ("\n".join([i.mention for i in self.entrants]) if self._entrants and notify else "") +
-            f"\n{self.jump_url}"
+            f"{self.host.mention} your timer for **{self.name}** has ended!\n"
+            + ("\n".join([i.mention for i in self.entrants]) if self._entrants and notify else "")
+            + f"\n{self.jump_url}"
         )
-        
+
         await self.cog.remove_timer(self)
         self._tasks[self.message_id].cancel()
         del self._tasks[self.message_id]
