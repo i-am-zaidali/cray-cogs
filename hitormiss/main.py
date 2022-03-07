@@ -184,12 +184,12 @@ class HitOrMiss(commands.Cog):
         """Throw an item you own at a user"""
         if not item or not target:
             return await ctx.send_help()
-        
+
         try:
             item = await ItemConverter().convert(ctx, item)
         except Exception as e:
             return await ctx.send(str(e))
-        
+
         if not item.throwable:
             return await ctx.send(f"No, a {item} can not be thrown at others.")
         if target.id == ctx.author.id:

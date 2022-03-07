@@ -1,9 +1,10 @@
-import discord
 import random
 import secrets
-from time import time
 from typing import Dict, Optional, Type, Union
+
+import discord
 from redbot.core import commands
+
 from .exceptions import ItemOnCooldown
 
 
@@ -86,7 +87,7 @@ class Player:
         self.misses = data.get("misses", 0)
         self.kills = data.get("kills", 0)
         self.deaths = data.get("deaths", 0)
-        
+
     @property
     def user(self):
         return self.bot.get_user(self.id)
