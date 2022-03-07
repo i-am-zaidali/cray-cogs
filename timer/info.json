@@ -1,0 +1,12 @@
+{
+    "name": "Timer",
+    "short": "Start countdowns and wait for them to end.",
+    "description": "Start countdowns and wait for them to end.",
+    "end_user_data_statement": "This cog stores End User Data when storing a timer. If a user requests data-deletion, all their data will be removed from the bot.",
+    "install_msg": "Thanks for installing Timer. Load the cog with `[p]load Timer` and see all its commands with `[p]help Timer`.",
+    "author": [
+        "crayyy_zee"
+    ],
+    "requirements": [],
+    "type": "COG"
+}
