@@ -30,6 +30,8 @@
 | HitOrMiss         | 1.3.1            | <details><summary>Throw stuff at others.</summary>Throw items at users and hope you kill them. Buy items from the shop.</details>                          |
 | TickChanger       | 1.2.0            | <details><summary>Change `ctx.tick`'s emoji.</summary>Monkeypatches the ctx.tick method to react with a given emoji of your choice.</details>              |
 | JoinPing          | 1.0.1            | <details><summary>Ping people on server join</summary>Ghost ping people in multiple channels to alert them about it.</details>                             |
+| Timer             | 1.0.0            | <details><summary>Start timers</summary>Start a timer that countdowns until the given duration.</details>                                                  |
+
 ## Support
 
 Incase you encounter a bug, either create an issue on the repo
