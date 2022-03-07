@@ -245,7 +245,9 @@ class Giveaways(commands.Cog):
                     title="Entry Invalidated!",
                     description=result,
                     color=discord.Color.red(),
-                ).set_thumbnail(url=getattr(payload.member.guild.icon, "url", discord.embeds.EmptyEmbed))
+                ).set_thumbnail(
+                    url=getattr(payload.member.guild.icon, "url", discord.embeds.EmptyEmbed)
+                )
 
                 message = await giveaway.message
                 try:
@@ -271,7 +273,9 @@ class Giveaways(commands.Cog):
                         f"Currently, {len(giveaway._entrants)} people have entered.\n"
                         f"This giveaway ends in {humanize_timedelta(timedelta=giveaway.ends_at - datetime.now(timezone.utc))}.",
                         color=discord.Color.green(),
-                    ).set_thumbnail(url=getattr(payload.member.guild.icon, "url", discord.embeds.EmptyEmbed))
+                    ).set_thumbnail(
+                        url=getattr(payload.member.guild.icon, "url", discord.embeds.EmptyEmbed)
+                    )
                     try:
                         await payload.member.send(embed=embed)
                     except discord.HTTPException as e:
@@ -932,7 +936,9 @@ class Giveaways(commands.Cog):
                 [f"<@{k}> : {v} giveaway(s) performed." for k, v in _sorted.items()]
             ),
         )
-        embed.set_footer(text=ctx.guild.name, icon_url=getattr(ctx.guild.icon, "url", discord.embeds.EmptyEmbed))
+        embed.set_footer(
+            text=ctx.guild.name, icon_url=getattr(ctx.guild.icon, "url", discord.embeds.EmptyEmbed)
+        )
         return await ctx.send(embed=embed)
 
     @g.command(name="explain")

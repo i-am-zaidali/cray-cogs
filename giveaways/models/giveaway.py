@@ -604,7 +604,8 @@ class Giveaway(GiveawayMeta):
         embed.color = discord.Color.red()
         embed.description = f"This giveaway has ended.\n**Winners:** {w}\n**Host:** {host.mention}"
         embed.set_footer(
-            text=f"{guild.name} - Winners: {winners}", icon_url=getattr(guild.icon, "url", discord.embeds.EmptyEmbed)
+            text=f"{guild.name} - Winners: {winners}",
+            icon_url=getattr(guild.icon, "url", discord.embeds.EmptyEmbed),
         )
         await gmsg.edit(embed=embed, view=view)
 

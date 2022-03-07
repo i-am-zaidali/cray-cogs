@@ -646,7 +646,9 @@ class Gset(Giveaways, name="Giveaways"):
             color=color,
         )
 
-        embed.set_footer(text=ctx.guild.name, icon_url=getattr(ctx.guild.icon, "url", discord.embeds.EmptyEmbed))
+        embed.set_footer(
+            text=ctx.guild.name, icon_url=getattr(ctx.guild.icon, "url", discord.embeds.EmptyEmbed)
+        )
         embed.set_thumbnail(url=getattr(ctx.guild.icon, "url", discord.embeds.EmptyEmbed))
 
         await ctx.send(embed=embed)
