@@ -1,8 +1,10 @@
+import re
 from datetime import datetime, timedelta, timezone
+
+import emoji
 from redbot.core import commands
 from redbot.core.utils.chat_formatting import humanize_timedelta
-import re
-import emoji
+
 
 class TimeConverter(commands.Converter):
     time_regex = re.compile(r"(?:(\d{1,5})(h|s|m|d|w))+?")
@@ -27,14 +29,21 @@ class TimeConverter(commands.Converter):
         if not time >= 10:
             raise commands.BadArgument("Time must be greater than 10 seconds.")
 
-        if time > (seconds:=await ctx.cog.config.max_duration()):
-            suggestion = f"You can change this with `{ctx.prefix}timerset maxduration`." if await ctx.bot.is_owner(ctx.author) else ""
-            raise commands.BadArgument(f"Time for timers must be less than {humanize_timedelta(seconds=seconds)}. {suggestion}")
+        if time > (seconds := await ctx.cog.config.max_duration()):
+            suggestion = (
+                f"You can change this with `{ctx.prefix}timerset maxduration`."
+                if await ctx.bot.is_owner(ctx.author)
+                else ""
+            )
+            raise commands.BadArgument(
+                f"Time for timers must be less than {humanize_timedelta(seconds=seconds)}. {suggestion}"
+            )
 
         time = timedelta(seconds=time)
         time = datetime.now(timezone.utc) + time
         return time
-    
+
+
 class EmojiConverter(commands.EmojiConverter):
     async def convert(self, ctx: commands.Context, argument: str):
         if argument in emoji.UNICODE_EMOJI_ENGLISH:
