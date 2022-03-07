@@ -1,6 +1,6 @@
 import random
 import secrets
-from typing import Dict, Optional, Type, Union
+from typing import Dict, Optional, Type
 
 import discord
 from redbot.core import commands
@@ -41,7 +41,9 @@ class BaseItem:
         self.throwable = throwable
         self.price = int(price)
         self.emoji = emoji
-        self._cooldown = commands.CooldownMapping.from_cooldown(1, self.cooldown, commands.BucketType.user)
+        self._cooldown = commands.CooldownMapping.from_cooldown(
+            1, self.cooldown, commands.BucketType.user
+        )
         self.cache: Dict[int, Dict[str, int]] = {}
 
     def __init_subclass__(cls) -> None:
@@ -131,7 +133,9 @@ class Player:
         if not self.inv.get(item.name):
             raise ValueError(f"You don't have a {item.name}")
 
-        item._handle_usage(message, self)  # let the exceptions raise. The command gonna handle those.
+        item._handle_usage(
+            message, self
+        )  # let the exceptions raise. The command gonna handle those.
         self.throws += 1
 
         if true_random() <= (item.damage + self.accuracy + (true_random() / 3)):
