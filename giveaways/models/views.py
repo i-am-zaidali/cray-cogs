@@ -369,7 +369,7 @@ class FTRView(ViewDisableOnTimeout):
         embed.color = discord.Color.red()
         embed.set_footer(
             text=f"{giveaway.guild.name} - Winners: 1",
-            icon_url=getattr(giveaway.guild.icon, "url", None),
+            icon_url=getattr(giveaway.guild.icon, "url", discord.embeds.EmptyEmbed),
         )
 
         disable_items(self.view)

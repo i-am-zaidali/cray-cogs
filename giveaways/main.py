@@ -245,7 +245,7 @@ class Giveaways(commands.Cog):
                     title="Entry Invalidated!",
                     description=result,
                     color=discord.Color.red(),
-                ).set_thumbnail(url=getattr(payload.member.guild.icon, "url", None))
+                ).set_thumbnail(url=getattr(payload.member.guild.icon, "url", discord.embeds.EmptyEmbed))
 
                 message = await giveaway.message
                 try:
@@ -271,7 +271,7 @@ class Giveaways(commands.Cog):
                         f"Currently, {len(giveaway._entrants)} people have entered.\n"
                         f"This giveaway ends in {humanize_timedelta(timedelta=giveaway.ends_at - datetime.now(timezone.utc))}.",
                         color=discord.Color.green(),
-                    ).set_thumbnail(url=getattr(payload.member.guild.icon, "url", None))
+                    ).set_thumbnail(url=getattr(payload.member.guild.icon, "url", discord.embeds.EmptyEmbed))
                     try:
                         await payload.member.send(embed=embed)
                     except discord.HTTPException as e:
@@ -324,7 +324,7 @@ class Giveaways(commands.Cog):
                     f"As such, your entry for this giveaway has been removed.\n"
                     f"If you think this was a mistake, please go and react again to the giveaway :)",
                     color=await giveaway.get_embed_color(),
-                ).set_thumbnail(url=getattr(giveaway.guild.icon, "url", None))
+                ).set_thumbnail(url=getattr(giveaway.guild.icon, "url", discord.embeds.EmptyEmbed))
 
                 try:
                     await member.send(embed=embed)
@@ -828,7 +828,7 @@ class Giveaways(commands.Cog):
 
         embeds = [
             embed.set_footer(text=f"Page {ind}/{len(embeds)}").set_thumbnail(
-                url=getattr(ctx.guild.icon, "url", None)
+                url=getattr(ctx.guild.icon, "url", discord.embeds.EmptyEmbed)
                 if not _global
                 else ctx.bot.user.display_avatar.url
             )
@@ -879,7 +879,7 @@ class Giveaways(commands.Cog):
             )
             + f"> Requirements: {await giveaway.requirements.get_str(giveaway.guild_id)}"
         )
-        embed.set_thumbnail(url=getattr(ctx.guild.icon, "url", None))
+        embed.set_thumbnail(url=getattr(ctx.guild.icon, "url", discord.embeds.EmptyEmbed))
         await ctx.send(embed=embed)
 
     @g.command(name="entrants", aliasers=["entries"])
@@ -910,7 +910,7 @@ class Giveaways(commands.Cog):
                 else ["This giveaway has no entrants!"]
             ),
             color=await giveaway.get_embed_color(),
-        ).set_thumbnail(url=getattr(ctx.guild.icon, "url", None))
+        ).set_thumbnail(url=getattr(ctx.guild.icon, "url", discord.embeds.EmptyEmbed))
 
         await ctx.send(embed=embed)
 
@@ -932,7 +932,7 @@ class Giveaways(commands.Cog):
                 [f"<@{k}> : {v} giveaway(s) performed." for k, v in _sorted.items()]
             ),
         )
-        embed.set_footer(text=ctx.guild.name, icon_url=getattr(ctx.guild.icon, "url", None))
+        embed.set_footer(text=ctx.guild.name, icon_url=getattr(ctx.guild.icon, "url", discord.embeds.EmptyEmbed))
         return await ctx.send(embed=embed)
 
     @g.command(name="explain")

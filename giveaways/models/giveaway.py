@@ -160,13 +160,13 @@ class GiveawayMeta:
         )
         embed_footer_icon = settings.embed_footer_icon.format_map(
             Coordinate(
-                server_icon_url=getattr(self.guild.icon, "url", None),
+                server_icon_url=getattr(self.guild.icon, "url", discord.embeds.EmptyEmbed),
                 host_avatar_url=self.host.display_avatar.url,
             )
         )
         embed_thumbnail = settings.embed_thumbnail.format_map(
             Coordinate(
-                server_icon_url=getattr(self.guild.icon, "url", None),
+                server_icon_url=getattr(self.guild.icon, "url", discord.embeds.EmptyEmbed),
                 host_avatar_url=self.host.display_avatar.url,
             )
         )
@@ -332,7 +332,7 @@ class Giveaway(GiveawayMeta):
                     description=hostdm_message,
                     color=await self.get_embed_color(),
                 )
-                embed.set_thumbnail(url=getattr(self.guild.icon, "url", None))
+                embed.set_thumbnail(url=getattr(self.guild.icon, "url", discord.embeds.EmptyEmbed))
                 await host.send(embed=embed)
 
             except discord.HTTPException:
@@ -361,7 +361,7 @@ class Giveaway(GiveawayMeta):
                         title="Congratulations!",
                         description=winnerdm_message,
                         color=await self.get_embed_color(),
-                    ).set_thumbnail(url=getattr(self.guild.icon, "url", None))
+                    ).set_thumbnail(url=getattr(self.guild.icon, "url", discord.embeds.EmptyEmbed))
                     await winner.send(embed=embed)
 
                 except discord.HTTPException:
@@ -580,7 +580,7 @@ class Giveaway(GiveawayMeta):
             )
             embed.set_footer(
                 text=f"{guild.name} - Winners: {winners}",
-                icon_url=getattr(guild.icon, "url", None),
+                icon_url=getattr(guild.icon, "url", discord.embeds.EmptyEmbed),
             )
             await gmsg.edit(embed=embed, view=view)
 
@@ -604,7 +604,7 @@ class Giveaway(GiveawayMeta):
         embed.color = discord.Color.red()
         embed.description = f"This giveaway has ended.\n**Winners:** {w}\n**Host:** {host.mention}"
         embed.set_footer(
-            text=f"{guild.name} - Winners: {winners}", icon_url=getattr(guild.icon, "url", None)
+            text=f"{guild.name} - Winners: {winners}", icon_url=getattr(guild.icon, "url", discord.embeds.EmptyEmbed)
         )
         await gmsg.edit(embed=embed, view=view)
 
