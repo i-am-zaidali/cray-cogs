@@ -1,9 +1,10 @@
-import discord
 import random
 import secrets
-from time import time
 from typing import Dict, Optional, Type, Union
+
+import discord
 from redbot.core import commands
+
 from .exceptions import ItemOnCooldown
 
 
@@ -40,7 +41,9 @@ class BaseItem:
         self.throwable = throwable
         self.price = int(price)
         self.emoji = emoji
-        self._cooldown = commands.CooldownMapping.from_cooldown(1, self.cooldown, commands.BucketType.user)
+        self._cooldown = commands.CooldownMapping.from_cooldown(
+            1, self.cooldown, commands.BucketType.user
+        )
         self.cache: Dict[int, Dict[str, Optional[Union[int, float]]]] = {}
 
     def __init_subclass__(cls) -> None:
@@ -86,7 +89,7 @@ class Player:
         self.misses = data.get("misses", 0)
         self.kills = data.get("kills", 0)
         self.deaths = data.get("deaths", 0)
-        
+
     @property
     def user(self):
         return self.bot.get_user(self.id)
