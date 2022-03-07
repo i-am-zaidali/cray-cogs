@@ -32,7 +32,7 @@ class HitOrMiss(commands.Cog):
     *Yet*."""
 
     __author__ = ["crayyy_zee#2900"]
-    __version__ = "1.2.1"
+    __version__ = "1.3.0"
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -157,15 +157,9 @@ class HitOrMiss(commands.Cog):
         await self._dict_to_class()
         users = await self.config.all_users()
         for uid, data in users.items():
-            try:
-                u = await self.bot.get_or_fetch_user(uid)
-            except:
-                log.debug(f"User with id `{uid}` not found, not caching their data.")
-                continue
-
             data["items"] = self.filter_user_items(data["items"])
 
-            self.cache.append(Player(u, data))
+            self.cache.append(Player(self.bot, uid, data))
 
     @classmethod
     async def initialize(cls, bot):
@@ -179,22 +173,30 @@ class HitOrMiss(commands.Cog):
 
     async def _unload(self):
         for player in self.cache.copy():
-            await self.config.user(player._user).set(player.to_dict())
+            await self.config.user_from_id(player.id).set(player.to_dict())
 
     def cog_unload(self):
         asyncio.create_task(self._unload())
 
     @commands.command(name="throw")
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def throw(self, ctx, item: ItemConverter, target: PlayerConverter):
+    async def throw(self, ctx, item: str = None, target: PlayerConverter = None):
         """Throw an item you own at a user"""
+        if not item or not target:
+            return await ctx.send_help()
+        
+        try:
+            item = await ItemConverter().convert(ctx, item)
+        except Exception as e:
+            return await ctx.send(str(e))
+        
         if not item.throwable:
             return await ctx.send(f"No, a {item} can not be thrown at others.")
-        if target._user == ctx.author:
+        if target.id == ctx.author.id:
             return await ctx.send("Why do you wanna hurt yourself? sadistic much?")
         player = await self.converter.convert(ctx, f"{ctx.author.id}")
         try:
-            result, string = player.throw(target, item)
+            result, string = player.throw(ctx.message, target, item)
             return await ctx.send(string)
         except Exception as e:
             return await ctx.send(e)

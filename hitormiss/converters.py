@@ -18,10 +18,10 @@ class ItemConverter(Converter):
 
 
 class PlayerConverter(UserConverter):
-    async def convert(self, ctx, argument):
+    async def convert(self, ctx, argument) -> Player:
         user = await super().convert(ctx, argument)
         for i in ctx.cog.cache:
-            if user.id == i._user.id:
+            if user.id == i.id:
                 return i
 
         item = await ItemConverter().convert(ctx, "snowball")
@@ -31,7 +31,7 @@ class PlayerConverter(UserConverter):
             del defaults["items"]["snowball"]
         except KeyError:
             pass
-        user = Player(user, defaults)
+        user = Player(ctx.bot, user.id, defaults)
 
         ctx.cog.cache.append(user)
 
