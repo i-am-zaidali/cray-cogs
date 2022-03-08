@@ -3,7 +3,7 @@ import time
 from .amari import AmariClient
 from .flags import GiveawayFlags
 from .giveaway import EndedGiveaway, Giveaway
-from .guildsettings import config, get_guild_settings, get_role
+from .guildsettings import get_guild_settings
 from .requirements import Requirements
 from .views import GiveawayView, PaginationView, YesOrNoView
 

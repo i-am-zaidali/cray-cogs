@@ -25,6 +25,7 @@ from .models import (
     get_guild_settings,
     model_from_time,
 )
+from .models.guildsettings import _config_schema_0_to_1
 from .models.guildsettings import config as guildconf
 from .utils import (
     ask_for_answers,
@@ -49,7 +50,7 @@ class Giveaways(commands.Cog):
     This cog is a very complex cog and could be resource intensive on your bot.
     Use `giveaway explain` command for an indepth explanation on how to use the commands."""
 
-    __version__ = "2.3.0"
+    __version__ = "2.4.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -106,6 +107,9 @@ class Giveaways(commands.Cog):
                     await self.config.custom("giveaway").clear_raw(guild_id, g.message_id)
                     continue
                 self.add_to_cache(g)
+
+        if (await guildconf.schema()) == 0:
+            await _config_schema_0_to_1(self.bot)
 
         self.end_giveaways_task = self.end_giveaway.start()
 
@@ -195,8 +199,8 @@ class Giveaways(commands.Cog):
     async def end_giveaway(self):
         try:
             c = self._CACHE.copy()
-            for guild_id, data in c.items():
-                for message_id, giveaway in data.items():
+            for data in c.values():
+                for giveaway in data.values():
                     if isinstance(giveaway, EndedGiveaway):
                         continue
 
@@ -214,7 +218,7 @@ class Giveaways(commands.Cog):
 
         except Exception as e:
             log.exception(
-                f"Error occurred while ending a giveaway with message id: {getattr(giveaway, 'message_id', None)}",
+                f"Error occurred while ending a giveaway with message id: {giveaway.message_id}",
                 exc_info=e,
             )
 
@@ -374,7 +378,9 @@ class Giveaways(commands.Cog):
         if ctx.command != (self.bot.get_command("giveaway start")):
             return
 
-        async with guildconf.guild(ctx.guild).top_managers() as top_managers:
+        settings = await get_guild_settings(ctx.guild.id, False)
+
+        async with settings.top_managers() as top_managers:
             top_managers.setdefault(str(ctx.author.id), 0)
             top_managers[str(ctx.author.id)] += 1
 
@@ -1036,6 +1042,9 @@ class Giveaways(commands.Cog):
     **Types of flags**
     > *--no-multi* [argless]
         This flag will disallow role multipliers to determine the giveaway winner.
+        
+    > *--no-multiple-winners* [argless]
+        This flag will disallow a single person to be chosen multiple time.
 
     > *--donor*
         This sets a donor for the giveaway. This donor name shows up in the giveaway embed and also is used when using the `--amt` flag

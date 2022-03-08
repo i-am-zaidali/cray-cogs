@@ -8,8 +8,8 @@ from ..constants import guild_default_config
 from ..utils import has_repeats
 
 config: Config = Config.get_conf(None, 234_6969_420, True, cog_name="Giveaways")
+config.register_global(schema=0)
 config.register_guild(**guild_default_config)
-config.register_role(multi=0)
 
 
 @dataclass(init=True, repr=True)
@@ -37,7 +37,7 @@ class GuildSettings:
     bypass: List[int]
     top_managers: Dict[int, int]
     show_defaults: bool
-    edit_timer: bool = False
+    multi_roles: Dict[int, int]
 
 
 async def get_guild_settings(guild_id: int, obj=True):
@@ -57,18 +57,36 @@ async def get_guild_settings(guild_id: int, obj=True):
     return GuildSettings(**settings)
 
 
-async def get_role(role_id: int):
-    return config.role_from_id(role_id)
-
-
 async def apply_multi(guild: discord.Guild, winners: list):
     _winners = winners.copy()
-    roles = await config.all_roles()
-    roles = {
-        guild.get_role(_id): data["multi"] for _id, data in roles.items() if guild.get_role(_id)
-    }
+    roles = (await get_guild_settings(guild.id)).multi_roles
+    roles = {guild.get_role(_id): multi for _id, multi in roles.items() if guild.get_role(_id)}
     for member in _winners:
         for key, value in roles.items():
             winners += [member for i in range(value) if member and key in member.roles]
 
     return winners
+
+
+async def _config_schema_0_to_1(bot):
+    guilds = await config.all_guilds()
+    roles = await config.all_roles()
+    for guild_id, guild_data in guilds.items():
+        guild: discord.Guild = bot.get_guild(guild_id)
+        if not guild:
+            continue
+
+        if guild_data.get("edit_timer") is not None:
+            guild_data.pop("edit_timer")
+
+        guild_data["multi_roles"] = {}
+
+        guild_roles = [role.id for role in guild.roles if role.id in roles]
+
+        for role in guild_roles:
+            guild_data["multi_roles"].update({role: roles.get(role, {}).get("multi")})
+            await config.role_from_id(role).clear()
+
+        await config.guild_from_id(guild_id).set(guild_data)
+
+    await config.schema.set(1)

@@ -1,9 +1,9 @@
 import random
 import secrets
-from time import time
-from typing import Dict, Optional, Type, Union
+from typing import Dict, Optional, Type
 
 import discord
+from redbot.core import commands
 
 from .exceptions import ItemOnCooldown
 
@@ -41,7 +41,10 @@ class BaseItem:
         self.throwable = throwable
         self.price = int(price)
         self.emoji = emoji
-        self.cache: Dict[int, Dict[str, Optional[Union[int, float]]]] = {}
+        self._cooldown = commands.CooldownMapping.from_cooldown(
+            1, self.cooldown, commands.BucketType.user
+        )
+        self.cache: Dict[int, Dict[str, int]] = {}
 
     def __init_subclass__(cls) -> None:
         cls.name = cls.__name__.lower()
@@ -49,10 +52,12 @@ class BaseItem:
     def __str__(self) -> str:
         return self.name
 
-    def _handle_usage(self, user):
-        u = self.cache.setdefault(user.id, {"cooldown": None, "uses": self.uses})
-        if u["cooldown"] is None or u["cooldown"] < time():
-            u["cooldown"] = time() + self.cooldown
+    def _handle_usage(self, message: discord.Message, user: "Player"):
+        user = message.author
+        u = self.cache.setdefault(user.id, {"uses": self.uses})
+        bucket = self._cooldown.get_bucket(message)
+        retry_after = bucket.update_rate_limit()
+        if not retry_after:
             u["uses"] -= 1
             if u["uses"] == 0:
                 u["uses"] = self.uses  # reset the count for the next iteration of the item.
@@ -61,7 +66,7 @@ class BaseItem:
 
         else:
             raise ItemOnCooldown(
-                f"{self.name} is on cooldown. Try again in {u['cooldown'] - time():.2f} seconds."
+                f"{self.name} is on cooldown. Try again in {retry_after:.2f} seconds."
             )
 
     def get_remaining_uses(self, user):
@@ -73,8 +78,9 @@ class BaseItem:
 
 
 class Player:
-    def __init__(self, user: discord.User, data: dict) -> None:
-        self._user = user
+    def __init__(self, bot, user_id: int, data: dict) -> None:
+        self.bot = bot
+        self.id = user_id
         self.inv = Inventory(self, data.get("items", {}))
         self.hp: int = data.get("hp", 100)
         self.accuracy = data.get("accuracy", 10)
@@ -84,11 +90,15 @@ class Player:
         self.kills = data.get("kills", 0)
         self.deaths = data.get("deaths", 0)
 
+    @property
+    def user(self):
+        return self.bot.get_user(self.id)
+
     def __getattr__(self, attr):
-        return getattr(self._user, attr)
+        return getattr(self.user, attr)
 
     def __str__(self):
-        return str(self._user)
+        return str(self.user)
 
     def to_dict(self):
         return {
@@ -119,11 +129,13 @@ class Player:
 
         return self.hp
 
-    def throw(self, other: "Player", item: BaseItem):
+    def throw(self, message: discord.Message, other: "Player", item: BaseItem):
         if not self.inv.get(item.name):
             raise ValueError(f"You don't have a {item.name}")
 
-        item._handle_usage(self)  # let the exceptions raise. The command gonna handle those.
+        item._handle_usage(
+            message, self
+        )  # let the exceptions raise. The command gonna handle those.
         self.throws += 1
 
         if true_random() <= (item.damage + self.accuracy + (true_random() / 3)):
@@ -173,12 +185,12 @@ class Player:
 
     @property
     def kdr(self):
-        if self.deaths == 0:
+        if self.deaths == 0 or self.kills == 0:
             return 0
         return self.kills / self.deaths
 
     @property
-    def new_player(self):
+    def is_new(self):
         """
         A property that shows if a player is new or not.
         This is for filtering purposes in the leaderboard."""

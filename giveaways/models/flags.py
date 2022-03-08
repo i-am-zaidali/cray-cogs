@@ -26,6 +26,7 @@ class GiveawayFlags(commands.Converter):
         self.starts_in: Optional[datetime] = data.get("starts_in")
         self.no_defaults: bool = data.get("no_defaults")
         self.no_multi: bool = data.get("no_multi")
+        self.no_multiple_winners: bool = data.get("no_multiple_winners", False)
         self.no_donor: bool = data.get("no_donor")
         self.message_count: int = data.get("message_count")
         self.cooldown = data.get("message_cooldown", 1)
@@ -55,7 +56,8 @@ class GiveawayFlags(commands.Converter):
             f"<{self.__class__.__name__} message={self.message} ping={self.ping} "
             f"donor={self.donor} thank={self.thank} channel={getattr(self.channel, 'id', None)} "
             f"ends_in={self.ends_in} starts_in={self.starts_in} no_defaults={self.no_defaults} "
-            f"no_multi={self.no_multi} no_donor={self.no_donor} message_count={self.message_count}>"
+            f"no_multiple_winners={self.no_multiple_winners} no_multi={self.no_multi} "
+            f"no_donor={self.no_donor} message_count={self.message_count}>"
         )
 
     def __repr__(self) -> str:
@@ -111,6 +113,9 @@ class GiveawayFlags(commands.Converter):
         )
         parser.add_argument("--no-defaults", action="store_true", dest="no_defaults")
         parser.add_argument("--no-multi", action="store_true", dest="no_multi")
+        parser.add_argument(
+            "--no-multiple-winners", action="store_true", dest="no_multiple_winners"
+        )
         parser.add_argument("--no-donor", action="store_true", dest="no_donor")
         donolog = parser.add_argument_group()
         donolog.add_argument("--amount", "--amt", nargs="?", dest="amount", default=None)

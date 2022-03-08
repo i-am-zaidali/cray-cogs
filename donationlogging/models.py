@@ -109,7 +109,11 @@ class DonoBank:
             self.manager.config.guild_from_id(self.guild_id).categories, self.name
         )()
         roles.pop("emoji")
-        return {amount: [ctx.guild.get_role(r) for r in role] for amount, role in roles.items()}
+        return {
+            amount: [ctx.guild.get_role(r) for r in role]
+            for amount, role in roles.items()
+            if isinstance(role, list)
+        }
 
     async def addroles(self, ctx, user: discord.Member):
         # if not await self.config.guild(ctx.guild).autoadd():
@@ -140,7 +144,7 @@ class DonoBank:
             return roleadded
 
         except Exception as e:
-            raise e
+            log.exception("Error in addroles", exc_info=e)
 
     async def removeroles(self, ctx, user: discord.Member):
         try:
@@ -151,24 +155,29 @@ class DonoBank:
             if not data:
                 return
             amount = self.get_user(user.id).donations
-            removed_roles: set = {}
+            removed_roles: set = set()
             for key, value in data.items():
-                if amount < int(key):
-                    roles = [ctx.guild.get_role(int(val)) for val in value]
-                    removed_roles.update({role.name for role in roles if role in user.roles})
-            await user.remove_roles(
-                *removed_roles,
-                reason=f"Automatic role removal based on donation logging, requested by {ctx.author}",
-            )
+                if key.isdigit() and amount < int(key):
+                    roles = {
+                        role
+                        for val in value
+                        if (role := ctx.guild.get_role(int(val))) and role in user.roles
+                    }
+                    removed_roles.update(roles)
+            if removed_roles:
+                await user.remove_roles(
+                    *removed_roles,
+                    reason=f"Automatic role removal based on donation logging, requested by {ctx.author}",
+                )
             roleadded = (
-                f"The following roles were added to `{user.name}`: {humanize_list(removed_roles)}"
+                f"The following roles were removed from `{user.name}`: {humanize_list([f'**{role.name}**' for role in removed_roles])}"
                 if removed_roles
                 else ""
             )
             return roleadded
 
-        except:
-            pass
+        except Exception as e:
+            log.exception("An error occurred when removing roles: ", exc_info=e)
 
 
 class DonationManager:
@@ -309,6 +318,8 @@ class DonationManager:
 
     async def get_default_category(self, guild_id: int) -> DonoBank:
         cat = await self.config.guild_from_id(guild_id).default_category()
+        if not cat:
+            return None
         return await self.get_dono_bank(cat, guild_id)
 
     async def set_default_category(self, guild_id: int, category: str):

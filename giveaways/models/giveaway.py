@@ -208,7 +208,7 @@ class GiveawayMeta:
             w += f"<@{k.id}> x {v}, " if v > 1 else f"<@{k.id}> "
 
         if not wcounter:
-            w += "There were no winners."
+            w += "There were no winners. "
 
         return w
 
@@ -496,7 +496,7 @@ class Giveaway(GiveawayMeta):
             )
 
         if any((kwargs["content"], kwargs["embed"])):
-            await self.channel.send(**kwargs)
+            await self.channel.send(**kwargs, allowed_mentions=discord.AllowedMentions(roles=True))
 
         if thank:
             tmsg = settings.tmsg
@@ -510,6 +510,20 @@ class Giveaway(GiveawayMeta):
                 color=await self.get_embed_color(),
             )
             await self.channel.send(embed=embed)
+
+    def pick_winners(self, entrants: List[discord.Member] = None):
+        w_list = []
+        entrants = entrants or self.entrants
+
+        if entrants:
+            for _ in range(self.amount_of_winners):
+                w = random.choice(entrants)
+                if self.flags.no_multiple_winners and w in w_list:
+                    continue
+
+                w_list.append(w)
+
+        return w_list
 
     async def start(self):
         if self.ended:
@@ -563,11 +577,16 @@ class Giveaway(GiveawayMeta):
             entrants = await apply_multi(guild, entrants)
         link = self.jump_url
 
-        try:
-            w_list = [random.choice(entrants) for _ in range(winners)]
+        w_list = self.pick_winners(entrants)
 
-        except IndexError:  # there were no entrants
-            w_list = []
+        self._winners = [i.id for i in w_list]
+
+        w = self.get_winners_str()
+
+        if self.flags.no_multiple_winners and len(w_list) != self.amount_of_winners:
+            w += f"Couldn't select {self.amount_of_winners} winners because of few entries and disallowed multiple entries."
+
+        formatdict = {"winner": w, "prize": prize, "link": link}
 
         self.view.stop()
 
@@ -584,21 +603,11 @@ class Giveaway(GiveawayMeta):
             )
             await gmsg.edit(embed=embed, view=view)
 
-            await gmsg.reply(
-                f"The giveaway for ***{prize}*** has ended. There were 0 users who qualified for the prize."
-                f"\nClick on my replied message to jump to the giveaway.\n"
-                f"Or click on this link: {gmsg.jump_url}"
-            )
+            await gmsg.reply(endmsg.format_map(formatdict))
             if hostdm == True:
                 await self.hdm()
 
             return EndedGiveaway.from_giveaway(self, reason)
-
-        self._winners = [i.id for i in w_list]
-
-        w = self.get_winners_str()
-
-        formatdict = {"winner": w, "prize": prize, "link": link}
 
         embed: discord.Embed = gmsg.embeds[0]
         embed.color = discord.Color.red()

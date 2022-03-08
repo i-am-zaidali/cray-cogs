@@ -12,12 +12,15 @@ from .converters import TimeConverter
 
 
 async def dict_keys_to(d: dict, conv: Callable = int):
-    """Convert a dict's keys to the given conv. This will convert keys upto one nested dict."""
     final = {}
     for key, value in d.items():
         if isinstance(value, dict):
-            final[conv(key)] = {conv(k): v for k, v in value.items()}
-            continue
+            try:
+                final[conv(key)] = await dict_keys_to(value, conv)
+                continue
+            except:
+                # if the conversion fails, just pass
+                continue
 
         final[conv(key)] = value
 

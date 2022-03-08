@@ -5,7 +5,7 @@ from redbot.core.utils.chat_formatting import box, humanize_list
 
 from .converters import EmojiConverter
 from .main import Giveaways
-from .models import config, get_guild_settings, get_role
+from .models import get_guild_settings
 
 
 class Gset(Giveaways, name="Giveaways"):
@@ -25,7 +25,7 @@ class Gset(Giveaways, name="Giveaways"):
 
         All subcommands represent a separate settings."""
 
-    @gset.command(name="gmsg", usage="<message>")
+    @gset.command(name="gmsg")
     @commands.admin_or_permissions(administrator=True)
     async def gset_gmsg(self, ctx, *, message):
         """
@@ -179,7 +179,7 @@ class Gset(Giveaways, name="Giveaways"):
         await settings.tmsg.set(message)
         await ctx.reply(f"The new giveaway message has been set to \n```\n{message}\n```")
 
-    @gset.command(name="emoji", usage="<emoji>")
+    @gset.command(name="emoji")
     @commands.admin_or_permissions(administrator=True)
     async def gset_emoji(self, ctx, emoji: EmojiConverter):
         """
@@ -190,7 +190,7 @@ class Gset(Giveaways, name="Giveaways"):
         await settings.emoji.set(str(emoji))
         await ctx.reply(f"The new giveaway emoji has been set to {emoji}")
 
-    @gset.group(name="winnerdm", usage="<status>")
+    @gset.group(name="winnerdm")
     @commands.admin_or_permissions(administrator=True)
     async def gset_winnerdm(self, ctx: commands.Context):
         """
@@ -260,7 +260,7 @@ class Gset(Giveaways, name="Giveaways"):
         await settings.hostdm_message.set(message)
         await ctx.reply(f"The new host dm message has been set to \n{box(message, 'py')}")
 
-    @gset.command(name="endmsg", usage="<message>")
+    @gset.command(name="endmsg")
     @commands.admin_or_permissions(administrator=True)
     async def gset_endmsg(self, ctx, *, message):
         """
@@ -350,7 +350,7 @@ class Gset(Giveaways, name="Giveaways"):
             allowed_mentions=discord.AllowedMentions(roles=False, replied_user=False),
         )
 
-    @gset.command(name="pingrole", usage="<role>")
+    @gset.command(name="pingrole")
     @commands.admin_or_permissions(administrator=True)
     async def gset_pingrole(self, ctx, role: discord.Role):
         """
@@ -514,18 +514,19 @@ class Gset(Giveaways, name="Giveaways"):
             + (f"{humanize_list(failed)} were never allowed to bypass" if failed else "")
         )
 
-    @gset.group(name="multi", aliases=["rolemulti", "rm"])
+    @gset.group(name="multi", aliases=["rolemulti", "rm"], invoke_without_command=True)
     @commands.guild_only()
     @commands.admin_or_permissions(administrator=True)
     @commands.bot_has_permissions(embed_links=True)
     async def gset_multi(self, ctx):
         """
         See a list for all roles that have multipliers in giveaways in this server."""
-        roles = await config.all_roles()
-        roles = [
-            ctx.guild.get_role(role)
-            for role in filter(lambda x: ctx.guild.get_role(x) is not None, roles)
-        ]
+        roles = (await get_guild_settings(ctx.guild.id)).multi_roles
+        roles = {
+            role: multi
+            for role_id, multi in roles.items()
+            if (role := ctx.guild.get_role(int(role_id)))
+        }
         return await ctx.send(
             embed=discord.Embed(
                 title=f"Role Multipliers for `{ctx.guild.name}`'s giveaways!",
@@ -551,8 +552,10 @@ class Gset(Giveaways, name="Giveaways"):
         This will increase the chances of the members of that role to win in giveaways."""
         if multi > 5:
             return await ctx.send("Multiplier can not be greater than 5.")
-        settings = await get_role(role.id)
-        await settings.multi.set(multi)
+        settings = await get_guild_settings(ctx.guild.id, False)
+        async with settings.multi_roles() as mr:
+            mr.setdefault(str(role.id), 0)
+            mr[str(role.id)] = multi
         return await ctx.send(
             f"Added `{role.name}` with multiplier `{multi}` to the server's role multipliers."
         )
@@ -564,8 +567,13 @@ class Gset(Giveaways, name="Giveaways"):
     async def role_multi_remove(self, ctx, role: discord.Role):
         """
         Remove multiplier from a given role."""
-        settings = await get_role(role.id)
-        await settings.multi.set(None)
+        settings = await get_guild_settings(ctx.guild.id, False)
+        async with settings.multi_roles() as mr:
+            if str(role.id) in mr:
+                del mr[str(role.id)]
+
+            else:
+                return await ctx.send("That role doesn't have a multiplier set.")
         return await ctx.send(f"Removed `{role.name}` from the server's role multipliers.")
 
     @gset.command(name="sdr", aliases=["show_default_requirements", "showdefault", "showdefaults"])

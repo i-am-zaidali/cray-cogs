@@ -30,7 +30,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.1.0"
+    __version__ = "2.1.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -903,8 +903,8 @@ class DonationLogging(commands.Cog):
                 )
                 + "\n"
                 + "\n".join(
-                    f"{categories.index(category) + 1}:  {category.name} - {category.emoji}"
-                    for category in categories
+                    f"{index}:  {category.name} - {category.emoji}"
+                    for index, category in enumerate(categories)
                 )
             )
         )
@@ -922,8 +922,13 @@ class DonationLogging(commands.Cog):
         `name anothername thirdcategory`"""
         if not categories:
             return await ctx.send("You need to specify at least one category.")
+
+        default = await self.cache.config.guild(ctx.guild).default_category()
+
         for category in categories:
             self.cache._CACHE.remove(category)
+            if category.name == default:
+                await self.cache.config.guild(ctx.guild).default_category.set(None)
             await self.cache.config.custom("guild_category", ctx.guild.id, category.name).clear()
 
         async with self.cache.config.guild(ctx.guild).categories() as cats:
@@ -938,16 +943,19 @@ class DonationLogging(commands.Cog):
     async def category_list(self, ctx):
         """
         List all currency categories in your server."""
-        guild = ctx.guild
-        categories = await self.cache.config.guild(guild).categories()
-        categories = {category: data["emoji"] for category, data in categories.items()}
+        categories = await self.cache.get_all_dono_banks(ctx.guild.id)
+        if not categories:
+            return await ctx.send("There are no categories in this server.")
+
+        default = await self.cache.get_default_category(ctx.guild.id)
+
         embed = discord.Embed(
             title=f"Registered currency categories in **__{ctx.guild.name}__**",
             description="\n".join(
                 [
-                    f"{index}: {emoji} {category} "
-                    f"{'(default)' if category == await self.cache.get_default_category(ctx.guild.id) else ''}"
-                    for index, (category, emoji) in enumerate(categories.items(), 1)
+                    f"{index}: {category.emoji} {category.name} "
+                    f"{'(default)' if category == default else ''}"
+                    for index, category in enumerate(categories, 1)
                 ]
             ),
             color=await ctx.embed_color(),
