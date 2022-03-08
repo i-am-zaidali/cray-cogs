@@ -310,6 +310,8 @@ class DonationManager:
 
     async def get_default_category(self, guild_id: int) -> DonoBank:
         cat = await self.config.guild_from_id(guild_id).default_category()
+        if not cat:
+            return None
         return await self.get_dono_bank(cat, guild_id)
 
     async def set_default_category(self, guild_id: int, category: str):

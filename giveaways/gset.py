@@ -25,7 +25,7 @@ class Gset(Giveaways, name="Giveaways"):
 
         All subcommands represent a separate settings."""
 
-    @gset.command(name="gmsg", usage="<message>")
+    @gset.command(name="gmsg")
     @commands.admin_or_permissions(administrator=True)
     async def gset_gmsg(self, ctx, *, message):
         """
@@ -179,7 +179,7 @@ class Gset(Giveaways, name="Giveaways"):
         await settings.tmsg.set(message)
         await ctx.reply(f"The new giveaway message has been set to \n```\n{message}\n```")
 
-    @gset.command(name="emoji", usage="<emoji>")
+    @gset.command(name="emoji")
     @commands.admin_or_permissions(administrator=True)
     async def gset_emoji(self, ctx, emoji: EmojiConverter):
         """
@@ -190,7 +190,7 @@ class Gset(Giveaways, name="Giveaways"):
         await settings.emoji.set(str(emoji))
         await ctx.reply(f"The new giveaway emoji has been set to {emoji}")
 
-    @gset.group(name="winnerdm", usage="<status>")
+    @gset.group(name="winnerdm")
     @commands.admin_or_permissions(administrator=True)
     async def gset_winnerdm(self, ctx: commands.Context):
         """
@@ -260,7 +260,7 @@ class Gset(Giveaways, name="Giveaways"):
         await settings.hostdm_message.set(message)
         await ctx.reply(f"The new host dm message has been set to \n{box(message, 'py')}")
 
-    @gset.command(name="endmsg", usage="<message>")
+    @gset.command(name="endmsg")
     @commands.admin_or_permissions(administrator=True)
     async def gset_endmsg(self, ctx, *, message):
         """
@@ -350,7 +350,7 @@ class Gset(Giveaways, name="Giveaways"):
             allowed_mentions=discord.AllowedMentions(roles=False, replied_user=False),
         )
 
-    @gset.command(name="pingrole", usage="<role>")
+    @gset.command(name="pingrole")
     @commands.admin_or_permissions(administrator=True)
     async def gset_pingrole(self, ctx, role: discord.Role):
         """
