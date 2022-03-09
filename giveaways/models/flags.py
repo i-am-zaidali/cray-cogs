@@ -17,7 +17,7 @@ class NoExitParser(ArgumentParser):
 
 class GiveawayFlags(commands.Converter):
     def __init__(self, data: dict = {}) -> None:
-        self.message: str = data.get("msg")
+        self.message: str = data.get("msg", 0)
         self.ping: bool = data.get("ping", False)
         self.donor: Optional[discord.Member] = data.get("donor")
         self.thank: bool = data.get("thank", False)
