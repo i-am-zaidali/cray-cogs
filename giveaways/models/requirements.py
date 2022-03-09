@@ -190,6 +190,8 @@ class Requirements(commands.Converter):
                         data["amari_level"] = int(_list[0])
                     elif "aweekly" in _list[1] or "aw" in _list[1]:
                         data["amari_weekly"] = int(_list[0])
+                    elif "messages" in _list[1] or "msgs" in _list[1]:
+                        data["messages"] = int(_list[0])
 
         else:
             if not "[" in maybeid:
