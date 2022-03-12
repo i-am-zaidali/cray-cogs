@@ -135,18 +135,18 @@ class JoinPing(commands.Cog):
         for i in channels:
             try:
                 cached_chans.remove(i)
-                
+
             except ValueError:
                 not_present.append(i)
-                
+
         await self.config.guild(ctx.guild).ping_channels.set(cached_chans)
         await self._build_cache()
         await ctx.send(
             f"The channel to ping in have been removed. There are currently {len(cached_chans)} channels."
             + (
                 f"Following channels were not present in the list: {humanize_list([f'<#{chan}>' for chan in not_present])}"
-                if not_present else
-                ""
+                if not_present
+                else ""
             )
         )
 
