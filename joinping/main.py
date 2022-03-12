@@ -130,20 +130,24 @@ class JoinPing(commands.Cog):
         """
         Add the channels to the list of channels where the pings will be sent on member join."""
         cached_chans = self.cache.setdefault(ctx.guild.id, guild_defaults).get("ping_channels")
-        al_present = []
-        channels = list(channels)
-        for i in channels.copy():
-            if i.id not in cached_chans:
-                al_present.append(i.id)
-
-                channels.remove(i)
-
-        final = set(cached_chans) - set(channels)
-
-        await self.config.guild(ctx.guild).ping_channels.set(list(final))
+        channels = {x.id for x in channels}
+        not_present = []
+        for i in channels:
+            try:
+                cached_chans.remove(i)
+                
+            except ValueError:
+                not_present.append(i)
+                
+        await self.config.guild(ctx.guild).ping_channels.set(cached_chans)
         await self._build_cache()
         await ctx.send(
-            f"The channel to ping in have been removed. There are currently {len(final)} channels."
+            f"The channel to ping in have been removed. There are currently {len(cached_chans)} channels."
+            + (
+                f"Following channels were not present in the list: {humanize_list([f'<#{chan}>' for chan in not_present])}"
+                if not_present else
+                ""
+            )
         )
 
     @jpset_channels.command(name="add", aliases=["a"])
@@ -159,7 +163,7 @@ class JoinPing(commands.Cog):
         await ctx.send(
             f"The channel to ping in have been added. There are currently {len(cached_chans)} channels.\n"
             + (
-                f"The following channels were already present: {', '.join([f'<#{chan}>' for chan in al_present])}"
+                f"The following channels were already present: {humanize_list([f'<#{chan}>' for chan in al_present])}"
                 if al_present
                 else ""
             )
@@ -189,3 +193,5 @@ class JoinPing(commands.Cog):
                 name="Delete After (seconds)", value=box(f"{delete_after} seconds"), inline=False
             )
         )
+
+        await ctx.send(embed=embed)
