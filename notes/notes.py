@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 from typing import Dict, List, Optional
@@ -10,7 +11,6 @@ from redbot.core.utils.chat_formatting import humanize_list
 
 from .models import ButtonPaginator, UserNote
 
-global log
 log = logging.getLogger("red.craycogs.notes")
 log.setLevel(logging.DEBUG)
 
@@ -41,24 +41,25 @@ class Notes(commands.Cog):
         return "\n".join(text)
 
     async def to_cache(self):
+        await self.bot.wait_until_red_ready()
         members = await self.config.all_members()
         if not members:
             return
         final = {}
         for key, value in members.items():
             guild = self.bot.get_guild(key)
-            final.update(
-                {
-                    guild.id: {
-                        member: [
-                            UserNote(bot=self.bot, guild=guild.id, **note)
-                            for note in data["notes"]
-                            if data["notes"]
-                        ]
-                        for member, data in value.items()
+            if guild:
+                final.update(
+                    {
+                        guild.id: {
+                            member: [
+                                UserNote(bot=self.bot, guild=guild.id, **note)
+                                for note in data["notes"]
+                            ]
+                            for member, data in value.items()
+                        }
                     }
-                }
-            )
+                )
 
         log.debug(f"Cached all user notes.")
 
@@ -77,7 +78,7 @@ class Notes(commands.Cog):
     @classmethod
     async def initialize(cls, bot):
         self = cls(bot)
-        await self.to_cache()
+        asyncio.create_task(self.to_cache())
         return self
 
     def cog_unload(self):
