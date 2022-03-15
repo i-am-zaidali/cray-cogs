@@ -210,7 +210,7 @@ class DonationLogging(commands.Cog):
         await self.config.guild(ctx.guild).setup.set(True)
         if pairs:
             await bank.setroles(pairs)
-        await self.cache.set_default_category(ctx.guild.id, bank)
+        await self.cache.set_default_category(ctx.guild.id, bank.name)
 
         if old_data := await self.get_old_data(ctx.guild):
             view = YesOrNoView(
