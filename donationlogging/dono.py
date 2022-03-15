@@ -26,7 +26,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.1.1"
+    __version__ = "2.2.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -365,10 +365,7 @@ class DonationLogging(commands.Cog):
         chanid = await self.config.guild(ctx.guild).logchannel()
 
         if chanid and chanid != "none":
-            try:
-                log = await self.bot.fetch_channel(int(chanid))
-            except (discord.NotFound, discord.HTTPException):
-                log = None
+            log = await ctx.guild.get_channel(int(chanid))
             if log:
                 await log.send(role, embed=embed)
             else:
@@ -430,6 +427,9 @@ class DonationLogging(commands.Cog):
             return await ctx.send_help()
 
         category: DonoBank = category or await self.cache.get_default_category(ctx.guild.id)
+        
+        if not category:
+            return await ctx.send("Default category was not set for this server. Please pass a category name when running the command.")
 
         u = category.get_user(user.id)
 
@@ -467,6 +467,9 @@ class DonationLogging(commands.Cog):
 
         category: DonoBank = category or await self.cache.get_default_category(ctx.guild.id)
 
+        if not category:
+            return await ctx.send("Default category was not set for this server. Please pass a category name when running the command.")
+        
         u = category.get_user(user.id)
         donation = u.remove(amount)
 
@@ -901,11 +904,14 @@ class DonationLogging(commands.Cog):
         if not categories:
             return await ctx.send("You need to specify at least one category.")
 
-        default = await self.cache.config.guild(ctx.guild).default_category()
+        all_banks = await self.cache.get_all_dono_banks(ctx.guild.id)
 
         for category in categories:
             self.cache._CACHE.remove(category)
-            if category.name == default:
+            if category.is_default:
+                if len(all_banks) == 1 and all_banks[0] == category:
+                    return await ctx.send("You only have one category and that is the default. Create a new category before removing the default.")
+                
                 await self.cache.config.guild(ctx.guild).default_category.set(None)
             await self.cache.config.custom("guild_category", ctx.guild.id, category.name).clear()
 

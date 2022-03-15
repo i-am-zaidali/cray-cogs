@@ -54,6 +54,7 @@ class DonoBank:
         name: str,
         emoji: str,
         guild_id: int,
+        is_default: bool = False,
         data: Dict[int, int] = {},
     ):
         self.bot = bot
@@ -61,6 +62,7 @@ class DonoBank:
         self.name = name
         self.emoji = emoji
         self.guild_id = guild_id
+        self.is_default = is_default
         self._data = data
 
     def __str__(self):
@@ -231,15 +233,17 @@ class DonationManager:
 
     async def _populate_cache(self):
         for guild, data in (await self.config.all_guilds()).items():
+            default = await self.get_default_category(guild)
             if not data["categories"]:
                 continue
             for category_name, d in data["categories"].items():
                 donos = await self.config.custom(
                     "guild_category", guild, category_name
                 ).donations()
-                self._CACHE.append(
-                    DonoBank(self.bot, self, category_name, d["emoji"], guild, donos)
-                )
+                is_default = default == category_name
+                bank = DonoBank(self.bot, self, category_name, d["emoji"], guild, is_default, donos)
+                
+                self._CACHE.append(bank)
 
         log.debug(f"DonationLogging cache populated with {len(self._CACHE)} entries.")
 
@@ -299,7 +303,7 @@ class DonationManager:
             for bank in banks:
                 bank.remove_user(user_id)
 
-    async def get_all_dono_banks(self, guild_id=None) -> List[DonoBank]:
+    async def get_all_dono_banks(self, guild_id: int = None) -> List[DonoBank]:
         if not self._CACHE:
             await self._populate_cache()
         if not guild_id:
@@ -308,11 +312,15 @@ class DonationManager:
         else:
             return list(filter(lambda x: x.guild_id == guild_id, self._CACHE))
 
-    async def get_default_category(self, guild_id: int) -> DonoBank:
+    async def get_default_category(self, guild_id: int, obj: bool = True) -> DonoBank:
         cat = await self.config.guild_from_id(guild_id).default_category()
         if not cat:
             return None
-        return await self.get_dono_bank(cat, guild_id)
+        
+        if obj:
+            return await self.get_dono_bank(cat, guild_id)
+
+        return cat
 
     async def set_default_category(self, guild_id: int, category: str):
         if not (await self._verify_guild_category(guild_id, category))[0]:
