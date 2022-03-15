@@ -241,8 +241,10 @@ class DonationManager:
                     "guild_category", guild, category_name
                 ).donations()
                 is_default = default == category_name
-                bank = DonoBank(self.bot, self, category_name, d["emoji"], guild, is_default, donos)
-                
+                bank = DonoBank(
+                    self.bot, self, category_name, d["emoji"], guild, is_default, donos
+                )
+
                 self._CACHE.append(bank)
 
         log.debug(f"DonationLogging cache populated with {len(self._CACHE)} entries.")
@@ -316,7 +318,7 @@ class DonationManager:
         cat = await self.config.guild_from_id(guild_id).default_category()
         if not cat:
             return None
-        
+
         if obj:
             return await self.get_dono_bank(cat, guild_id)
 

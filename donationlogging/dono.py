@@ -427,9 +427,11 @@ class DonationLogging(commands.Cog):
             return await ctx.send_help()
 
         category: DonoBank = category or await self.cache.get_default_category(ctx.guild.id)
-        
+
         if not category:
-            return await ctx.send("Default category was not set for this server. Please pass a category name when running the command.")
+            return await ctx.send(
+                "Default category was not set for this server. Please pass a category name when running the command."
+            )
 
         u = category.get_user(user.id)
 
@@ -468,8 +470,10 @@ class DonationLogging(commands.Cog):
         category: DonoBank = category or await self.cache.get_default_category(ctx.guild.id)
 
         if not category:
-            return await ctx.send("Default category was not set for this server. Please pass a category name when running the command.")
-        
+            return await ctx.send(
+                "Default category was not set for this server. Please pass a category name when running the command."
+            )
+
         u = category.get_user(user.id)
         donation = u.remove(amount)
 
@@ -910,8 +914,10 @@ class DonationLogging(commands.Cog):
             self.cache._CACHE.remove(category)
             if category.is_default:
                 if len(all_banks) == 1 and all_banks[0] == category:
-                    return await ctx.send("You only have one category and that is the default. Create a new category before removing the default.")
-                
+                    return await ctx.send(
+                        "You only have one category and that is the default. Create a new category before removing the default."
+                    )
+
                 await self.cache.config.guild(ctx.guild).default_category.set(None)
             await self.cache.config.custom("guild_category", ctx.guild.id, category.name).clear()
 
