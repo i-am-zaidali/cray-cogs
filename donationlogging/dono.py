@@ -365,7 +365,7 @@ class DonationLogging(commands.Cog):
         chanid = await self.config.guild(ctx.guild).logchannel()
 
         if chanid and chanid != "none":
-            log = await ctx.guild.get_channel(int(chanid))
+            log = ctx.guild.get_channel(int(chanid))
             if log:
                 await log.send(role, embed=embed)
             else:
