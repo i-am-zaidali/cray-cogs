@@ -45,7 +45,7 @@ class DonationLogging(commands.Cog):
         self.config.register_global(migrated=False)
         self.config.register_guild(**default_guild)
         self.config.register_member(notes={})
-        
+
         self._task = self._back_to_config.start()
 
         self.conv = MoniConverter().convert  # api for giveaway cog.
@@ -93,7 +93,7 @@ class DonationLogging(commands.Cog):
         if not self.cache:
             return
         await self.cache._back_to_config()
-        
+
     @_back_to_config.before_loop
     async def _before_loop(self):
         await self.bot.wait_until_red_ready()
@@ -436,7 +436,7 @@ class DonationLogging(commands.Cog):
             return await ctx.send_help()
 
         category: DonoBank = ctx.dono_category
-        
+
         if not category:
             return await ctx.send(
                 "Default category was not set for this server. Please pass a category name when running the command."
@@ -934,17 +934,19 @@ class DonationLogging(commands.Cog):
                 del cats[category.name]
 
         await ctx.send("Given categories have been deleted!")
-        
+
     @category.group(name="item", aliases=["items"])
     async def category_item(self, ctx):
         """
         Manage item amounts to count towards a category.
-        
+
         You can use these item names in place of the amount argument in `dono add/remove` commands.
         """
-        
+
     @category_item.command(name="add")
-    async def category_item_add(self, ctx, category: CategoryConverter, *, items: commands.DictConverter(delims=[",", " "])):
+    async def category_item_add(
+        self, ctx, category: CategoryConverter, *, items: commands.DictConverter(delims=[",", " "])
+    ):
         """
         Add items to a category.
 
@@ -953,25 +955,29 @@ class DonationLogging(commands.Cog):
         Multiple items should be separated by a space. `name,amount anothername,amount2 thirditem,amount3`"""
         if not items:
             return await ctx.send("You need to specify at least one item.")
-        async with self.cache.config.guild(ctx.guild).categories.get_attr(category.name)() as cat_data:
+        async with self.cache.config.guild(ctx.guild).categories.get_attr(
+            category.name
+        )() as cat_data:
             cat_items = cat_data.setdefault("items", {})
             for item, amount in items.items():
-                
+
                 if item in cat_items:
                     return await ctx.send(f"{item} is already in {category.name}")
-                
+
                 try:
                     amt = await self.conv(ctx, amount)
-                    
+
                 except:
-                    return await ctx.send("Invalid amount for item `{}`: `{}`".format(item, amount))
-                
+                    return await ctx.send(
+                        "Invalid amount for item `{}`: `{}`".format(item, amount)
+                    )
+
                 cat_items[item] = amt
-                
+
                 category.items.append(DonoItem(item, int(amt), category))
 
         await ctx.send(f"Given items have been added to {category.name}")
-        
+
     @category_item.command(name="remove")
     async def category_item_remove(self, ctx, category: CategoryConverter, *items):
         """
@@ -981,22 +987,23 @@ class DonationLogging(commands.Cog):
         Just send their exact names separated by a space."""
         if not items:
             return await ctx.send("You need to specify at least one item.")
-        async with self.cache.config.guild(ctx.guild).categories.get_attr(category.name)() as cat_data:
+        async with self.cache.config.guild(ctx.guild).categories.get_attr(
+            category.name
+        )() as cat_data:
             cat_items = cat_data.setdefault("items", {})
             if not cat_items:
                 return await ctx.send("No items registered for this category.")
             for item in items:
-                
+
                 if item not in cat_items:
                     return await ctx.send(f"{item} is not present in {category.name}")
-                
+
                 del cat_items[item]
                 item = await category.get_item(item)
                 category.items.remove(item)
-                
 
         await ctx.send(f"Given items have been removed from {category.name}")
-        
+
     @category_item.command(name="list")
     async def category_item_list(self, ctx, category: CategoryConverter):
         """
@@ -1005,14 +1012,8 @@ class DonationLogging(commands.Cog):
         cat_items = category.items
         if not cat_items:
             return await ctx.send("No items registered for this category.")
-        tab = tabulate(
-            [(item.name, item.amount) for item in cat_items] , 
-            ["Item Name", "Worth"]
-        )
-        await ctx.send(
-            "Following items are registered for this category:\n" +
-            box(tab, lang="py")
-        )
+        tab = tabulate([(item.name, item.amount) for item in cat_items], ["Item Name", "Worth"])
+        await ctx.send("Following items are registered for this category:\n" + box(tab, lang="py"))
 
     @category.command(name="list")
     @commands.mod_or_permissions(administrator=True)
@@ -1085,7 +1086,7 @@ class DonationLogging(commands.Cog):
                     if rid in r:
                         continue
                     r.append(rid)
-                    
+
         await category.setroles(_pairs)
 
         embed = discord.Embed(

@@ -1,6 +1,6 @@
 import contextlib
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from typing import Dict, List, Tuple, Union
 
 import discord
@@ -13,11 +13,13 @@ from .exceptions import CategoryAlreadyExists, CategoryDoesNotExist, SimilarCate
 
 log = logging.getLogger("red.craycogs.donationlogging.models")
 
+
 @dataclass
 class DonoItem:
-    name: str 
+    name: str
     amount: int
     category: "DonoBank"
+
 
 class DonoUser:
     def __init__(
@@ -95,7 +97,7 @@ class DonoBank:
         ]
         lb.sort(key=lambda x: x.donations, reverse=True)
         return lb
-    
+
     async def get_item(self, item_name: str):
         items = {i.name: i for i in self.items}
         match = process.extractOne(item_name, items.keys())
@@ -112,10 +114,12 @@ class DonoBank:
             categories[self.name]["roles"].update(pairs)
 
     async def getroles(self, ctx) -> Dict[int, List[discord.Role]]:
-        data = await self.manager.config.guild_from_id(self.guild_id).categories.get_attr(self.name)()
+        data = await self.manager.config.guild_from_id(self.guild_id).categories.get_attr(
+            self.name
+        )()
         roles = data.get("roles")
         return {
-            amount: [_role for r in role if (_role:=ctx.guild.get_role(int(r)))]
+            amount: [_role for r in role if (_role := ctx.guild.get_role(int(r)))]
             for amount, role in roles.items()
             if isinstance(role, list)
         }
@@ -171,6 +175,7 @@ class DonoBank:
 
         except Exception as e:
             log.exception("An error occurred when removing roles: ", exc_info=e)
+
 
 class DonationManager:
     _CACHE: List[DonoBank] = []
@@ -230,7 +235,7 @@ class DonationManager:
             categories.setdefault(category.lower(), {"emoji": emoji})
 
         return category.lower()
-    
+
     async def _schema_0_to_1(self):
         for guild, data in (await self.config.all_guilds()).items():
             if not data["categories"]:
@@ -240,11 +245,10 @@ class DonationManager:
                 d.clear()
                 d["emoji"] = copy.pop("emoji")
                 d["roles"] = copy
-                
+
             await self.config.guild_from_id(guild).categories.set(data["categories"])
-            
+
         await self.config.schema.set(1)
-        
 
     async def _populate_cache(self):
         if not (await self.config.schema()) == 1:
@@ -259,7 +263,9 @@ class DonationManager:
                         "guild_category", guild, category_name
                     ).donations()
                     is_default = default == category_name
-                    bank = DonoBank(self.bot, self, category_name, d["emoji"], guild, is_default, donos)
+                    bank = DonoBank(
+                        self.bot, self, category_name, d["emoji"], guild, is_default, donos
+                    )
                     items = d.get("items", {})
                     for name, amount in items.items():
                         bank.items.append(DonoItem(name, amount, bank))
