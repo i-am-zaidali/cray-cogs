@@ -254,7 +254,7 @@ class DonationManager:
         if not (await self.config.schema()) == 1:
             await self._schema_0_to_1()
         for guild, data in (await self.config.all_guilds()).items():
-            default = await self.get_default_category(guild)
+            default = await self.get_default_category(guild, False)
             if not data["categories"]:
                 continue
             for category_name, d in data["categories"].items():
