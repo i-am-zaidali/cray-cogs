@@ -1,4 +1,5 @@
 import contextlib
+from dataclasses import dataclass
 import logging
 from typing import Dict, List, Tuple, Union
 
@@ -12,6 +13,11 @@ from .exceptions import CategoryAlreadyExists, CategoryDoesNotExist, SimilarCate
 
 log = logging.getLogger("red.craycogs.donationlogging.models")
 
+@dataclass
+class DonoItem:
+    name: str 
+    amount: int
+    category: "DonoBank"
 
 class DonoUser:
     def __init__(
@@ -56,6 +62,7 @@ class DonoBank:
         guild_id: int,
         is_default: bool = False,
         data: Dict[int, int] = {},
+        items: List[DonoItem] = [],
     ):
         self.bot = bot
         self.manager = manager
@@ -64,6 +71,7 @@ class DonoBank:
         self.guild_id = guild_id
         self.is_default = is_default
         self._data = data
+        self.items = items
 
     def __str__(self):
         return self.name
@@ -87,6 +95,11 @@ class DonoBank:
         ]
         lb.sort(key=lambda x: x.donations, reverse=True)
         return lb
+    
+    async def get_item(self, item_name: str):
+        items = {i.name: i for i in self.items}
+        match = process.extractOne(item_name, items.keys())
+        return items[match[0]] if match else None
 
     async def setroles(self, amountrolepairs: Dict[int, List[discord.Role]]):
         pairs = {}
@@ -94,17 +107,15 @@ class DonoBank:
             pairs[k] = [role.id for role in v]
         async with self.manager.config.guild_from_id(self.guild_id).categories() as categories:
             categories.setdefault(
-                self.name, {"emoji": self.emoji}
+                self.name, {"emoji": self.emoji, "roles": {}}
             )  # edge case that the category doesnt exist there.
-            categories[self.name].update(pairs)
+            categories[self.name]["roles"].update(pairs)
 
-    async def getroles(self, ctx):
-        roles = await getattr(
-            self.manager.config.guild_from_id(self.guild_id).categories, self.name
-        )()
-        roles.pop("emoji")
+    async def getroles(self, ctx) -> Dict[int, List[discord.Role]]:
+        data = await self.manager.config.guild_from_id(self.guild_id).categories.get_attr(self.name)()
+        roles = data.get("roles")
         return {
-            amount: [ctx.guild.get_role(r) for r in role]
+            amount: [_role for r in role if (_role:=ctx.guild.get_role(int(r)))]
             for amount, role in roles.items()
             if isinstance(role, list)
         }
@@ -113,17 +124,13 @@ class DonoBank:
         # if not await self.config.guild(ctx.guild).autoadd():
         #     return f"Auto role adding is disabled for this server. Enable with `{ctx.prefix}donoset autorole add true`."
         try:
-            data: dict = await (
-                getattr(self.manager.config.guild(ctx.guild).categories, self.name)
-            )()
-            data.pop("emoji")
+            data = await self.getroles(ctx)
             if not data:
                 return
             amount = self.get_user(user.id).donations
             added_roles = set()
-            for key, value in data.items():
+            for key, roles in data.items():
                 if amount >= int(key):
-                    roles = [ctx.guild.get_role(int(val)) for val in value]
                     added_roles.update({role for role in roles if not role in user.roles})
             added_roles = list(added_roles)
             await user.add_roles(
@@ -142,21 +149,13 @@ class DonoBank:
 
     async def removeroles(self, ctx, user: discord.Member):
         try:
-            data: dict = await getattr(
-                self.manager.config.guild(ctx.guild).categories, self.name
-            )()
-            data.pop("emoji")
+            data = await self.getroles(ctx)
             if not data:
                 return
             amount = self.get_user(user.id).donations
             removed_roles: set = set()
-            for key, value in data.items():
+            for key, roles in data.items():
                 if key.isdigit() and amount < int(key):
-                    roles = {
-                        role
-                        for val in value
-                        if (role := ctx.guild.get_role(int(val))) and role in user.roles
-                    }
                     removed_roles.update(roles)
             if removed_roles:
                 await user.remove_roles(
@@ -173,7 +172,6 @@ class DonoBank:
         except Exception as e:
             log.exception("An error occurred when removing roles: ", exc_info=e)
 
-
 class DonationManager:
     _CACHE: List[DonoBank] = []
 
@@ -186,8 +184,9 @@ class DonationManager:
         #      "categories": {
         #          "category name": {
         #               "emoji": emoji,
-        #                amount: roleid
-        #               } # roles to assign
+        #                "roles": {amount: roleid} # roles to assign
+        #                "items": {}
+        #               }
         #          },
         #      "default_category": "default category name"
         #      "category name": {
@@ -196,6 +195,7 @@ class DonationManager:
         #      }
         #  }
 
+        self.config.register_global(schema=0)
         self.config.register_guild(categories={}, default_category=None)
         self.config.init_custom("guild_category", 2)
         self.config.register_custom("guild_category", donations={})
@@ -230,20 +230,43 @@ class DonationManager:
             categories.setdefault(category.lower(), {"emoji": emoji})
 
         return category.lower()
+    
+    async def _schema_0_to_1(self):
+        for guild, data in (await self.config.all_guilds()).items():
+            if not data["categories"]:
+                continue
+            for category_name, d in data["categories"].items():
+                copy = d.copy()
+                d.clear()
+                d["emoji"] = copy.pop("emoji")
+                d["roles"] = copy
+                
+            await self.config.guild_from_id(guild).categories.set(data["categories"])
+            
+        await self.config.schema.set(1)
+        
 
     async def _populate_cache(self):
+        if not (await self.config.schema()) == 1:
+            await self._schema_0_to_1()
         for guild, data in (await self.config.all_guilds()).items():
             default = await self.get_default_category(guild)
             if not data["categories"]:
                 continue
             for category_name, d in data["categories"].items():
-                donos = await self.config.custom(
-                    "guild_category", guild, category_name
-                ).donations()
-                is_default = default == category_name
-                bank = DonoBank(self.bot, self, category_name, d["emoji"], guild, is_default, donos)
-                
-                self._CACHE.append(bank)
+                try:
+                    donos = await self.config.custom(
+                        "guild_category", guild, category_name
+                    ).donations()
+                    is_default = default == category_name
+                    bank = DonoBank(self.bot, self, category_name, d["emoji"], guild, is_default, donos)
+                    items = d.get("items", {})
+                    for name, amount in items.items():
+                        bank.items.append(DonoItem(name, amount, bank))
+                    self._CACHE.append(bank)
+
+                except Exception as e:
+                    log.exception("Error: ", exc_info=e)
 
         log.debug(f"DonationLogging cache populated with {len(self._CACHE)} entries.")
 
@@ -322,10 +345,8 @@ class DonationManager:
 
         return cat
 
-    async def set_default_category(self, guild_id: int, category: str):
-        if not (await self._verify_guild_category(guild_id, category))[0]:
-            raise CategoryDoesNotExist(f"The category {category} does not exist.", category)
-        await self.config.guild_from_id(guild_id).default_category.set(category)
+    async def set_default_category(self, guild_id: int, category: DonoBank):
+        await self.config.guild_from_id(guild_id).default_category.set(category.name)
 
     @classmethod
     async def initialize(cls, bot):

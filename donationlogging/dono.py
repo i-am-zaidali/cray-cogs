@@ -15,7 +15,7 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu, start_adding_reactio
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
 from tabulate import tabulate
 
-from donationlogging.models import DonationManager, DonoUser
+from donationlogging.models import DonationManager, DonoItem, DonoUser
 
 from .utils import *
 
@@ -26,7 +26,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.2.0"
+    __version__ = "2.3.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -45,6 +45,8 @@ class DonationLogging(commands.Cog):
         self.config.register_global(migrated=False)
         self.config.register_guild(**default_guild)
         self.config.register_member(notes={})
+        
+        self._task = self._back_to_config.start()
 
         self.conv = MoniConverter().convert  # api for giveaway cog.
 
@@ -70,6 +72,7 @@ class DonationLogging(commands.Cog):
         return "\n".join(text)
 
     def cog_unload(self):
+        self._task.cancel()
         self.bot._backing_up_task = asyncio.create_task(self.cache._back_to_config())
 
     async def get_old_data(self, guild: discord.Guild):
@@ -87,7 +90,13 @@ class DonationLogging(commands.Cog):
 
     @tasks.loop(minutes=5)
     async def _back_to_config(self):
+        if not self.cache:
+            return
         await self.cache._back_to_config()
+        
+    @_back_to_config.before_loop
+    async def _before_loop(self):
+        await self.bot.wait_until_red_ready()
 
     @commands.group(name="dono", invoke_without_command=True)
     async def dono(self, ctx):
@@ -365,7 +374,7 @@ class DonationLogging(commands.Cog):
         chanid = await self.config.guild(ctx.guild).logchannel()
 
         if chanid and chanid != "none":
-            log = await ctx.guild.get_channel(int(chanid))
+            log = ctx.guild.get_channel(int(chanid))
             if log:
                 await log.send(role, embed=embed)
             else:
@@ -408,7 +417,7 @@ class DonationLogging(commands.Cog):
         self,
         ctx,
         category: Optional[CategoryConverter] = None,
-        amount: MoniConverter = None,
+        amount: AmountOrItem = None,
         user: Optional[discord.Member] = None,
         *,
         flag: flags = None,
@@ -426,7 +435,7 @@ class DonationLogging(commands.Cog):
         if not amount:
             return await ctx.send_help()
 
-        category: DonoBank = category or await self.cache.get_default_category(ctx.guild.id)
+        category: DonoBank = ctx.dono_category
         
         if not category:
             return await ctx.send("Default category was not set for this server. Please pass a category name when running the command.")
@@ -874,7 +883,6 @@ class DonationLogging(commands.Cog):
         """
         if not categories:
             return await ctx.send("You need to specify at least one category.")
-        guild = ctx.guild
         await ctx.send(
             (
                 (
@@ -885,7 +893,7 @@ class DonationLogging(commands.Cog):
                 + "\n"
                 + "\n".join(
                     f"{index}:  {category.name} - {category.emoji}"
-                    for index, category in enumerate(categories)
+                    for index, category in enumerate(categories, 1)
                 )
             )
         )
@@ -920,6 +928,85 @@ class DonationLogging(commands.Cog):
                 del cats[category.name]
 
         await ctx.send("Given categories have been deleted!")
+        
+    @category.group(name="item", aliases=["items"])
+    async def category_item(self, ctx):
+        """
+        Manage item amounts to count towards a category.
+        
+        You can use these item names in place of the amount argument in `dono add/remove` commands.
+        """
+        
+    @category_item.command(name="add")
+    async def category_item_add(self, ctx, category: CategoryConverter, *, items: commands.DictConverter(delims=[",", " "])):
+        """
+        Add items to a category.
+
+        You can add multiple items at once.
+        The format for an item definition is `name,amount`.
+        Multiple items should be separated by a space. `name,amount anothername,amount2 thirditem,amount3`"""
+        if not items:
+            return await ctx.send("You need to specify at least one item.")
+        async with self.cache.config.guild(ctx.guild).categories.get_attr(category.name)() as cat_data:
+            cat_items = cat_data.setdefault("items", {})
+            for item, amount in items.items():
+                
+                if item in cat_items:
+                    return await ctx.send(f"{item} is already in {category.name}")
+                
+                try:
+                    amt = await self.conv(ctx, amount)
+                    
+                except:
+                    return await ctx.send("Invalid amount for item `{}`: `{}`".format(item, amount))
+                
+                cat_items[item] = amt
+                
+                category.items.append(DonoItem(item, int(amt), category))
+
+        await ctx.send(f"Given items have been added to {category.name}")
+        
+    @category_item.command(name="remove")
+    async def category_item_remove(self, ctx, category: CategoryConverter, *items):
+        """
+        Remove items from a category.
+
+        You can remove multiple items at once.
+        Just send their exact names separated by a space."""
+        if not items:
+            return await ctx.send("You need to specify at least one item.")
+        async with self.cache.config.guild(ctx.guild).categories.get_attr(category.name)() as cat_data:
+            cat_items = cat_data.setdefault("items", {})
+            if not cat_items:
+                return await ctx.send("No items registered for this category.")
+            for item in items:
+                
+                if item not in cat_items:
+                    return await ctx.send(f"{item} is not present in {category.name}")
+                
+                del cat_items[item]
+                item = await category.get_item(item)
+                category.items.remove(item)
+                
+
+        await ctx.send(f"Given items have been removed from {category.name}")
+        
+    @category_item.command(name="list")
+    async def category_item_list(self, ctx, category: CategoryConverter):
+        """
+        List all registered items of a category.
+        """
+        cat_items = category.items
+        if not cat_items:
+            return await ctx.send("No items registered for this category.")
+        tab = tabulate(
+            [(item.name, item.amount) for item in cat_items] , 
+            ["Item Name", "Worth"]
+        )
+        await ctx.send(
+            "Following items are registered for this category:\n" +
+            box(tab, lang="py")
+        )
 
     @category.command(name="list")
     @commands.mod_or_permissions(administrator=True)
@@ -962,7 +1049,7 @@ class DonationLogging(commands.Cog):
             return await ctx.send(
                 f"The current default category is: {await self.cache.get_default_category(ctx.guild.id)}"
             )
-        await self.cache.set_default_category(ctx.guild.id, category.name)
+        await self.cache.set_default_category(ctx.guild.id, category)
         await ctx.send(f"Default category for this server has been set to {category.name}")
 
     @donoset.command(name="addroles")
@@ -978,8 +1065,7 @@ class DonationLogging(commands.Cog):
             `10000,someroleid:onemoreroleid 15k,@rolemention 20e4,arolename`"""
         data = await self.cache.config.guild(ctx.guild).categories()
         cop = data.copy()
-        cat_roles = cop.get(category.name)
-        cat_roles.pop("emoji")
+        cat_roles = cop.get(category.name).get("roles")
 
         _pairs = {amount: [role.id for role in roles] for amount, roles in pairs.items()}
         for k, v in _pairs.items():
@@ -993,9 +1079,8 @@ class DonationLogging(commands.Cog):
                     if rid in r:
                         continue
                     r.append(rid)
-
-        async with self.cache.config.guild(ctx.guild).categories() as cats:
-            cats[category.name].update(cat_roles)
+                    
+        await category.setroles(_pairs)
 
         embed = discord.Embed(
             title=f"Updated autoroles for {category.name.title()}!", color=await ctx.embed_color()

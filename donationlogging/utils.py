@@ -7,6 +7,7 @@ from discord.ext.commands.converter import EmojiConverter, RoleConverter, TextCh
 from discord.ext.commands.errors import BadArgument, EmojiNotFound
 from discord.ext.commands.view import StringView
 from emoji import UNICODE_EMOJI_ENGLISH
+from fuzzywuzzy import process
 from redbot.core import commands
 from redbot.core.utils import mod
 from redbot.core.utils.chat_formatting import box
@@ -18,18 +19,20 @@ from .models import DonoBank
 time_regex = re.compile(r"(?:(\d{1,5})(h|s|m|d))+?")
 time_dict = {"h": 3600, "s": 1, "m": 60, "d": 86400}
 
-
 class CategoryConverter(commands.Converter):
+    
     async def convert(self, ctx, argument):
         try:
             dono_bank = await ctx.cog.cache.get_existing_dono_bank(argument, ctx.guild.id)
+            ctx.dono_category = dono_bank
 
         except CategoryDoesNotExist:
+            ctx.dono_category = await ctx.cog.cache.get_default_category(ctx.guild.id)
             raise BadArgument(
                 f"You haven't registered a currency category with the name `{argument}`."
                 f"Use `{ctx.prefix}help donoset category` to know how to add a currency category."
             )
-
+            
         return dono_bank
 
 
@@ -146,7 +149,7 @@ class flags(commands.Converter):
 
 
 class MoniConverter(commands.Converter):
-    async def convert(self, ctx, argument):
+    async def convert(self, ctx, argument) -> int:
         try:
             total_stars = 0
             num_map = {"K": 1000, "M": 1000000, "B": 1000000000}
@@ -164,7 +167,26 @@ class MoniConverter(commands.Converter):
                 if re.match(r"<@!?([0-9]+)>$", argument):
                     raise BadArgument(f"The mention comes after the amount.")
                 raise BadArgument(f"Couldn't convert {argument} to a proper amount.")
-
+            
+class AmountOrItem(MoniConverter):
+    async def convert(self, ctx: commands.Context, argument: str):
+        try:
+            return await super().convert(ctx, argument)
+            
+        except Exception:
+            category: DonoBank= ctx.dono_category
+            if not category:
+                raise BadArgument("No default category set.")
+            
+            items = category.items
+            if not items:
+                raise BadArgument(f"Couldn't convert {argument} to a proper item or amount.")
+            
+            match = await category.get_item(argument)
+            if match:
+                return match.amount
+            else:
+                raise BadArgument(f"Couldn't find an item with the name `{argument}`.")
 
 class AmountRoleConverter(commands.Converter):
     async def convert(self, ctx, argument: str):
