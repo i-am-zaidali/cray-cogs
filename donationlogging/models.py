@@ -339,7 +339,7 @@ class DonationManager:
         cat = await self.config.guild_from_id(guild_id).default_category()
         if not cat:
             return None
-        
+
         if obj:
             return await self.get_dono_bank(cat, guild_id)
 
