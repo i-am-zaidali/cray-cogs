@@ -69,12 +69,11 @@ class BaseItem:
                 f"{self.name} is on cooldown. Try again in {retry_after:.2f} seconds."
             )
 
-    def get_remaining_uses(self, user):
-        return self.cache.setdefault(user.id, {"cooldown": None, "uses": self.uses}).get("uses")
+    def get_remaining_uses(self, user: "Player"):
+        return self.cache.setdefault(user.id, {"uses": self.uses}).get("uses", 0)
 
-    def on_cooldown(self, user):
-        u = self.cache.setdefault(user.id, {"cooldown": None, "uses": self.uses})
-        return u.get("cooldown")
+    def on_cooldown(self, message: discord.Message):
+        return int(self._cooldown.get_bucket(message).get_retry_after())
 
 
 class Player:

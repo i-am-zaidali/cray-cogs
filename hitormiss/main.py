@@ -32,7 +32,7 @@ class HitOrMiss(commands.Cog):
     *Yet*."""
 
     __author__ = ["crayyy_zee#2900"]
-    __version__ = "1.3.1"
+    __version__ = "1.3.2"
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -279,8 +279,8 @@ class HitOrMiss(commands.Cog):
 
         for item, amount in me.inv.items.items():
             item_cooldown = (
-                f"Can be used <t:{int(item.on_cooldown(me))}:R>."
-                if item.on_cooldown(me)
+                f"Can be used <t:{item.on_cooldown(me)}:R>."
+                if (cd:=item.on_cooldown(ctx.message))
                 else "Not on cooldown."
             )
             embed.add_field(
