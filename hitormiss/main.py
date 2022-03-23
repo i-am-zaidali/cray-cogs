@@ -280,7 +280,7 @@ class HitOrMiss(commands.Cog):
         for item, amount in me.inv.items.items():
             item_cooldown = (
                 f"Can be used <t:{item.on_cooldown(me)}:R>."
-                if (cd:=item.on_cooldown(ctx.message))
+                if (cd := item.on_cooldown(ctx.message))
                 else "Not on cooldown."
             )
             embed.add_field(
