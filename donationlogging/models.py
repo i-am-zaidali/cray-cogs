@@ -111,7 +111,7 @@ class DonoBank:
             categories.setdefault(
                 self.name, {"emoji": self.emoji, "roles": {}}
             )  # edge case that the category doesnt exist there.
-            categories[self.name]["roles"].update(pairs)
+            categories[self.name].setdefault("roles", {}).update(pairs)
 
     async def getroles(self, ctx) -> Dict[int, List[discord.Role]]:
         data = await self.manager.config.guild_from_id(self.guild_id).categories.get_attr(
