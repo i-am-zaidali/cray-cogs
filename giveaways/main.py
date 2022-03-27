@@ -50,7 +50,7 @@ class Giveaways(commands.Cog):
     This cog is a very complex cog and could be resource intensive on your bot.
     Use `giveaway explain` command for an indepth explanation on how to use the commands."""
 
-    __version__ = "2.4.0"
+    __version__ = "2.4.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -181,17 +181,17 @@ class Giveaways(commands.Cog):
         time_to_end = start_in + _t
         return time_to_end
 
-    def cog_unload(self):
-        self.bot.loop.create_task(self.to_config(True))
-        self.end_giveaways_task.cancel()
-        self.bot.remove_dev_env_value("giveaways")
+    async def cog_unload(self):
+        await self.bot.loop.create_task(self.to_config(True))
+        await self.end_giveaways_task.cancel()
+        await self.bot.remove_dev_env_value("giveaways")
         if getattr(self.bot, "amari", None):
-            self.bot.loop.create_task(self.bot.amari.close())
+            await self.bot.loop.create_task(self.bot.amari.close())
             delattr(self.bot, "amari")
         for i in Giveaway._tasks:
             i.cancel()  # cancel all running tasks
 
-        self.giveaway_view.stop()
+        await self.giveaway_view.stop()
 
     # < ----------------- Giveaway Ending Task ----------------- > #
 

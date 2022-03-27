@@ -9,5 +9,5 @@ with open(Path(__file__).parent / "info.json") as fp:
 
 async def setup(bot):
     cog = Gset(bot)
-    bot.add_cog(cog)
-    bot.loop.create_task(cog.initialize())
+    await bot.add_cog(cog)
+    await bot.loop.create_task(cog.initialize())
