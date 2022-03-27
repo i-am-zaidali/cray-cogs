@@ -13,7 +13,7 @@ class TickChanger(commands.Cog):
     is called anywhere in the bot"""
 
     __author__ = ["crayyy_zee#2900"]
-    __version__ = "1.2.0"
+    __version__ = "1.2.1"
 
     def __init__(self, bot):
         self.bot = bot
@@ -40,7 +40,7 @@ class TickChanger(commands.Cog):
         commands.context.TICK = emoji
         return s
 
-    def cog_unload(self):
+    async def cog_unload(self):
         commands.context.TICK = old_tick
 
     @commands.command(name="settickemoji", aliases=["ste"])
