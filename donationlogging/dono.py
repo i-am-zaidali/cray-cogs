@@ -946,9 +946,7 @@ class DonationLogging(commands.Cog):
         """
 
     @category_item.command(name="add")
-    async def category_item_add(
-        self, ctx, category: CategoryConverter, *, items: DictConverter
-    ):
+    async def category_item_add(self, ctx, category: CategoryConverter, *, items: DictConverter):
         """
         Add items to a category.
 
