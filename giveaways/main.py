@@ -47,7 +47,7 @@ class Giveaways(commands.Cog):
     This cog is a very complex cog and could be resource intensive on your bot.
     Use `giveaway explain` command for an indepth explanation on how to use the commands."""
 
-    __version__ = "2.4.0"
+    __version__ = "2.4.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -87,7 +87,6 @@ class Giveaways(commands.Cog):
 
         all = await self.config.custom("giveaway").all()
         all = await dict_keys_to(all)
-        await self.bot.wait_until_red_ready()
         for guild_id, data in all.items():
             self._CACHE.setdefault(guild_id, {})
             for more_data in data.values():
@@ -106,7 +105,6 @@ class Giveaways(commands.Cog):
                 self.add_to_cache(g)
 
         if (await guildconf.schema()) == 0:
-            print("yes")
             await _config_schema_0_to_1(self.bot)
 
         self.end_giveaways_task = self.end_giveaway.start()
@@ -759,14 +757,9 @@ class Giveaways(commands.Cog):
             return await ctx.send("It seems there are no active giveaways right now.")
 
         fields = []
-        failed: list[EndedGiveaway] = []
         for i in giveaways:
-            message = await i.message
-            if not message and not i.starts_at > datetime.now(timezone.utc):
-                failed.append(await i.end())
-                continue
             value = (
-                f"***[`{i.prize.center(len(i.prize) + 10, ' ')}`]({message.jump_url})***\n\n"
+                f"***[`{i.prize.center(len(i.prize) + 10, ' ')}`]({i.jump_url})***\n\n"
                 f"> Guild: **{i.guild}**\n"
                 f"> Channel: {i.channel.mention} ({i.channel})\n"
                 f"> Host: **{i.host}**\n"
@@ -781,28 +774,6 @@ class Giveaways(commands.Cog):
                 + f"> Ends in: **{humanize_timedelta(timedelta=i.ends_at - datetime.now(timezone.utc))}**\n"
             )
             fields.append({"name": "\u200b", "value": value, "inline": False})
-
-        if failed:
-            fields.append(
-                {
-                    "name": "Failed Giveaways",
-                    "value": "----------------------------------------\n",
-                    "inline": False,
-                }
-            )
-            for i in failed:
-                self.add_to_cache(i)
-                value = (
-                    f"***__{i.prize}__***\n\n"
-                    f"> Guild: **{i.guild}**\n"
-                    f"> Channel: {i.channel.mention} ({i.channel})\n"
-                    f"> Host: **{i.host}**\n"
-                    f"> Message id: **{i.message_id}**\n"
-                    f"> Amount of winners: **{i.amount_of_winners}**\n"
-                    f"> Reason for failure: {i.reason}"
-                )
-
-                fields.append({"name": "\u200b", "value": value, "inline": False})
 
         embeds = await group_embeds_by_fields(
             *fields,
@@ -863,8 +834,8 @@ class Giveaways(commands.Cog):
                 if isinstance(giveaway, Giveaway)
                 else f"> Ended at: **<t:{int(giveaway.ends_at.timestamp())}:f>**\n"
                 f"> Winner(s): {giveaway.get_winners_str()}\n"
+                f"> Reason for ending: **{giveaway.reason}**\n"
             )
-            + f"> Requirements: {await giveaway.requirements.get_str(giveaway.guild_id)}"
         )
         embed.set_thumbnail(url=ctx.guild.icon_url)
         await ctx.send(embed=embed)
