@@ -19,6 +19,8 @@ from donationlogging.models import DonationManager, DonoItem, DonoUser
 
 from .utils import *
 
+DictConverter = commands.get_dict_converter(delims=[",", " "])
+
 
 class DonationLogging(commands.Cog):
     """
@@ -26,7 +28,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.3.1"
+    __version__ = "2.3.2"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -945,7 +947,7 @@ class DonationLogging(commands.Cog):
 
     @category_item.command(name="add")
     async def category_item_add(
-        self, ctx, category: CategoryConverter, *, items: commands.DictConverter(delims=[",", " "])
+        self, ctx, category: CategoryConverter, *, items: DictConverter
     ):
         """
         Add items to a category.
