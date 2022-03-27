@@ -63,7 +63,7 @@ class DonoBank:
         emoji: str,
         guild_id: int,
         is_default: bool = False,
-        data: Dict[int, int] = {},
+        data: Dict[str, int] = {},
         items: List[DonoItem] = [],
     ):
         self.bot = bot
@@ -232,7 +232,7 @@ class DonationManager:
                 )
 
         async with self.config.guild_from_id(guild_id).categories() as categories:
-            categories.setdefault(category.lower(), {"emoji": emoji})
+            categories.setdefault(category.lower(), {"emoji": emoji, "roles": {}})
 
         return category.lower()
 
@@ -257,11 +257,10 @@ class DonationManager:
             default = await self.get_default_category(guild, False)
             if not data["categories"]:
                 continue
+            donations: dict = await self.config.custom("guild_category", guild).all()
             for category_name, d in data["categories"].items():
                 try:
-                    donos = await self.config.custom(
-                        "guild_category", guild, category_name
-                    ).donations()
+                    donos = donations.get(category_name, {}).get("donations", {}).copy()
                     is_default = default == category_name
                     bank = DonoBank(
                         self.bot, self, category_name, d["emoji"], guild, is_default, donos
