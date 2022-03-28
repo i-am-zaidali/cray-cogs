@@ -28,7 +28,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.3.2"
+    __version__ = "2.3.4"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -1070,24 +1070,21 @@ class DonationLogging(commands.Cog):
         `amount` `,` `multiple roles separated with a colon(:)`
         For example:
             `10000,someroleid:onemoreroleid 15k,@rolemention 20e4,arolename`"""
-        data = await self.cache.config.guild(ctx.guild).categories()
-        cop = data.copy()
-        cat_roles = cop.get(category.name).get("roles")
-
-        _pairs = {amount: [role.id for role in roles] for amount, roles in pairs.items()}
-        for k, v in _pairs.items():
+        cat_roles = await category.getroles(ctx)
+        
+        for k, v in pairs.items():
             k = str(k)
             r = cat_roles.get(k)
             if not r:
                 cat_roles.update({k: v})
 
             else:
-                for rid in v:
-                    if rid in r:
+                for role in v:
+                    if role.id in r:
                         continue
-                    r.append(rid)
+                    r.append(role.id)
 
-        await category.setroles(_pairs)
+        await category.setroles(cat_roles)
 
         embed = discord.Embed(
             title=f"Updated autoroles for {category.name.title()}!", color=await ctx.embed_color()
