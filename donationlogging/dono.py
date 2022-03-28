@@ -1071,7 +1071,7 @@ class DonationLogging(commands.Cog):
         For example:
             `10000,someroleid:onemoreroleid 15k,@rolemention 20e4,arolename`"""
         cat_roles = await category.getroles(ctx)
-        
+
         for k, v in pairs.items():
             k = str(k)
             r = cat_roles.get(k)
