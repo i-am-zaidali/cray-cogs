@@ -1091,7 +1091,7 @@ class DonationLogging(commands.Cog):
         )
         rolelist = ""
         for key, value in cat_roles.items():
-            rolelist += f"{humanize_list([ctx.guild.get_role(role).name for role in value])} for {humanize_number(key)} donations\n"
+            rolelist += f"{humanize_list([role.name for role in value])} for {humanize_number(key)} donations\n"
         embed.description = f"`{rolelist}`"
 
         await ctx.send(embed=embed)
