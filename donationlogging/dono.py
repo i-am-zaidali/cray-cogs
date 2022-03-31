@@ -907,9 +907,7 @@ class DonationLogging(commands.Cog):
         """
 
     @category_item.command(name="add")
-    async def category_item_add(
-        self, ctx, category: CategoryConverter, *, items: DictConverter
-    ):
+    async def category_item_add(self, ctx, category: CategoryConverter, *, items: DictConverter):
         """
         Add items to a category.
 
@@ -1033,31 +1031,28 @@ class DonationLogging(commands.Cog):
         `amount` `,` `multiple roles separated with a colon(:)`
         For example:
             `10000,someroleid:onemoreroleid 15k,@rolemention 20e4,arolename`"""
-        data = await self.cache.config.guild(ctx.guild).categories()
-        cop = data.copy()
-        cat_roles = cop.get(category.name).get("roles")
+        cat_roles = await category.getroles(ctx)
 
-        _pairs = {amount: [role.id for role in roles] for amount, roles in pairs.items()}
-        for k, v in _pairs.items():
+        for k, v in pairs.items():
             k = str(k)
             r = cat_roles.get(k)
             if not r:
                 cat_roles.update({k: v})
 
             else:
-                for rid in v:
-                    if rid in r:
+                for role in v:
+                    if role.id in r:
                         continue
-                    r.append(rid)
+                    r.append(role.id)
 
-        await category.setroles(_pairs)
+        await category.setroles(cat_roles)
 
         embed = discord.Embed(
             title=f"Updated autoroles for {category.name.title()}!", color=await ctx.embed_color()
         )
         rolelist = ""
         for key, value in cat_roles.items():
-            rolelist += f"{humanize_list([ctx.guild.get_role(role).name for role in value])} for {humanize_number(key)} donations\n"
+            rolelist += f"{humanize_list([role.name for role in value])} for {humanize_number(key)} donations\n"
         embed.description = f"`{rolelist}`"
 
         await ctx.send(embed=embed)
