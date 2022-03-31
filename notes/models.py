@@ -1,6 +1,6 @@
 import asyncio
-import enum
 import datetime
+import enum
 import time
 from typing import List, Union
 
@@ -16,7 +16,7 @@ class NoteType(enum.Enum):
 
 
 class UserNote:
-    def __init__(self, bot, guild, user, author, content, date, type = None):
+    def __init__(self, bot, guild, user, author, content, date, type=None):
         self.bot: Red = bot
         self._guild: int = guild
         self._user: int = user
@@ -53,7 +53,7 @@ class UserNote:
             "author": self._author,
             "content": self.content,
             "date": self._date,
-            "type": self.type.name
+            "type": self.type.name,
         }
 
 
