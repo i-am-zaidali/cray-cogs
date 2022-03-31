@@ -86,7 +86,6 @@ class Notes(commands.Cog):
         self.bot.loop.create_task(self.to_config())
         
     def _create_note(self, guild: int, author: int, content: str, user: int = None, note_type: NoteType = None, time: int = None):
-        print(guild, author, content, user)
         note = UserNote(
             bot=self.bot,
             guild=guild,
