@@ -84,8 +84,16 @@ class Notes(commands.Cog):
 
     def cog_unload(self):
         self.bot.loop.create_task(self.to_config())
-        
-    def _create_note(self, guild: int, author: int, content: str, user: int = None, note_type: NoteType = None, time: int = None):
+
+    def _create_note(
+        self,
+        guild: int,
+        author: int,
+        content: str,
+        user: int = None,
+        note_type: NoteType = None,
+        time: int = None,
+    ):
         note = UserNote(
             bot=self.bot,
             guild=guild,
@@ -103,7 +111,7 @@ class Notes(commands.Cog):
             return self.cache.setdefault(guild.id, {})
 
         return self.cache.setdefault(guild.id, {}).setdefault(member.id, [])
-    
+
     def _get_notes_of_type(self, guild: discord.Guild, member: discord.Member, type: NoteType):
         user = self._get_notes(guild, member)
         if not user:
@@ -130,7 +138,7 @@ class Notes(commands.Cog):
 
         user.clear()
         return True
-    
+
     @commands.command()
     @commands.mod_or_permissions(manage_messages=True)
     async def setnote(
