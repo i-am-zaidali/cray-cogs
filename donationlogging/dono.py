@@ -28,7 +28,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.5.0"
+    __version__ = "2.5.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -522,59 +522,12 @@ class DonationLogging(commands.Cog):
         If a user isn't provided, this command will reset all the users in the category.
         If a category isn't provided, this command will reset the user's donation balance for all categories.
         This requires either one of the donation manager roles or the bot mod role."""
-        if user:
-            if not category:
-                await ctx.send(
-                    f"You didn't provide a category to reset, are you sure you want to reset all donations of {user}?"
-                    " Reply with `yes`/`no`."
-                )
-                pred = MessagePredicate.yes_or_no(ctx)
-                try:
-                    await ctx.bot.wait_for("message", check=pred, timeout=30)
-                except asyncio.TimeoutError:
-                    return await ctx.send("No response, aborting.")
-
-                if pred.result:
-                    await self.cache.delete_all_user_data(user.id, ctx.guild.id)
-                    return await ctx.send(f"{user.mention}'s donations have been reset.")
-
-                else:
-                    return await ctx.send("Alright!")
-
-            category.remove_user(user.id)
-            emoji = category.emoji
-
-            embed = discord.Embed(
-                title="***__Reset!__***",
-                description=f"Resetted {user.name}'s donation bal. Their current donation amount is {emoji} 0",
-                color=await ctx.embed_color(),
-            )
-            embed.add_field(name="Category: ", value=f"{category.name.title()}", inline=False)
-            embed.add_field(
-                name="Jump Link To The Command:", value=f"[click here]({ctx.message.jump_url})"
-            )
-            embed.set_footer(
-                text=f"Command executed by: {ctx.author.display_name}", icon_url=ctx.guild.icon_url
-            )
-
-            chanid = await self.config.guild(ctx.guild).logchannel()
-
-            role = await category.removeroles(ctx, user)
-
-            if chanid and chanid != "none":
-                channel = await self.bot.fetch_channel(chanid)
-                await ctx.tick()
-                await channel.send(role, embed=embed)
-            else:
-                await ctx.send(role, embed=embed)
-
-        else:
-            if not category:
-                return await ctx.send(
-                    "You need to provide either a category or a user to reset or both."
-                )
+        
+        user = user or ctx.author
+        
+        if not category:
             await ctx.send(
-                f"You didn't provide a user to reset, are you sure you want to reset all donations of the category `{category.name}`?"
+                f"You didn't provide a category to reset, are you sure you want to reset all donations of {user}?"
                 " Reply with `yes`/`no`."
             )
             pred = MessagePredicate.yes_or_no(ctx)
@@ -584,13 +537,38 @@ class DonationLogging(commands.Cog):
                 return await ctx.send("No response, aborting.")
 
             if pred.result:
-                category._data = {}
-                return await ctx.send(
-                    f"Category **`{category.name}`**'s donations have been reset."
-                )
+                await self.cache.delete_all_user_data(user.id, ctx.guild.id)
+                return await ctx.send(f"{user.mention}'s donations have been reset.")
 
             else:
                 return await ctx.send("Alright!")
+
+        category.remove_user(user.id)
+        emoji = category.emoji
+
+        embed = discord.Embed(
+            title="***__Reset!__***",
+            description=f"Resetted {user.name}'s donation bal. Their current donation amount is {emoji} 0",
+            color=await ctx.embed_color(),
+        )
+        embed.add_field(name="Category: ", value=f"{category.name.title()}", inline=False)
+        embed.add_field(
+            name="Jump Link To The Command:", value=f"[click here]({ctx.message.jump_url})"
+        )
+        embed.set_footer(
+            text=f"Command executed by: {ctx.author.display_name}", icon_url=ctx.guild.icon_url
+        )
+
+        chanid = await self.config.guild(ctx.guild).logchannel()
+
+        role = await category.removeroles(ctx, user)
+
+        if chanid and chanid != "none":
+            channel = await self.bot.fetch_channel(chanid)
+            await ctx.tick()
+            await channel.send(role, embed=embed)
+        else:
+            await ctx.send(role, embed=embed)
 
     @dono.command(name="notes", aliases=["note"])
     @commands.guild_only()
@@ -1022,6 +1000,35 @@ class DonationLogging(commands.Cog):
             )
         await self.cache.set_default_category(ctx.guild.id, category)
         await ctx.send(f"Default category for this server has been set to {category.name}")
+        
+    @category.command(name="reset")
+    @commands.mod_or_permissions(administrator=True)
+    @setup_done()
+    async def category_reset(self, ctx: commands.Context, *categories: CategoryConverter):
+        """
+        Reset given categories in your server.
+
+        This will remove all donations of that category.
+        """
+        await ctx.send(
+                f"Are you sure you want to reset all donations of the given categories `{humanize_list([category.name for category in categories])}`?"
+                " Reply with `yes`/`no`."
+            )
+        pred = MessagePredicate.yes_or_no(ctx)
+        try:
+            await ctx.bot.wait_for("message", check=pred, timeout=30)
+        except asyncio.TimeoutError:
+            return await ctx.send("No response, aborting.")
+
+        if pred.result:
+            for category in categories:
+                category._data = {}
+            return await ctx.send(
+                f"Given categories' donations have been reset."
+            )
+
+        else:
+            return await ctx.send("Alright!")
         
     @category.group(name="roles", invoke_without_command=True)
     @commands.mod_or_permissions(administrator=True)
