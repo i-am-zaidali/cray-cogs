@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import time
+import time as _time
 from typing import Dict, List, Optional
 
 import discord
@@ -9,7 +9,7 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list
 
-from .models import ButtonPaginator, UserNote
+from .models import ButtonPaginator, NoteType, UserNote
 
 log = logging.getLogger("red.craycogs.notes")
 log.setLevel(logging.DEBUG)
@@ -19,7 +19,7 @@ class Notes(commands.Cog):
     """
     Store moderator notes on users"""
 
-    __version__ = "1.0.0"
+    __version__ = "1.1.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot):
@@ -29,6 +29,7 @@ class Notes(commands.Cog):
         self.config = Config.get_conf(None, 1, True, "Notes")
         self.config.register_member(notes=[])
         self.cache: Dict[int, Dict[int, List[UserNote]]] = {}
+        self.note_type = NoteType
 
     def format_help_for_context(self, ctx: commands.Context) -> str:
         pre_processed = super().format_help_for_context(ctx)
@@ -83,15 +84,36 @@ class Notes(commands.Cog):
 
     def cog_unload(self):
         self.bot.loop.create_task(self.to_config())
+        
+    def _create_note(self, guild: int, author: int, content: str, user: int = None, note_type: NoteType = None, time: int = None):
+        print(guild, author, content, user)
+        note = UserNote(
+            bot=self.bot,
+            guild=guild,
+            user=user,
+            author=author,
+            content=content,
+            type=note_type,
+            date=time or _time.time(),
+        )
+        self._add_note(note)
+        return note
 
     def _get_notes(self, guild: discord.guild, member: discord.Member = None):
         if not member:
             return self.cache.setdefault(guild.id, {})
 
         return self.cache.setdefault(guild.id, {}).setdefault(member.id, [])
+    
+    def _get_notes_of_type(self, guild: discord.Guild, member: discord.Member, type: NoteType):
+        user = self._get_notes(guild, member)
+        if not user:
+            return []
 
-    def _add_note(self, ctx: commands.Context, member: discord.Member, note: UserNote):
-        user = self.cache.setdefault(ctx.guild.id, {}).setdefault(member.id, [])
+        return [note for note in user if note.type == type]
+
+    def _add_note(self, note: UserNote):
+        user = self.cache.setdefault(note._guild, {}).setdefault(note._user, [])
         user.append(note)
         return user
 
@@ -109,7 +131,7 @@ class Notes(commands.Cog):
 
         user.clear()
         return True
-
+    
     @commands.command()
     @commands.mod_or_permissions(manage_messages=True)
     async def setnote(
@@ -120,8 +142,7 @@ class Notes(commands.Cog):
 
         The member argument is optional and defaults to the command invoker"""
         member = member or ctx.author
-        note = UserNote(self.bot, ctx.guild.id, member.id, ctx.author.id, note, time.time())
-        self._add_note(ctx, member, note)
+        note = self._create_note(ctx.guild, ctx.author, note, member, NoteType.RegularNote)
         await ctx.send(f"Note added to **{member}**\nNote:- {note}")
 
     @commands.command(name="allnotes", aliases=["guildnotes"])
@@ -141,7 +162,7 @@ class Notes(commands.Cog):
                 if not n:
                     return await ctx.send("No notes found for this server.")
                 for i, note in enumerate(n, 1):
-                    final += f"**{i}**. {note}/n"
+                    final += f"**{i}** ({note.type.name}). \n{note}\n"
             return await ctx.send(
                 embed=discord.Embed(
                     title=f"Notes for {ctx.guild}", color=discord.Color.green()
@@ -158,7 +179,7 @@ class Notes(commands.Cog):
             if not n:
                 continue
             for i, note in enumerate(n, 1):
-                final += f"**{i}**. {note}\n"
+                final += f"**{i}** ({note.type.name}). \n{note}\n"
             user = ctx.guild.get_member(user)
             embed = discord.Embed(
                 title=f"Notes for {ctx.guild}", color=discord.Color.green()
@@ -191,7 +212,7 @@ class Notes(commands.Cog):
             embed.color = member.color
 
             for i, note in enumerate(notes, 1):
-                embed.add_field(name=f"Note:- {i}", value=note, inline=False)
+                embed.add_field(name=f"Note:- {i} ({note.type.name})", value=note, inline=False)
         else:
             embed.description = "No notes found"
         await ctx.send(embed=embed)

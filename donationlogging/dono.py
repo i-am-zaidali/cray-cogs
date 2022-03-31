@@ -28,7 +28,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.3.2"
+    __version__ = "2.4.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -46,7 +46,6 @@ class DonationLogging(commands.Cog):
 
         self.config.register_global(migrated=False)
         self.config.register_guild(**default_guild)
-        self.config.register_member(notes={})
 
         self._task = self._back_to_config.start()
 
@@ -60,8 +59,32 @@ class DonationLogging(commands.Cog):
             await task
 
         self.cache = await DonationManager.initialize(bot)
+        
+        notes = await self.config.all_members()
+        if notes:
+            cog = self.notes_cog
+            if not cog:
+                return self
+            for guild_id, data in notes.items():
+                for member_id, d in data.items():
+                    if d.get("notes"):
+                        for note in d["notes"].values():
+                            cog._create_note(
+                                guild_id,
+                                note["author"],
+                                note["content"],
+                                member_id,
+                                "DonationNote",
+                                note["at"]
+                            )
+                            
+                    await self.config.member_from_ids(guild_id, member_id).clear()
 
         return self
+    
+    @property
+    def notes_cog(self):
+        return self.bot.get_cog("Notes")
 
     def format_help_for_context(self, ctx: commands.Context):
         pre_processed = super().format_help_for_context(ctx)
@@ -362,7 +385,7 @@ class DonationLogging(commands.Cog):
             color=await ctx.embed_color(),
         )
         embed.add_field(name="Category: ", value=f"**{bank.name.title()}**", inline=True)
-        embed.add_field(name="Note: ", value=note if note else "No note taken.", inline=False)
+        embed.add_field(name="Note: ", value=str(note) if note else "No note taken.", inline=False)
         embed.add_field(
             name="Their total donations are: ", value=f"{emoji} {humanize_number(donos)}"
         )
@@ -386,30 +409,15 @@ class DonationLogging(commands.Cog):
         elif not chanid:
             await ctx.send(role, embed=embed)
 
-    async def add_note(self, member, message, flag={}, category: DonoBank = None):
+    async def add_note(self, ctx: commands.Context, member, flag = {}, category: DonoBank = None):
         if note := flag.get("note"):
-            data = {
-                "content": note,
-                "message_id": message.id,
-                "channel_id": message.channel.id,
-                "author": message.author.id,
-                "at": int(time.time()),
-                "category": category.name,
-            }
-            async with self.config.member(member).notes() as notes:
-                if not notes:
-                    notes[1] = data
-
-                else:
-                    notes[len(notes) + 1] = data
-
-            return data["content"]
+            cog = self.notes_cog
+            
+            note = cog._create_note(ctx.guild.id, ctx.author.id, note, member.id, "DonationNote")
+            
+            return note.content
 
         return
-
-    async def get_member_notes(self, member: discord.Member):
-        async with self.config.member(member).notes() as notes:
-            return notes
 
     @dono.command(name="add", usage="[category] <amount> [user] [--note]")
     @is_dmgr()
@@ -447,7 +455,7 @@ class DonationLogging(commands.Cog):
         u = category.get_user(user.id)
 
         donos = u.add(amount)
-        note = await self.add_note(user, ctx.message, flag if flag else {}, category)
+        note = await self.add_note(ctx, user, flag if flag else {}, category)
 
         if not await self.config.guild(ctx.guild).autoadd():
             role = f"Auto role adding is disabled for this server. Enable with `{ctx.prefix}donoset autorole add true`."
@@ -588,77 +596,30 @@ class DonationLogging(commands.Cog):
     @commands.guild_only()
     @is_dmgr()
     @setup_done()
-    async def check_notes(self, ctx, member: Optional[discord.Member] = None, number=None):
+    async def check_notes(self, ctx, member: Optional[discord.Member] = None):
         """
         See donation notes taken for users.
 
         Theses are set with the `--note` flag in either
         `[p]dono add` or `[p]dono remove` commands."""
-        EmbedField = namedtuple("EmbedField", "name value inline")
         member = member or ctx.author
-        notes = await self.get_member_notes(member)
+        if not (cog:=self.notes_cog):
+            return await ctx.send("Notes cog isn't loaded. Please make sure it's loaded.")
+        
+        notes = self.notes_cog._get_notes_of_type(ctx.guild, member, cog.note_type.DonationNote)
+
         if not notes:
             return await ctx.send(f"*{member}* has no notes!")
-        if number != None:
-            note = notes.get(str(number))
-            if not note:
-                return await ctx.send(
-                    f"That doesn't seem to a valid note! **{member}** only has *{len(notes)}* notes."
-                )
 
-            embed = discord.Embed(
-                title=f"{member.display_name.capitalize()}'s Notes!",
-                description=f"Note taken on <t:{int(note['at'])}:D>",
-                color=discord.Color.green(),
-            )
-            embed.add_field(
-                name=f"**Note Number {number}**",
-                value=f"*[{note['content']}]({(await (self.bot.get_channel(note['channel_id'])).fetch_message(int(note['message_id']))).jump_url})*",
-                inline=False,
-            )
-            if cat := note.get("category"):
-                embed.add_field(name="Category: ", value=f"**{cat.title()}**", inline=False)
-            embed.set_footer(
-                text=f"Note taken by {await self.bot.get_or_fetch_member(ctx.guild, note['author'])}"
-            )
-            return await ctx.send(embed=embed)
+        embed = discord.Embed(
+            title=f"{member.display_name.capitalize()}'s Notes!",
+            color=member.color,
+        )
 
-        # Thanks to epic guy for this suggestion :D
-
-        fields = []
-        embeds = []
-        emb = {
-            "embed": {"title": f"{member.name.capitalize()}'s Notes!", "description": ""},
-            "footer": {"text": "", "icon_url": ctx.author.avatar_url},
-            "fields": [],
-        }
-        for key, value in notes.items():
-            field = EmbedField(
-                f"**Note Number {key}.**",
-                f"*[{value['content'][:20] if len(value['content']) > 20 else value['content']}]({(await(self.bot.get_channel(value['channel_id'])).fetch_message(int(value['message_id']))).jump_url})*",
-                False,
-            )
-            fields.append(field)
-
-        fieldgroups = RedHelpFormatter.group_embed_fields(fields, 200)
-        page_len = len(fieldgroups)
-
-        for i, group in enumerate(fieldgroups, 1):
-            embed = discord.Embed(color=0x303036, **emb["embed"])
-            emb["footer"][
-                "text"
-            ] = f"Use `{ctx.prefix}notes {member} [number]` to look at a specific note.\nPage {i}/{page_len}."
-            embed.set_footer(**emb["footer"])
-
-            for field in group:
-                embed.add_field(**field._asdict())
-
-            embeds.append(embed)
-
-        if len(embeds) > 1:
-            return await menu(ctx, embeds, DEFAULT_CONTROLS)
-        else:
-            return await ctx.send(embed=embeds[0])
+        for i, note in enumerate(notes, 1):
+            embed.add_field(name=f"Note:- {i} ", value=note, inline=False)
+            
+        return await ctx.send(embed=embed)
 
     @dono.command(name="check")
     @commands.guild_only()
