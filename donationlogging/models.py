@@ -117,7 +117,7 @@ class DonoBank:
         data = await self.manager.config.guild_from_id(self.guild_id).categories.get_attr(
             self.name
         )()
-        roles = data.get("roles")
+        roles = data.get("roles", {})
         return {
             amount: [_role for r in role if (_role := ctx.guild.get_role(int(r)))]
             for amount, role in roles.items()

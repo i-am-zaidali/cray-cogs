@@ -28,7 +28,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.4.0"
+    __version__ = "2.5.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -500,7 +500,7 @@ class DonationLogging(commands.Cog):
             role = f"Auto role removing is disabled for this server. Enable with `{ctx.prefix}donoset autorole remove true`."
         else:
             role = await category.removeroles(ctx, user)
-        note = await self.add_note(user, ctx.message, flag if flag else {}, category)
+        note = await self.add_note(ctx, user, flag if flag else {}, category)
 
         await self.dono_log(ctx, "remove", user, amount, donation, category, role, note)
 
@@ -618,6 +618,8 @@ class DonationLogging(commands.Cog):
 
         for i, note in enumerate(notes, 1):
             embed.add_field(name=f"Note:- {i} ", value=note, inline=False)
+            
+        embed.set_footer(text=f"Use `{ctx.prefix}delnote <id>` to remove a note.")
             
         return await ctx.send(embed=embed)
 
@@ -776,7 +778,7 @@ class DonationLogging(commands.Cog):
     async def donoset(self, ctx):
         """
         Base command for changing donation settings for your server."""
-        return await ctx.send_help()
+        await ctx.send_help()
 
     @donoset.group(name="autorole", invoke_without_command=True)
     @commands.mod_or_permissions(administrator=True)
@@ -784,14 +786,14 @@ class DonationLogging(commands.Cog):
     async def autorole(self, ctx):
         """
         Change settings for Auto donation roles behaviour in your server."""
-        await ctx.send_help("donoset autorole")
+        await ctx.send_help()
 
     @autorole.command(name="add")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
     async def ar_add(self, ctx, true_or_false: bool):
         """
-        Set whether donation roles(set with `[p]donoset addroles`) automatically get added to users or not.
+        Set whether donation roles(set with `[p]donoset category roles`) automatically get added to users or not.
 
         \n<true_or_false> is supposed to be either of True or False.
         True to enable and False to disable."""
@@ -811,7 +813,7 @@ class DonationLogging(commands.Cog):
     @setup_done()
     async def ar_remove(self, ctx, true_or_false: bool):
         """
-        Set whether donation roles (set with `[p]donoset roles`) automatically get removed from users or not.
+        Set whether donation roles (set with `[p]donoset category roles`) automatically get removed from users or not.
 
         \n<true_or_false> is supposed to be either of True or False.
         True to enable and False to disable."""
@@ -835,7 +837,7 @@ class DonationLogging(commands.Cog):
 
         These allow you to log donations of multiple different currencies.
         """
-        return await ctx.send_help()
+        await ctx.send_help()
 
     @category.command(name="add")
     @commands.mod_or_permissions(administrator=True)
@@ -898,13 +900,14 @@ class DonationLogging(commands.Cog):
 
         await ctx.send("Given categories have been deleted!")
 
-    @category.group(name="item", aliases=["items"])
+    @category.group(name="item", aliases=["items"], invoke_without_command=True)
     async def category_item(self, ctx):
         """
         Manage item amounts to count towards a category.
 
         You can use these item names in place of the amount argument in `dono add/remove` commands.
         """
+        await ctx.send_help()
 
     @category_item.command(name="add")
     async def category_item_add(self, ctx, category: CategoryConverter, *, items: DictConverter):
@@ -1019,11 +1022,17 @@ class DonationLogging(commands.Cog):
             )
         await self.cache.set_default_category(ctx.guild.id, category)
         await ctx.send(f"Default category for this server has been set to {category.name}")
-
-    @donoset.command(name="addroles")
+        
+    @category.group(name="roles", invoke_without_command=True)
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def addroles(self, ctx, category: CategoryConverter, *, pairs: AmountRoleConverter):
+    async def category_role(self, ctx):
+        """
+        See or edit auto roles for a given category"""
+        await ctx.send_help()
+
+    @category_role.command(name="add")
+    async def category_role_add(self, ctx, category: CategoryConverter, *, pairs: AmountRoleConverter):
         """
         Add autoroles for a category.
 
@@ -1041,9 +1050,9 @@ class DonationLogging(commands.Cog):
 
             else:
                 for role in v:
-                    if role.id in r:
+                    if role in r:
                         continue
-                    r.append(role.id)
+                    r.append(role)
 
         await category.setroles(cat_roles)
 
@@ -1056,6 +1065,51 @@ class DonationLogging(commands.Cog):
         embed.description = f"`{rolelist}`"
 
         await ctx.send(embed=embed)
+
+    @category_role.command(name="remove")
+    async def category_role_remove(self, ctx, category: CategoryConverter, *, pairs: AmountRoleConverter):
+        """
+        Remove autoroles for a category.
+
+        The pairs argument should be in this format:
+        `amount` `,` `multiple roles separated with a colon(:)`
+        For example:
+            `10000,someroleid:onemoreroleid 15k,@rolemention 20e4,arolename`"""
+        cat_roles = await category.getroles(ctx)
+
+        for k, v in pairs.items():
+            k = str(k)
+            r = cat_roles.get(k)
+            if not r:
+                continue
+
+            else:
+                for role in v:
+                    if role in r:
+                        r.remove(role)
+
+        await category.setroles(cat_roles)
+
+        embed = discord.Embed(
+            title=f"Updated autoroles for {category.name.title()}!", color=await ctx.embed_color()
+        )
+        rolelist = ""
+        for key, value in cat_roles.items():
+            rolelist += f"{humanize_list([role.name for role in value])} for {humanize_number(key)} donations\n"
+        embed.description = f"`{rolelist}`"
+
+        await ctx.send(embed=embed)
+        
+    @category_role.command(name="list")
+    async def category_role_list(self, ctx: commands.Context, category: CategoryConverter):
+        """
+        List autoroles for a category."""
+        cat_roles = await category.getroles(ctx)
+        if not cat_roles:
+            return await ctx.send("No autoroles set for this category.")
+
+        tab = tabulate([(humanize_number(key), humanize_list([role.name for role in value])) for key, value in cat_roles.items()], ["Amount", "Roles"])
+        await ctx.send("Following autoroles are set for this category:\n" + box(tab, lang="py"))
 
     @donoset.command(name="managers")
     @commands.mod_or_permissions(administrator=True)
