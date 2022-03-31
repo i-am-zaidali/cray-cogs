@@ -632,7 +632,11 @@ class DonationLogging(commands.Cog):
 
         donos = category.get_user(user.id).donations
         emoji = category.emoji
-        notes = len(self.notes_cog._get_notes_of_type(ctx.guild, user, self.notes_cog.note_type.DonationNote))
+        notes = len(
+            self.notes_cog._get_notes_of_type(
+                ctx.guild, user, self.notes_cog.note_type.DonationNote
+            )
+        )
 
         embed = discord.Embed(
             title=f"{user}'s donations in **__{ctx.guild.name}__**",
