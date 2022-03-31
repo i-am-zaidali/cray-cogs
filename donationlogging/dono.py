@@ -520,9 +520,9 @@ class DonationLogging(commands.Cog):
         If a user isn't provided, this command will reset all the users in the category.
         If a category isn't provided, this command will reset the user's donation balance for all categories.
         This requires either one of the donation manager roles or the bot mod role."""
-        
+
         user = user or ctx.author
-        
+
         if not category:
             await ctx.send(
                 f"You didn't provide a category to reset, are you sure you want to reset all donations of {user}?"
@@ -998,7 +998,7 @@ class DonationLogging(commands.Cog):
             )
         await self.cache.set_default_category(ctx.guild.id, category)
         await ctx.send(f"Default category for this server has been set to {category.name}")
-        
+
     @category.command(name="reset")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
@@ -1009,9 +1009,9 @@ class DonationLogging(commands.Cog):
         This will remove all donations of that category.
         """
         await ctx.send(
-                f"Are you sure you want to reset all donations of the given categories `{humanize_list([category.name for category in categories])}`?"
-                " Reply with `yes`/`no`."
-            )
+            f"Are you sure you want to reset all donations of the given categories `{humanize_list([category.name for category in categories])}`?"
+            " Reply with `yes`/`no`."
+        )
         pred = MessagePredicate.yes_or_no(ctx)
         try:
             await ctx.bot.wait_for("message", check=pred, timeout=30)
@@ -1021,13 +1021,10 @@ class DonationLogging(commands.Cog):
         if pred.result:
             for category in categories:
                 category._data = {}
-            return await ctx.send(
-                f"Given categories' donations have been reset."
-            )
+            return await ctx.send(f"Given categories' donations have been reset.")
 
         else:
             return await ctx.send("Alright!")
-        
 
     @category.group(name="roles", invoke_without_command=True)
     @commands.mod_or_permissions(administrator=True)
