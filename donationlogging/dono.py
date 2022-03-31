@@ -1,7 +1,5 @@
 import asyncio
 import operator
-import time
-from collections import namedtuple
 from typing import List, Optional
 
 import discord
@@ -59,7 +57,7 @@ class DonationLogging(commands.Cog):
             await task
 
         self.cache = await DonationManager.initialize(bot)
-        
+
         notes = await self.config.all_members()
         if notes:
             cog = self.notes_cog
@@ -75,13 +73,13 @@ class DonationLogging(commands.Cog):
                                 note["content"],
                                 member_id,
                                 "DonationNote",
-                                note["at"]
+                                note["at"],
                             )
-                            
+
                     await self.config.member_from_ids(guild_id, member_id).clear()
 
         return self
-    
+
     @property
     def notes_cog(self):
         return self.bot.get_cog("Notes")
@@ -409,12 +407,12 @@ class DonationLogging(commands.Cog):
         elif not chanid:
             await ctx.send(role, embed=embed)
 
-    async def add_note(self, ctx: commands.Context, member, flag = {}, category: DonoBank = None):
+    async def add_note(self, ctx: commands.Context, member, flag={}, category: DonoBank = None):
         if note := flag.get("note"):
             cog = self.notes_cog
-            
+
             note = cog._create_note(ctx.guild.id, ctx.author.id, note, member.id, "DonationNote")
-            
+
             return note.content
 
         return
@@ -603,9 +601,9 @@ class DonationLogging(commands.Cog):
         Theses are set with the `--note` flag in either
         `[p]dono add` or `[p]dono remove` commands."""
         member = member or ctx.author
-        if not (cog:=self.notes_cog):
+        if not (cog := self.notes_cog):
             return await ctx.send("Notes cog isn't loaded. Please make sure it's loaded.")
-        
+
         notes = self.notes_cog._get_notes_of_type(ctx.guild, member, cog.note_type.DonationNote)
 
         if not notes:
@@ -618,9 +616,9 @@ class DonationLogging(commands.Cog):
 
         for i, note in enumerate(notes, 1):
             embed.add_field(name=f"Note:- {i} ", value=note, inline=False)
-            
+
         embed.set_footer(text=f"Use `{ctx.prefix}delnote <id>` to remove a note.")
-            
+
         return await ctx.send(embed=embed)
 
     @dono.command(name="check")
@@ -1022,7 +1020,7 @@ class DonationLogging(commands.Cog):
             )
         await self.cache.set_default_category(ctx.guild.id, category)
         await ctx.send(f"Default category for this server has been set to {category.name}")
-        
+
     @category.group(name="roles", invoke_without_command=True)
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
@@ -1032,7 +1030,9 @@ class DonationLogging(commands.Cog):
         await ctx.send_help()
 
     @category_role.command(name="add")
-    async def category_role_add(self, ctx, category: CategoryConverter, *, pairs: AmountRoleConverter):
+    async def category_role_add(
+        self, ctx, category: CategoryConverter, *, pairs: AmountRoleConverter
+    ):
         """
         Add autoroles for a category.
 
@@ -1067,7 +1067,9 @@ class DonationLogging(commands.Cog):
         await ctx.send(embed=embed)
 
     @category_role.command(name="remove")
-    async def category_role_remove(self, ctx, category: CategoryConverter, *, pairs: AmountRoleConverter):
+    async def category_role_remove(
+        self, ctx, category: CategoryConverter, *, pairs: AmountRoleConverter
+    ):
         """
         Remove autoroles for a category.
 
@@ -1099,7 +1101,7 @@ class DonationLogging(commands.Cog):
         embed.description = f"`{rolelist}`"
 
         await ctx.send(embed=embed)
-        
+
     @category_role.command(name="list")
     async def category_role_list(self, ctx: commands.Context, category: CategoryConverter):
         """
@@ -1108,7 +1110,13 @@ class DonationLogging(commands.Cog):
         if not cat_roles:
             return await ctx.send("No autoroles set for this category.")
 
-        tab = tabulate([(humanize_number(key), humanize_list([role.name for role in value])) for key, value in cat_roles.items()], ["Amount", "Roles"])
+        tab = tabulate(
+            [
+                (humanize_number(key), humanize_list([role.name for role in value]))
+                for key, value in cat_roles.items()
+            ],
+            ["Amount", "Roles"],
+        )
         await ctx.send("Following autoroles are set for this category:\n" + box(tab, lang="py"))
 
     @donoset.command(name="managers")
