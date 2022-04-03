@@ -26,7 +26,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.5.2"
+    __version__ = "2.5.3"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -247,7 +247,7 @@ class DonationLogging(commands.Cog):
         await self.config.guild(ctx.guild).setup.set(True)
         if pairs:
             await bank.setroles(pairs)
-        await self.cache.set_default_category(ctx.guild.id, bank.name)
+        await self.cache.set_default_category(ctx.guild.id, bank)
 
         if old_data := await self.get_old_data(ctx.guild):
             confirmation = await ctx.send(
@@ -632,7 +632,11 @@ class DonationLogging(commands.Cog):
 
         donos = category.get_user(user.id).donations
         emoji = category.emoji
-        notes = len(self.notes_cog._get_notes_of_type(ctx.guild, user, self.notes_cog.note_type.DonationNote))
+        notes = len(
+            self.notes_cog._get_notes_of_type(
+                ctx.guild, user, self.notes_cog.note_type.DonationNote
+            )
+        )
 
         embed = discord.Embed(
             title=f"{user}'s donations in **__{ctx.guild.name}__**",
