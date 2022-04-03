@@ -26,7 +26,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.5.3"
+    __version__ = "2.5.5"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -57,6 +57,8 @@ class DonationLogging(commands.Cog):
             await task
 
         self.cache = await DonationManager.initialize(bot)
+        
+        self.bot.add_dev_env_value("dono", lambda ctx: self)
 
         notes = await self.config.all_members()
         if notes:
@@ -97,6 +99,7 @@ class DonationLogging(commands.Cog):
     def cog_unload(self):
         self._task.cancel()
         self.bot._backing_up_task = asyncio.create_task(self.cache._back_to_config())
+        self.bot.remove_dev_env_value("dono")
 
     async def get_old_data(self, guild: discord.Guild):
         all_members = await self.config.all_members(guild)

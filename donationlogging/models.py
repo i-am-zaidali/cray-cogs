@@ -292,6 +292,7 @@ class DonationManager:
             name = await self._create_category(guild_id, name, emoji=emoji, force=force)
 
         except CategoryAlreadyExists as e:
+            print("got triggered")
             name = e.name
 
         for i in self._CACHE:
@@ -304,6 +305,7 @@ class DonationManager:
             name,
             emoji,
             guild_id,
+            await self.get_default_category(guild_id, False) == name,
             await self.config.custom("guild_category", guild_id, name).donations(),
         )
         self._CACHE.append(bank)
