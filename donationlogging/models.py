@@ -330,11 +330,11 @@ class DonationManager:
             banks = await self.get_all_dono_banks(guild_id)
             for bank in banks:
                 bank.remove_user(user_id)
-                
+
     async def clear_guild_settings(self, guild_id: int):
         await self.config.guild_from_id(guild_id).clear()
         await self.config.custom("guild_category", guild_id).clear()
-        for i in (await self.get_all_dono_banks(guild_id)):
+        for i in await self.get_all_dono_banks(guild_id):
             self._CACHE.remove(i)
 
     async def get_all_dono_banks(self, guild_id: int = None) -> List[DonoBank]:
