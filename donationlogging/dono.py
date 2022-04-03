@@ -1168,6 +1168,19 @@ class DonationLogging(commands.Cog):
             if channel
             else "Successfully reset the log channel."
         )
+        
+    @donoset.command(name="reset", hidden=True)
+    @commands.mod_or_permissions(administrator=True)
+    @setup_done()
+    async def donoset_reset(self, ctx: commands.Context):
+        """
+        Completely reset you guild's settings.
+        
+        All your data will be removed and you will have to re-run the setup process.
+        """
+        await self.config.guild(ctx.guild).clear()
+        await self.cache.clear_guild_settings(ctx.guild.id)
+        return await ctx.send("Successfully reset your guild's settings.")
 
     @donoset.command(name="showsettings", aliases=["showset", "ss"])
     @setup_done()
