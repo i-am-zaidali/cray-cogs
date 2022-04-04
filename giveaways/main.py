@@ -185,11 +185,11 @@ class Giveaways(commands.Cog):
             delattr(self.bot, "amari")
         for i in Giveaway._tasks:
             i.cancel()  # cancel all running tasks
-            
+
     @tasks.loop(minutes=5)
     async def save_giveaways(self):
         await self.to_config()
-        
+
     @save_giveaways.before_loop
     async def before_save_giveaways(self):
         await self.bot.wait_until_red_ready()
@@ -222,7 +222,7 @@ class Giveaways(commands.Cog):
                 f"Error occurred while ending a giveaway with message id: {giveaway.message_id}",
                 exc_info=e,
             )
-            
+
     @end_giveaway.before_loop
     async def before_end_giveaway(self):
         await self.bot.wait_until_red_ready()
