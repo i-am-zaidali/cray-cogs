@@ -55,7 +55,7 @@ class DonationLogging(commands.Cog):
             await task
 
         self.cache = await DonationManager.initialize(bot)
-        
+
         self.bot.add_dev_env_value("dono", lambda ctx: self)
 
         notes = await self.config.all_members()
