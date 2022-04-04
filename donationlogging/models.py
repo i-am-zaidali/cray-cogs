@@ -116,7 +116,8 @@ class DonoBank:
             banks[self.name].setdefault("roles", {}).update(pairs)
 
     async def getroles(self, ctx) -> Dict[int, List[discord.Role]]:
-        data = await self.manager.config.guild_from_id(self.guild_id).banks.get_attr(self.name)()
+        banks = await self.manager.config.guild_from_id(self.guild_id).banks()
+        data = banks.get(self.name, {})
         roles = data.get("roles", {})
         return {
             amount: [_role for r in role if (_role := ctx.guild.get_role(int(r)))]
