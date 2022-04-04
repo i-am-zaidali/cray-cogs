@@ -47,7 +47,7 @@ class Giveaways(commands.Cog):
     This cog is a very complex cog and could be resource intensive on your bot.
     Use `giveaway explain` command for an indepth explanation on how to use the commands."""
 
-    __version__ = "2.4.1"
+    __version__ = "2.4.2"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -108,6 +108,7 @@ class Giveaways(commands.Cog):
             await _config_schema_0_to_1(self.bot)
 
         self.end_giveaways_task = self.end_giveaway.start()
+        self.save_giveaways_task = self.save_giveaways.start()
 
         self.bot.add_dev_env_value("giveaways", lambda x: self)
 
@@ -175,14 +176,23 @@ class Giveaways(commands.Cog):
         return time_to_end
 
     def cog_unload(self):
-        self.bot.loop.create_task(self.to_config())
+        asyncio.create_task(self.to_config())
         self.end_giveaways_task.cancel()
+        self.save_giveaways_task.cancel()
         self.bot.remove_dev_env_value("giveaways")
         if getattr(self.bot, "amari", None):
-            self.bot.loop.create_task(self.bot.amari.close())
+            asyncio.create_task(self.bot.amari.close())
             delattr(self.bot, "amari")
         for i in Giveaway._tasks:
             i.cancel()  # cancel all running tasks
+            
+    @tasks.loop(minutes=5)
+    async def save_giveaways(self):
+        await self.to_config()
+        
+    @save_giveaways.before_loop
+    async def before_save_giveaways(self):
+        await self.bot.wait_until_red_ready()
 
     # < ----------------- Giveaway Ending Task ----------------- > #
 
@@ -212,6 +222,10 @@ class Giveaways(commands.Cog):
                 f"Error occurred while ending a giveaway with message id: {giveaway.message_id}",
                 exc_info=e,
             )
+            
+    @end_giveaway.before_loop
+    async def before_end_giveaway(self):
+        await self.bot.wait_until_red_ready()
 
     # < ----------------- Event Listeners ----------------- > #
 
