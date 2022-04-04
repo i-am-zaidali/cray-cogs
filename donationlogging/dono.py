@@ -24,7 +24,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.6.0"
+    __version__ = "2.6.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -406,7 +406,7 @@ class DonationLogging(commands.Cog):
         u = bank.get_user(user.id)
 
         donos = u.add(amount)
-        note = await self.add_note(ctx, user, flag if flag else {}, bank)
+        note = await self.add_note(ctx, user, flag if flag else {})
 
         if not await self.config.guild(ctx.guild).autoadd():
             role = f"Auto role adding is disabled for this server. Enable with `{ctx.prefix}donoset autorole add true`."
@@ -451,7 +451,7 @@ class DonationLogging(commands.Cog):
             role = f"Auto role removing is disabled for this server. Enable with `{ctx.prefix}donoset autorole remove true`."
         else:
             role = await bank.removeroles(ctx, user)
-        note = await self.add_note(ctx, user, flag if flag else {}, bank)
+        note = await self.add_note(ctx, user, flag if flag else {})
 
         await self.dono_log(ctx, "remove", user, amount, donation, bank, role, note)
 
