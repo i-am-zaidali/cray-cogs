@@ -27,5 +27,6 @@ class SimilarBankExists(BankError):
     """
     Exception raised when a Bank with a similar name exists.
     """
+
     def __init__(self, message, name) -> None:
         super().__init__(message, name)

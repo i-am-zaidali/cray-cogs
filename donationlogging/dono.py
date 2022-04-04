@@ -303,7 +303,7 @@ class DonationLogging(commands.Cog):
                 color=await ctx.embed_color(),
             )
             for bank in banks:
-                if bank.hidden: 
+                if bank.hidden:
                     continue
                 donations = bank.get_user(ctx.author.id).donations
                 embed.add_field(
@@ -318,15 +318,15 @@ class DonationLogging(commands.Cog):
         await ctx.send(embed=embed)
 
     async def dono_log(
-        self, 
-        ctx: commands.Context, 
-        action: str, 
-        user: discord.Member, 
-        amount: int, 
-        donos: int, 
-        bank: DonoBank, 
-        role: str = None, 
-        note: str = None
+        self,
+        ctx: commands.Context,
+        action: str,
+        user: discord.Member,
+        amount: int,
+        donos: int,
+        bank: DonoBank,
+        role: str = None,
+        note: str = None,
     ):
         emoji = bank.emoji
         embed = discord.Embed(
@@ -463,9 +463,7 @@ class DonationLogging(commands.Cog):
     @is_dmgr()
     @commands.guild_only()
     @setup_done()
-    async def reset(
-        self, ctx, bank: Optional[BankConverter] = None, user: discord.Member = None
-    ):
+    async def reset(self, ctx, bank: Optional[BankConverter] = None, user: discord.Member = None):
         """
         Reset a bank or a user's donation balance.
 
@@ -793,8 +791,7 @@ class DonationLogging(commands.Cog):
                 )
                 + "\n"
                 + "\n".join(
-                    f"{index}:  {bank.name} - {bank.emoji}"
-                    for index, bank in enumerate(banks, 1)
+                    f"{index}:  {bank.name} - {bank.emoji}" for index, bank in enumerate(banks, 1)
                 )
             )
         )
@@ -851,9 +848,7 @@ class DonationLogging(commands.Cog):
         Multiple items should be separated by a space. `name,amount anothername,amount2 thirditem,amount3`"""
         if not items:
             return await ctx.send("You need to specify at least one item.")
-        async with self.cache.config.guild(ctx.guild).banks.get_attr(
-            bank.name
-        )() as cat_data:
+        async with self.cache.config.guild(ctx.guild).banks.get_attr(bank.name)() as cat_data:
             cat_items = cat_data.setdefault("items", {})
             for item, amount in items.items():
 
@@ -883,9 +878,7 @@ class DonationLogging(commands.Cog):
         Just send their exact names separated by a space."""
         if not items:
             return await ctx.send("You need to specify at least one item.")
-        async with self.cache.config.guild(ctx.guild).banks.get_attr(
-            bank.name
-        )() as cat_data:
+        async with self.cache.config.guild(ctx.guild).banks.get_attr(bank.name)() as cat_data:
             cat_items = cat_data.setdefault("items", {})
             if not cat_items:
                 return await ctx.send("No items registered for this bank.")
@@ -991,9 +984,7 @@ class DonationLogging(commands.Cog):
         await ctx.send_help()
 
     @bank_role.command(name="add")
-    async def bank_role_add(
-        self, ctx, bank: BankConverter, *, pairs: AmountRoleConverter
-    ):
+    async def bank_role_add(self, ctx, bank: BankConverter, *, pairs: AmountRoleConverter):
         """
         Add autoroles for a bank.
 
@@ -1028,9 +1019,7 @@ class DonationLogging(commands.Cog):
         await ctx.send(embed=embed)
 
     @bank_role.command(name="remove")
-    async def bank_role_remove(
-        self, ctx, bank: BankConverter, *, pairs: AmountRoleConverter
-    ):
+    async def bank_role_remove(self, ctx, bank: BankConverter, *, pairs: AmountRoleConverter):
         """
         Remove autoroles for a bank.
 
@@ -1079,7 +1068,7 @@ class DonationLogging(commands.Cog):
             ["Amount", "Roles"],
         )
         await ctx.send("Following autoroles are set for this bank:\n" + box(tab, lang="py"))
-        
+
     @bank.command(name="hide")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
@@ -1091,7 +1080,7 @@ class DonationLogging(commands.Cog):
         async with self.cache.config.guild(ctx.guild).banks() as cats:
             cats.get(bank.name).update({"hidden": True})
         await ctx.send(f"bank {bank.name} has been hidden.")
-        
+
     @bank.command(name="unhide")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
@@ -1101,9 +1090,9 @@ class DonationLogging(commands.Cog):
         bank.hidden = False
         async with self.cache.config.guild(ctx.guild).banks() as cats:
             cats.get(bank.name).update({"hidden": False})
-            
+
         await ctx.send(f"bank {bank.name} has been unhidden.")
-        
+
     @bank.command(name="emoji")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()

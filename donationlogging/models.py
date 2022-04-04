@@ -116,9 +116,7 @@ class DonoBank:
             banks[self.name].setdefault("roles", {}).update(pairs)
 
     async def getroles(self, ctx) -> Dict[int, List[discord.Role]]:
-        data = await self.manager.config.guild_from_id(self.guild_id).banks.get_attr(
-            self.name
-        )()
+        data = await self.manager.config.guild_from_id(self.guild_id).banks.get_attr(self.name)()
         roles = data.get("roles", {})
         return {
             amount: [_role for r in role if (_role := ctx.guild.get_role(int(r)))]
@@ -222,7 +220,12 @@ class DonationManager:
         # if first value is false, the second one will be a comparable match or None if not found at all.
 
     async def _create_bank(
-        self, guild_id: int, bank: str, emoji: str = None, hidden: bool = False, force: bool = False
+        self,
+        guild_id: int,
+        bank: str,
+        emoji: str = None,
+        hidden: bool = False,
+        force: bool = False,
     ):
         if (tup := await self._verify_guild_bank(guild_id, bank))[0]:
             raise BankAlreadyExists(f"Bank with that name already exists.", tup[1])
@@ -252,32 +255,32 @@ class DonationManager:
             await self.config.guild_from_id(guild).categories.set(data["categories"])
 
         await self.config.schema.set(1)
-        
+
     async def _schema_1_to_2(self):
         guilds = await self.config.all_guilds()
         for guild, data in guilds.items():
-            if (cat_data:=data.get("categories")):
+            if cat_data := data.get("categories"):
                 data["banks"] = cat_data
                 cat_data = self.config.custom("guild_category", guild)
                 await self.config.custom("guild_bank", guild).set(await cat_data.all())
                 await cat_data.clear()
                 del data["categories"]
-                
-            if (default_bank:=data.get("default_category")):
+
+            if default_bank := data.get("default_category"):
                 data["default_bank"] = default_bank
                 del data["default_category"]
-                
+
             await self.config.guild_from_id(guild).set(data)
-            
+
         await self.config.schema.set(2)
 
     async def _populate_cache(self):
-        if not (schema:=await self.config.schema()) == 1:
+        if not (schema := await self.config.schema()) == 1:
             await self._schema_0_to_1()
-            
+
         elif schema == 1:
             await self._schema_1_to_2()
-            
+
         for guild, data in (await self.config.all_guilds()).items():
             default = await self.get_default_bank(guild, False)
             if not data["banks"]:
@@ -308,7 +311,9 @@ class DonationManager:
             return
 
         for bank in copy:
-            await self.config.custom("guild_bank", bank.guild_id, bank.name).donations.set(bank._data)
+            await self.config.custom("guild_bank", bank.guild_id, bank.name).donations.set(
+                bank._data
+            )
         log.debug("Cache backed up to config.")
 
     async def get_dono_bank(

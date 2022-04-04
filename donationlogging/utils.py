@@ -18,6 +18,7 @@ from .models import DonoBank
 time_regex = re.compile(r"(?:(\d{1,5})(h|s|m|d))+?")
 time_dict = {"h": 3600, "s": 1, "m": 60, "d": 86400}
 
+
 class EmojiConverter(commands.EmojiConverter):
     async def convert(self, ctx: commands.Context, emoji: str):
         if not emoji in UNICODE_EMOJI_ENGLISH.keys():
@@ -27,8 +28,9 @@ class EmojiConverter(commands.EmojiConverter):
                 raise BadArgument(
                     "You need to provide a unicode emoji or a valid custom emoji that the bot has access to."
                 )
-                
+
         return emoji
+
 
 class BankConverter(commands.Converter):
     async def convert(self, ctx, argument):
