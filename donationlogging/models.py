@@ -63,6 +63,7 @@ class DonoBank:
         emoji: str,
         guild_id: int,
         is_default: bool = False,
+        hidden: bool = True,
         data: Dict[str, int] = {},
         items: List[DonoItem] = [],
     ):
@@ -72,6 +73,7 @@ class DonoBank:
         self.emoji = emoji
         self.guild_id = guild_id
         self.is_default = is_default
+        self.hidden = hidden
         self._data = data
         self.items = items
 
@@ -190,7 +192,8 @@ class DonationManager:
         #          "category name": {
         #               "emoji": emoji,
         #                "roles": {amount: roleid} # roles to assign
-        #                "items": {}
+        #                "items": {},
+        #                "hidden": bool
         #               }
         #          },
         #      "default_category": "default category name"
@@ -219,7 +222,7 @@ class DonationManager:
         # if first value is false, the second one will be a comparable match or None if not found at all.
 
     async def _create_category(
-        self, guild_id: int, category: str, emoji: str = None, force: bool = False
+        self, guild_id: int, category: str, emoji: str = None, hidden: bool = False, force: bool = False
     ):
         if (tup := await self._verify_guild_category(guild_id, category))[0]:
             raise CategoryAlreadyExists(f"Category with that name already exists.", tup[1])
@@ -262,8 +265,9 @@ class DonationManager:
                 try:
                     donos = donations.get(category_name, {}).get("donations", {}).copy()
                     is_default = default == category_name
+                    hidden = d.get("hidden", False)
                     bank = DonoBank(
-                        self.bot, self, category_name, d["emoji"], guild, is_default, donos
+                        self.bot, self, category_name, d["emoji"], guild, is_default, hidden, donos
                     )
                     items = d.get("items", {})
                     for name, amount in items.items():
@@ -286,13 +290,12 @@ class DonationManager:
         log.debug("Cache backed up to config.")
 
     async def get_dono_bank(
-        self, name: str, guild_id: int, *, emoji=None, force=False
+        self, name: str, guild_id: int, *, emoji=None, hidden=False, force=False
     ) -> DonoBank:
         try:
             name = await self._create_category(guild_id, name, emoji=emoji, force=force)
 
         except CategoryAlreadyExists as e:
-            print("got triggered")
             name = e.name
 
         for i in self._CACHE:
@@ -306,6 +309,7 @@ class DonationManager:
             emoji,
             guild_id,
             await self.get_default_category(guild_id, False) == name,
+            hidden,
             await self.config.custom("guild_category", guild_id, name).donations(),
         )
         self._CACHE.append(bank)

@@ -7,7 +7,6 @@ from discord.ext import tasks
 from discord.ext.commands.converter import Greedy
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.commands import RedHelpFormatter
 from redbot.core.utils.chat_formatting import box, humanize_list, humanize_number, pagify
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu, start_adding_reactions
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
@@ -26,7 +25,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.5.5"
+    __version__ = "2.5.6"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -279,64 +278,6 @@ class DonationLogging(commands.Cog):
             f"Alright. I've noted that down. You can now start logging donations."
         )
 
-    @dono.command(name="roles")
-    @commands.guild_only()
-    @setup_done()
-    @commands.has_guild_permissions(administrator=True)
-    async def roles(self, ctx, category: CategoryConverter = None):
-        """
-        Shows the donation autoroles for the category provided.
-        If the category isn't provided, shows all the category autoroles.
-
-        These are set initially in the `[p]dono setup` command
-        but can also be set with `[p]donoset addroles`"""
-        if not category:
-            categories = await self.cache.config.guild(ctx.guild).categories()
-            cat_roles = {}
-            for name, data in categories.items():
-                data.pop("emoji")
-                if not data:
-                    continue
-                bank = await self.cache.get_dono_bank(name, ctx.guild.id)
-                cat_roles.update({bank: await bank.getroles(ctx)})
-            embed = discord.Embed(title=f"All donations autoroles in {ctx.guild}!", color=0x303036)
-            if not cat_roles:
-                embed.description = "No roles setup for any category."
-            for key, value in cat_roles.items():
-                roles = "\n".join(
-                    [
-                        f"{humanize_list([role.name for role in roles])} for {humanize_number(amount)} donations"
-                        for amount, roles in value.items()
-                    ]
-                )
-                embed.add_field(
-                    name=f"Category: {key.name.title()}",
-                    value=f"`{roles}`" if value else "No roles setup for this category.",
-                    inline=False,
-                )
-
-        else:
-            data = await category.getroles(ctx)
-            embed = discord.Embed(
-                title=f"{category.name.title()}'s autoroles", color=await ctx.embed_color()
-            )
-            embed.set_footer(text=f"{ctx.guild.name}", icon_url=ctx.author.avatar_url)
-            if data:
-                rolelist = ""
-                for key, value in data.items():
-                    rolelist += f"{humanize_list([role.name for role in value])} for {humanize_number(key)} donations\n"
-                embed.description = f"{rolelist}"
-
-            elif not data:
-                embed.description = f"There are no autoroles setup for this guild.\nRun `{ctx.prefix}dono setroles` to set them up."
-
-        if not await self.config.guild(ctx.guild).autoadd():
-            embed.set_footer(
-                text="These roles are dull and wont be automatically added/removed since auto adding of roles is disabled for this server."
-            )
-
-        await ctx.send(embed=embed)
-
     @dono.command(name="bal", aliases=["mydono"])
     @commands.guild_only()
     @setup_done()
@@ -363,6 +304,8 @@ class DonationLogging(commands.Cog):
                 color=await ctx.embed_color(),
             )
             for bank in banks:
+                if bank.hidden: 
+                    continue
                 donations = bank.get_user(ctx.author.id).donations
                 embed.add_field(
                     name=f"*{bank.name.title()}*",
@@ -1130,6 +1073,30 @@ class DonationLogging(commands.Cog):
             ["Amount", "Roles"],
         )
         await ctx.send("Following autoroles are set for this category:\n" + box(tab, lang="py"))
+        
+    @category.command(name="hide")
+    @commands.mod_or_permissions(administrator=True)
+    @setup_done()
+    async def category_hide(self, ctx: commands.Context, *, category: CategoryConverter):
+        """
+        Hide a category from the `dono bal` command.
+        """
+        category.hidden = True
+        async with self.cache.config.guild(ctx.guild).categories() as cats:
+            cats.get(category.name).update({"hidden": True})
+        await ctx.send(f"Category {category.name} has been hidden.")
+        
+    @category.command(name="unhide")
+    @commands.mod_or_permissions(administrator=True)
+    @setup_done()
+    async def category_unhide(self, ctx: commands.Context, *, category: CategoryConverter):
+        """
+        Unhide a category from the `dono bal` command."""
+        category.hidden = False
+        async with self.cache.config.guild(ctx.guild).categories() as cats:
+            cats.get(category.name).update({"hidden": False})
+            
+        await ctx.send(f"Category {category.name} has been unhidden.")
 
     @donoset.command(name="managers")
     @commands.mod_or_permissions(administrator=True)
