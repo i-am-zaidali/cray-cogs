@@ -3,7 +3,6 @@ import re
 from typing import Any, Awaitable, Callable, Dict, List, Tuple
 
 import discord
-from discord.ext.commands.converter import EmojiConverter, RoleConverter, TextChannelConverter
 from discord.ext.commands.errors import BadArgument, EmojiNotFound
 from discord.ext.commands.view import StringView
 from emoji import UNICODE_EMOJI_ENGLISH
@@ -19,6 +18,17 @@ from .models import DonoBank
 time_regex = re.compile(r"(?:(\d{1,5})(h|s|m|d))+?")
 time_dict = {"h": 3600, "s": 1, "m": 60, "d": 86400}
 
+class EmojiConverter(commands.EmojiConverter):
+    async def convert(self, ctx: commands.Context, emoji: str):
+        if not emoji in UNICODE_EMOJI_ENGLISH.keys():
+            try:
+                emoji = await super().convert(ctx, emoji)
+            except EmojiNotFound:
+                raise BadArgument(
+                    "You need to provide a unicode emoji or a valid custom emoji that the bot has access to."
+                )
+                
+        return emoji
 
 class CategoryConverter(commands.Converter):
     async def convert(self, ctx, argument):
@@ -45,13 +55,7 @@ class CategoryMaker(commands.Converter):
                 f"You need to provide a name and emoji for the category separated by a comma (`name,emoji`). You only provided `{argument}`."
             )
         if not emoji == "⏣":
-            if not emoji in UNICODE_EMOJI_ENGLISH.keys():
-                try:
-                    emoji = await EmojiConverter().convert(ctx, emoji)
-                except EmojiNotFound:
-                    raise BadArgument(
-                        "You need to provide a unicode emoji or a valid custom emoji that the bot has access to."
-                    )
+            emoji = await EmojiConverter().convert(ctx, emoji)
         if len(name) > 32:
             raise BadArgument("The name of the category can't be longer than 32 characters.")
 
@@ -195,8 +199,8 @@ class AmountRoleConverter(commands.Converter):
         if argument.lower() == "none":
             return {}
         pairs = argument.split()
-        rconv = RoleConverter().convert
-        mconv = MoniConverter().convert
+        rconv = commands.RoleConverter().convert
+        mconv = commands.MoniConverter().convert
         final = {}
         for pair in pairs:
             amount, roles = pair.split(",")
@@ -329,7 +333,7 @@ def is_dmgr():
 def manager_roles(ctx):
     async def predicate(answer: str):
         roleids = answer.split(",")
-        rc = RoleConverter()
+        rc = commands.RoleConverter()
 
         roles = []
 
@@ -347,7 +351,7 @@ def channel_conv(ctx):
     async def predicate(answer: str):
         if answer.lower() == "none":
             return None
-        return await TextChannelConverter().convert(ctx, answer)
+        return await commands.TextChannelConverter().convert(ctx, answer)
 
     return predicate
 

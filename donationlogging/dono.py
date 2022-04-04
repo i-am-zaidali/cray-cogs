@@ -25,7 +25,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.5.6"
+    __version__ = "2.5.7"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -937,7 +937,7 @@ class DonationLogging(commands.Cog):
         """
         See or set the default category for your server.
 
-        if not category is given, it will show the currenct default.
+        if no category is given, it will show the current default.
 
         This category will be used for commands if no category is specified
         in commands that require a category being specified.
@@ -1097,6 +1097,18 @@ class DonationLogging(commands.Cog):
             cats.get(category.name).update({"hidden": False})
             
         await ctx.send(f"Category {category.name} has been unhidden.")
+        
+    @category.command(name="emoji")
+    @commands.mod_or_permissions(administrator=True)
+    @setup_done()
+    async def category_emoji(self, ctx: commands.Context, category: CategoryConverter, emoji: EmojiConverter):
+        """
+        Edit the emoji used for the category.
+        """
+        category.emoji = str(emoji)
+        async with self.cache.config.guild(ctx.guild).categories() as cats:
+            cats.get(category.name).update({"emoji": str(emoji)})
+        await ctx.send(f"Category {category.name}'s emoji has been set to {emoji}.")
 
     @donoset.command(name="managers")
     @commands.mod_or_permissions(administrator=True)
