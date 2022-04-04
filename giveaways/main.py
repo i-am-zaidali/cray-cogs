@@ -1033,9 +1033,9 @@ class Giveaways(commands.Cog):
     > *--amt*
         This adds the given amount to the donor's (or the command author if donor is not provided) donation balance.
 
-    > *--bank* or *--category*
-        This flag followed with a category name, uses the given category to to add the amount to.
-        If not given, the default category, if set, will be used.
+    > *--bank* or *--bank*
+        This flag followed with a bank name, uses the given bank to to add the amount to.
+        If not given, the default bank, if set, will be used.
         This flag can not be used without using the *--amt* flag.
 """
                 if self.bot.get_cog("DonationLogging")

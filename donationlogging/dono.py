@@ -12,8 +12,7 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu, start_adding_reactio
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
 from tabulate import tabulate
 
-from donationlogging.models import DonationManager, DonoItem, DonoUser
-
+from .models import DonationManager, DonoItem, DonoUser
 from .utils import *
 
 DictConverter = commands.get_dict_converter(delims=[",", " "])
@@ -25,7 +24,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.5.7"
+    __version__ = "2.6.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -138,7 +137,7 @@ class DonationLogging(commands.Cog):
         """
         A step by step interactive setup command.
 
-        This helps you setup the logging channel and the manager roles.
+        This helps you setup basic stuff sich as the logging channel and manager roles.
 
         This is a one time command per guild.
 
@@ -176,14 +175,14 @@ class DonationLogging(commands.Cog):
                 channel_conv(ctx),
             ),
             (
-                "What would you like your first donation logging currency category to be named?",
+                "What would you like your first donation logging currency bank to be named?",
                 "Send its name and emoji (id only) separated by a comma."
                 "You can use custom emojis as long as the bot has access to it.\nFor example: `dank,⏣`",
-                "category",
-                category_conv(ctx),
+                "bank",
+                bank_conv(ctx),
             ),
             (
-                "Are there any roles that you would like to be assigned at certain milestones in this category?",
+                "Are there any roles that you would like to be assigned at certain milestones in this bank?",
                 (
                     "Send amount and roles separate by a comma. "
                     "Multiple roles should also be separated by a colon (:) or just send `none`"
@@ -201,7 +200,7 @@ class DonationLogging(commands.Cog):
 
         roles = answers["roles"]
         channel = answers["channel"]
-        bank = answers["category"]
+        bank = answers["bank"]
         pairs = answers["milestones"]
 
         emb = discord.Embed(title="Is all this information valid?", color=await ctx.embed_color())
@@ -241,7 +240,7 @@ class DonationLogging(commands.Cog):
             return await ctx.send("Request timed out.")
 
         if not pred.result:
-            await self.category_remove(ctx, bank)
+            await self.bank_remove(ctx, bank)
             return await ctx.send("Aight, retry the command and do it correctly this time.")
 
         await self.config.guild(ctx.guild).logchannel.set(channel.id if channel else None)
@@ -249,12 +248,12 @@ class DonationLogging(commands.Cog):
         await self.config.guild(ctx.guild).setup.set(True)
         if pairs:
             await bank.setroles(pairs)
-        await self.cache.set_default_category(ctx.guild.id, bank)
+        await self.cache.set_default_bank(ctx.guild.id, bank)
 
         if old_data := await self.get_old_data(ctx.guild):
             confirmation = await ctx.send(
                 "Old donation logging data was found for this guild. "
-                "\nWould you like to associate it with the category you just registered? "
+                "\nWould you like to associate it with the bank you just registered? "
                 "\nIf not, this data will be cleared and will not be able to be recovered."
             )
             start_adding_reactions(confirmation, ReactionPredicate.YES_OR_NO_EMOJIS)
@@ -271,7 +270,7 @@ class DonationLogging(commands.Cog):
             else:
                 bank._data.update(old_data)
                 await ctx.send(
-                    "Updated new category with old data :D You can now continue logging donations normally."
+                    "Updated new bank with old data :D You can now continue logging donations normally."
                 )
 
         return await ctx.send(
@@ -281,17 +280,17 @@ class DonationLogging(commands.Cog):
     @dono.command(name="bal", aliases=["mydono"])
     @commands.guild_only()
     @setup_done()
-    async def bal(self, ctx, category: CategoryConverter = None):
+    async def bal(self, ctx, bank: BankConverter = None):
         """
         Check the amount you have donated in the current server
 
         For admins, if you want to check other's donations, use `[p]dono check`"""
-        if category:
-            donos = category.get_user(ctx.author.id).donations
-            emoji = category.emoji
+        if bank:
+            donos = bank.get_user(ctx.author.id).donations
+            emoji = bank.emoji
 
             embed = discord.Embed(
-                title=f"Your donations in **__{ctx.guild.name}__** for **__{category.name}__**",
+                title=f"Your donations in **__{ctx.guild.name}__** for **__{bank.name}__**",
                 description=f"Donated: {emoji} *{humanize_number(donos)}*",
                 color=await ctx.embed_color(),
             )
@@ -319,8 +318,16 @@ class DonationLogging(commands.Cog):
         await ctx.send(embed=embed)
 
     async def dono_log(
-        self, ctx, action, user, amount, donos, bank, role=None, note=None
-    ):  # API for giveaways.
+        self, 
+        ctx: commands.Context, 
+        action: str, 
+        user: discord.Member, 
+        amount: int, 
+        donos: int, 
+        bank: DonoBank, 
+        role: str = None, 
+        note: str = None
+    ):
         emoji = bank.emoji
         embed = discord.Embed(
             title="***__Added!__***" if action.lower() == "add" else "***__Removed!__***",
@@ -328,7 +335,7 @@ class DonationLogging(commands.Cog):
             f"{'added to' if action.lower() == 'add' else 'removed from'} {user.name}'s donations balance.\n",
             color=await ctx.embed_color(),
         )
-        embed.add_field(name="Category: ", value=f"**{bank.name.title()}**", inline=True)
+        embed.add_field(name="Bank: ", value=f"**{bank.name.title()}**", inline=True)
         embed.add_field(name="Note: ", value=str(note) if note else "No note taken.", inline=False)
         embed.add_field(
             name="Their total donations are: ", value=f"{emoji} {humanize_number(donos)}"
@@ -353,7 +360,7 @@ class DonationLogging(commands.Cog):
         elif not chanid:
             await ctx.send(role, embed=embed)
 
-    async def add_note(self, ctx: commands.Context, member, flag={}, category: DonoBank = None):
+    async def add_note(self, ctx: commands.Context, member, flag={}):
         if note := flag.get("note"):
             cog = self.notes_cog
 
@@ -363,14 +370,14 @@ class DonationLogging(commands.Cog):
 
         return
 
-    @dono.command(name="add", usage="[category] <amount> [user] [--note]")
+    @dono.command(name="add", usage="[bank] <amount> [user] [--note]")
     @is_dmgr()
     @commands.guild_only()
     @setup_done()
     async def add(
         self,
         ctx,
-        category: Optional[CategoryConverter] = None,
+        bank: Optional[BankConverter] = None,
         amount: AmountOrItem = None,
         user: Optional[discord.Member] = None,
         *,
@@ -380,7 +387,7 @@ class DonationLogging(commands.Cog):
         Add an amount to someone's donation balance.
 
         This requires either one of the donation manager roles or the bot mod role.
-        The category must be the name of a registered category. These can be seen with `[p]donoset category list`
+        The bank must be the name of a registered bank. These can be seen with `[p]donoset bank list`
         [--note] parameter is a flag used for setting notes for a donation
         For example:
             `[p]dono add dank 1000 @Twentysix --note hes cute`"""
@@ -389,32 +396,32 @@ class DonationLogging(commands.Cog):
         if not amount:
             return await ctx.send_help()
 
-        category: DonoBank = ctx.dono_category
+        bank: DonoBank = ctx.dono_bank
 
-        if not category:
+        if not bank:
             return await ctx.send(
-                "Default category was not set for this server. Please pass a category name when running the command."
+                "Default bank was not set for this server. Please pass a bank name when running the command."
             )
 
-        u = category.get_user(user.id)
+        u = bank.get_user(user.id)
 
         donos = u.add(amount)
-        note = await self.add_note(ctx, user, flag if flag else {}, category)
+        note = await self.add_note(ctx, user, flag if flag else {}, bank)
 
         if not await self.config.guild(ctx.guild).autoadd():
             role = f"Auto role adding is disabled for this server. Enable with `{ctx.prefix}donoset autorole add true`."
         else:
-            role = await category.addroles(ctx, user)
-        await self.dono_log(ctx, "add", user, amount, donos, category, role, note)
+            role = await bank.addroles(ctx, user)
+        await self.dono_log(ctx, "add", user, amount, donos, bank, role, note)
 
-    @dono.command(name="remove", usage="[category] <amount> [user] [--note]")
+    @dono.command(name="remove", usage="[bank] <amount> [user] [--note]")
     @is_dmgr()
     @commands.guild_only()
     @setup_done()
     async def remove(
         self,
         ctx,
-        category: Optional[CategoryConverter] = None,
+        bank: Optional[BankConverter] = None,
         amount: MoniConverter = None,
         user: Optional[discord.Member] = None,
         *,
@@ -423,30 +430,30 @@ class DonationLogging(commands.Cog):
         """
         Remove an amount from someone's donation balance.
 
-        The category must be the name of a registered category. These can be seen with `[p]donoset category list`
+        The bank must be the name of a registered bank. These can be seen with `[p]donoset bank list`
         This requires either one of the donation manager roles or the bot mod role."""
         user = user or ctx.author
 
         if not amount:
             return await ctx.send_help()
 
-        category: DonoBank = category or await self.cache.get_default_category(ctx.guild.id)
+        bank: DonoBank = ctx.dono_bank
 
-        if not category:
+        if not bank:
             return await ctx.send(
-                "Default category was not set for this server. Please pass a category name when running the command."
+                "Default bank was not set for this server. Please pass a bank name when running the command."
             )
 
-        u = category.get_user(user.id)
+        u = bank.get_user(user.id)
         donation = u.remove(amount)
 
         if not await self.config.guild(ctx.guild).autoremove():
             role = f"Auto role removing is disabled for this server. Enable with `{ctx.prefix}donoset autorole remove true`."
         else:
-            role = await category.removeroles(ctx, user)
-        note = await self.add_note(ctx, user, flag if flag else {}, category)
+            role = await bank.removeroles(ctx, user)
+        note = await self.add_note(ctx, user, flag if flag else {}, bank)
 
-        await self.dono_log(ctx, "remove", user, amount, donation, category, role, note)
+        await self.dono_log(ctx, "remove", user, amount, donation, bank, role, note)
 
     @dono.command(
         name="reset",
@@ -457,21 +464,21 @@ class DonationLogging(commands.Cog):
     @commands.guild_only()
     @setup_done()
     async def reset(
-        self, ctx, category: Optional[CategoryConverter] = None, user: discord.Member = None
+        self, ctx, bank: Optional[BankConverter] = None, user: discord.Member = None
     ):
         """
-        Reset a category or a user's donation balance.
+        Reset a bank or a user's donation balance.
 
-        The category must be the name of a registered category. These can be seen with `[p]donoset category list`
-        If a user isn't provided, this command will reset all the users in the category.
-        If a category isn't provided, this command will reset the user's donation balance for all categories.
+        The bank must be the name of a registered bank. These can be seen with `[p]donoset bank list`
+        If a user isn't provided, this command will reset all the users in the bank.
+        If a bank isn't provided, this command will reset the user's donation balance for all banks.
         This requires either one of the donation manager roles or the bot mod role."""
 
         user = user or ctx.author
 
-        if not category:
+        if not bank:
             await ctx.send(
-                f"You didn't provide a category to reset, are you sure you want to reset all donations of {user}?"
+                f"You didn't provide a bank to reset, are you sure you want to reset all donations of {user}?"
                 " Reply with `yes`/`no`."
             )
             pred = MessagePredicate.yes_or_no(ctx)
@@ -487,15 +494,15 @@ class DonationLogging(commands.Cog):
             else:
                 return await ctx.send("Alright!")
 
-        category.remove_user(user.id)
-        emoji = category.emoji
+        bank.remove_user(user.id)
+        emoji = bank.emoji
 
         embed = discord.Embed(
             title="***__Reset!__***",
             description=f"Resetted {user.name}'s donation bal. Their current donation amount is {emoji} 0",
             color=await ctx.embed_color(),
         )
-        embed.add_field(name="Category: ", value=f"{category.name.title()}", inline=False)
+        embed.add_field(name="Bank: ", value=f"{bank.name.title()}", inline=False)
         embed.add_field(
             name="Jump Link To The Command:", value=f"[click here]({ctx.message.jump_url})"
         )
@@ -505,7 +512,7 @@ class DonationLogging(commands.Cog):
 
         chanid = await self.config.guild(ctx.guild).logchannel()
 
-        role = await category.removeroles(ctx, user)
+        role = await bank.removeroles(ctx, user)
 
         if chanid and chanid != "none":
             channel = await self.bot.fetch_channel(chanid)
@@ -549,17 +556,17 @@ class DonationLogging(commands.Cog):
     @commands.guild_only()
     @is_dmgr()
     @setup_done()
-    async def check(self, ctx, user: discord.Member = None, category: CategoryConverter = None):
+    async def check(self, ctx, user: discord.Member = None, bank: BankConverter = None):
         """
         Check someone's donation balance.
 
-        The category must be the name of a registered category. These can be seen with `[p]donoset category list`
+        The bank must be the name of a registered bank. These can be seen with `[p]donoset bank list`
         This requires either one of the donation manager roles or the bot mod role."""
         if not user:
             await ctx.send("Please mention a user or provide their id to check their donations")
             return
 
-        if not category:
+        if not bank:
             banks = await self.cache.get_all_dono_banks(ctx.guild.id)
             embed = discord.Embed(
                 title=f"All of {user}'s donations in **__{ctx.guild.name}__**",
@@ -576,8 +583,8 @@ class DonationLogging(commands.Cog):
 
             return await ctx.send(embed=embed)
 
-        donos = category.get_user(user.id).donations
-        emoji = category.emoji
+        donos = bank.get_user(user.id).donations
+        emoji = bank.emoji
         notes = len(
             self.notes_cog._get_notes_of_type(
                 ctx.guild, user, self.notes_cog.note_type.DonationNote
@@ -601,28 +608,27 @@ class DonationLogging(commands.Cog):
     async def dono_amountcheck(
         self,
         ctx: commands.Context,
-        category: CategoryConverter,
+        bank: BankConverter,
         function: str,
         amount: MoniConverter,
     ):
         """
-        See who has donated more/less than the given amount in the given category.
+        See who has donated more/less than the given amount in the given bank.
 
         The fuction is one of `less` or `more`. Pretty much self explanatory but if u pass `less`,
         it will return users that have doanted less than that amount, and more does the opposite.
         This sends an embedded list of user mentions alonside their ids.
-        The category must be the name of a registered category. These can be seen with `[p]donoset category list`
+        The bank must be the name of a registered bank. These can be seen with `[p]donoset bank list`
         This requires either one of the donation manager roles or the bot mod role."""
 
         if not function.lower() in ["less", "more"]:
             return await ctx.send("Valid function arguments are: `less` or `more`")
 
-        cat: DonoBank = category
-        lb = cat.get_leaderboard()
+        lb = bank.get_leaderboard()
 
         if not lb:
             return await ctx.send(
-                "No donations have been made yet for the category **`{}`**".format(cat.name)
+                "No donations have been made yet for the bank **`{}`**".format(bank.name)
             )
 
         op = operator.ge if function == "more" else operator.le
@@ -632,8 +638,8 @@ class DonationLogging(commands.Cog):
         final = [(x.user, f"{x.donations:,}") for x in lb]
         if not final:
             return await ctx.send(
-                "No users have donated `{}` than **`{}`** in the category **`{}`**".format(
-                    function, amount, cat.name
+                "No users have donated `{}` than **`{}`** in the bank **`{}`**".format(
+                    function, amount, bank.name
                 )
             )
 
@@ -641,7 +647,7 @@ class DonationLogging(commands.Cog):
 
         msg = tabulate(final, tablefmt="rst", showindex=True, headers=headers)
         pages = []
-        title = f"Donation Leaderboard for {cat.name}\n\t{function.capitalize()} than {amount:,}"
+        title = f"Donation Leaderboard for {bank.name}\n\t{function.capitalize()} than {amount:,}"
 
         for page in pagify(msg, delims=["\n"], page_length=700):
             page = title + "\n\n" + page + "\n\n"
@@ -657,19 +663,19 @@ class DonationLogging(commands.Cog):
     )
     @commands.guild_only()
     @setup_done()
-    async def leaderboard(self, ctx, category: CategoryConverter, topnumber=5):
+    async def leaderboard(self, ctx, bank: BankConverter, topnumber=5):
         """
         See the top donators in the server.
 
-        The category must be the name of a registered category. These can be seen with `[p]donoset category list`
+        The bank must be the name of a registered bank. These can be seen with `[p]donoset bank list`
         Use the <topnumber> parameter to see the top `x` donators."""
-        data: List[DonoUser] = category.get_leaderboard()
+        data: List[DonoUser] = bank.get_leaderboard()
 
         embed = discord.Embed(
-            title=f"Top {topnumber} donators for **__{category.name.title()}__**",
+            title=f"Top {topnumber} donators for **__{bank.name.title()}__**",
             color=discord.Color.random(),
         )
-        emoji = category.emoji
+        emoji = bank.emoji
 
         if data:
             for index, user in enumerate(data, 1):
@@ -688,12 +694,12 @@ class DonationLogging(commands.Cog):
                     break
 
         else:
-            embed.description = f"No donations have been made yet for **{category}**."
+            embed.description = f"No donations have been made yet for **{bank}**."
 
         embed.set_thumbnail(url=ctx.guild.icon_url)
         embed.set_author(name=ctx.guild.name)
         embed.set_footer(
-            text=f"For a higher top number, do `{ctx.prefix}dono lb {category.name} [amount]`"
+            text=f"For a higher top number, do `{ctx.prefix}dono lb {bank.name} [amount]`"
         )
 
         await ctx.send(embed=embed)
@@ -719,7 +725,7 @@ class DonationLogging(commands.Cog):
     @setup_done()
     async def ar_add(self, ctx, true_or_false: bool):
         """
-        Set whether donation roles(set with `[p]donoset category roles`) automatically get added to users or not.
+        Set whether donation roles(set with `[p]donoset bank roles`) automatically get added to users or not.
 
         \n<true_or_false> is supposed to be either of True or False.
         True to enable and False to disable."""
@@ -739,7 +745,7 @@ class DonationLogging(commands.Cog):
     @setup_done()
     async def ar_remove(self, ctx, true_or_false: bool):
         """
-        Set whether donation roles (set with `[p]donoset category roles`) automatically get removed from users or not.
+        Set whether donation roles (set with `[p]donoset bank roles`) automatically get removed from users or not.
 
         \n<true_or_false> is supposed to be either of True or False.
         True to enable and False to disable."""
@@ -754,105 +760,105 @@ class DonationLogging(commands.Cog):
             f"{'Disabled' if true_or_false == False else 'Enabled'} auto role removing for this server"
         )
 
-    @donoset.group(name="category", invoke_without_command=True)
+    @donoset.group(name="bank", invoke_without_command=True)
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def category(self, ctx):
+    async def bank(self, ctx):
         """
-        Manage currency categories in your guild.
+        Manage currency banks in your guild.
 
         These allow you to log donations of multiple different currencies.
         """
         await ctx.send_help()
 
-    @category.command(name="add")
+    @bank.command(name="add")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def category_add(self, ctx, *categories: CategoryMaker):
+    async def bank_add(self, ctx, *banks: BankMaker):
         """
-        Add a new category to your server.
+        Add a new bank to your server.
 
-        You can add multiple categories at once.
-        The format for a category definition is `name,emoji`.
-        Multiple categories should be separated by a space. `name,emoji anothername,emoji2 thirdcategory,emoji3`
+        You can add multiple banks at once.
+        The format for a bank definition is `name,emoji`.
+        Multiple banks should be separated by a space. `name,emoji anothername,emoji2 thirdbank,emoji3`
         """
-        if not categories:
-            return await ctx.send("You need to specify at least one category.")
+        if not banks:
+            return await ctx.send("You need to specify at least one bank.")
         await ctx.send(
             (
                 (
-                    "The following new categories have been added: "
-                    if len(categories) > 1
-                    else "The following category has been added: "
+                    "The following new banks have been added: "
+                    if len(banks) > 1
+                    else "The following bank has been added: "
                 )
                 + "\n"
                 + "\n".join(
-                    f"{index}:  {category.name} - {category.emoji}"
-                    for index, category in enumerate(categories, 1)
+                    f"{index}:  {bank.name} - {bank.emoji}"
+                    for index, bank in enumerate(banks, 1)
                 )
             )
         )
 
-    @category.command(name="remove")
+    @bank.command(name="remove")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def category_remove(self, ctx, *categories: CategoryConverter):
+    async def bank_remove(self, ctx, *banks: BankConverter):
         """
-        Remove a category from your server.
+        Remove a bank from your server.
 
-        You can remove multiple categories at once.
+        You can remove multiple banks at once.
         Send their names separated with a space.
         For example:
-        `name anothername thirdcategory`"""
-        if not categories:
-            return await ctx.send("You need to specify at least one category.")
+        `name anothername thirdbank`"""
+        if not banks:
+            return await ctx.send("You need to specify at least one bank.")
 
         all_banks = await self.cache.get_all_dono_banks(ctx.guild.id)
 
-        for category in categories:
-            self.cache._CACHE.remove(category)
-            if category.is_default:
-                if len(all_banks) == 1 and all_banks[0] == category:
+        for bank in banks:
+            self.cache._CACHE.remove(bank)
+            if bank.is_default:
+                if len(all_banks) == 1 and all_banks[0] == bank:
                     return await ctx.send(
-                        "You only have one category and that is the default. Create a new category before removing the default."
+                        "You only have one bank and that is the default. Create a new bank before removing the default."
                     )
 
-                await self.cache.config.guild(ctx.guild).default_category.set(None)
-            await self.cache.config.custom("guild_category", ctx.guild.id, category.name).clear()
+                await self.cache.config.guild(ctx.guild).default_bank.set(None)
+            await self.cache.config.custom("guild_bank", ctx.guild.id, bank.name).clear()
 
-        async with self.cache.config.guild(ctx.guild).categories() as cats:
-            for category in categories:
-                del cats[category.name]
+        async with self.cache.config.guild(ctx.guild).banks() as cats:
+            for bank in banks:
+                del cats[bank.name]
 
-        await ctx.send("Given categories have been deleted!")
+        await ctx.send("Given banks have been deleted!")
 
-    @category.group(name="item", aliases=["items"], invoke_without_command=True)
-    async def category_item(self, ctx):
+    @bank.group(name="item", aliases=["items"], invoke_without_command=True)
+    async def bank_item(self, ctx):
         """
-        Manage item amounts to count towards a category.
+        Manage item amounts to count towards a bank.
 
         You can use these item names in place of the amount argument in `dono add/remove` commands.
         """
         await ctx.send_help()
 
-    @category_item.command(name="add")
-    async def category_item_add(self, ctx, category: CategoryConverter, *, items: DictConverter):
+    @bank_item.command(name="add")
+    async def bank_item_add(self, ctx, bank: BankConverter, *, items: DictConverter):
         """
-        Add items to a category.
+        Add items to a bank.
 
         You can add multiple items at once.
         The format for an item definition is `name,amount`.
         Multiple items should be separated by a space. `name,amount anothername,amount2 thirditem,amount3`"""
         if not items:
             return await ctx.send("You need to specify at least one item.")
-        async with self.cache.config.guild(ctx.guild).categories.get_attr(
-            category.name
+        async with self.cache.config.guild(ctx.guild).banks.get_attr(
+            bank.name
         )() as cat_data:
             cat_items = cat_data.setdefault("items", {})
             for item, amount in items.items():
 
                 if item in cat_items:
-                    return await ctx.send(f"{item} is already in {category.name}")
+                    return await ctx.send(f"{item} is already in {bank.name}")
 
                 try:
                     amt = await self.conv(ctx, amount)
@@ -864,102 +870,102 @@ class DonationLogging(commands.Cog):
 
                 cat_items[item] = amt
 
-                category.items.append(DonoItem(item, int(amt), category))
+                bank.items.append(DonoItem(item, int(amt), bank))
 
-        await ctx.send(f"Given items have been added to {category.name}")
+        await ctx.send(f"Given items have been added to {bank.name}")
 
-    @category_item.command(name="remove")
-    async def category_item_remove(self, ctx, category: CategoryConverter, *items):
+    @bank_item.command(name="remove")
+    async def bank_item_remove(self, ctx, bank: BankConverter, *items):
         """
-        Remove items from a category.
+        Remove items from a bank.
 
         You can remove multiple items at once.
         Just send their exact names separated by a space."""
         if not items:
             return await ctx.send("You need to specify at least one item.")
-        async with self.cache.config.guild(ctx.guild).categories.get_attr(
-            category.name
+        async with self.cache.config.guild(ctx.guild).banks.get_attr(
+            bank.name
         )() as cat_data:
             cat_items = cat_data.setdefault("items", {})
             if not cat_items:
-                return await ctx.send("No items registered for this category.")
+                return await ctx.send("No items registered for this bank.")
             for item in items:
 
                 if item not in cat_items:
-                    return await ctx.send(f"{item} is not present in {category.name}")
+                    return await ctx.send(f"{item} is not present in {bank.name}")
 
                 del cat_items[item]
-                item = await category.get_item(item)
-                category.items.remove(item)
+                item = await bank.get_item(item)
+                bank.items.remove(item)
 
-        await ctx.send(f"Given items have been removed from {category.name}")
+        await ctx.send(f"Given items have been removed from {bank.name}")
 
-    @category_item.command(name="list")
-    async def category_item_list(self, ctx, category: CategoryConverter):
+    @bank_item.command(name="list")
+    async def bank_item_list(self, ctx, bank: BankConverter):
         """
-        List all registered items of a category.
+        List all registered items of a bank.
         """
-        cat_items = category.items
+        cat_items = bank.items
         if not cat_items:
-            return await ctx.send("No items registered for this category.")
+            return await ctx.send("No items registered for this bank.")
         tab = tabulate([(item.name, item.amount) for item in cat_items], ["Item Name", "Worth"])
-        await ctx.send("Following items are registered for this category:\n" + box(tab, lang="py"))
+        await ctx.send("Following items are registered for this bank:\n" + box(tab, lang="py"))
 
-    @category.command(name="list")
+    @bank.command(name="list")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def category_list(self, ctx):
+    async def bank_list(self, ctx):
         """
-        List all currency categories in your server."""
-        categories = await self.cache.get_all_dono_banks(ctx.guild.id)
-        if not categories:
-            return await ctx.send("There are no categories in this server.")
+        List all currency banks in your server."""
+        banks = await self.cache.get_all_dono_banks(ctx.guild.id)
+        if not banks:
+            return await ctx.send("There are no banks in this server.")
 
-        default = await self.cache.get_default_category(ctx.guild.id)
+        default = await self.cache.get_default_bank(ctx.guild.id)
 
         embed = discord.Embed(
-            title=f"Registered currency categories in **__{ctx.guild.name}__**",
+            title=f"Registered currency banks in **__{ctx.guild.name}__**",
             description="\n".join(
                 [
-                    f"{index}: {category.emoji} {category.name} "
-                    f"{'(default)' if category == default else ''}"
-                    for index, category in enumerate(categories, 1)
+                    f"{index}: {bank.emoji} {bank.name} "
+                    f"{'(default)' if bank == default else ''}"
+                    for index, bank in enumerate(banks, 1)
                 ]
             ),
             color=await ctx.embed_color(),
         )
         await ctx.send(embed=embed)
 
-    @category.command(name="default")
+    @bank.command(name="default")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def category_default(self, ctx, *, category: CategoryConverter = None):
+    async def bank_default(self, ctx, *, bank: BankConverter = None):
         """
-        See or set the default category for your server.
+        See or set the default bank for your server.
 
-        if no category is given, it will show the current default.
+        if no bank is given, it will show the current default.
 
-        This category will be used for commands if no category is specified
-        in commands that require a category being specified.
+        This bank will be used for commands if no bank is specified
+        in commands that require a bank being specified.
         """
-        if not category:
+        if not bank:
             return await ctx.send(
-                f"The current default category is: {await self.cache.get_default_category(ctx.guild.id)}"
+                f"The current default bank is: {await self.cache.get_default_bank(ctx.guild.id)}"
             )
-        await self.cache.set_default_category(ctx.guild.id, category)
-        await ctx.send(f"Default category for this server has been set to {category.name}")
+        await self.cache.set_default_bank(ctx.guild.id, bank)
+        await ctx.send(f"Default bank for this server has been set to {bank.name}")
 
-    @category.command(name="reset")
+    @bank.command(name="reset")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def category_reset(self, ctx: commands.Context, *categories: CategoryConverter):
+    async def bank_reset(self, ctx: commands.Context, *banks: BankConverter):
         """
-        Reset given categories in your server.
+        Reset given banks in your server.
 
-        This will remove all donations of that category.
+        This will remove all donations of that bank.
         """
         await ctx.send(
-            f"Are you sure you want to reset all donations of the given categories `{humanize_list([category.name for category in categories])}`?"
+            f"Are you sure you want to reset all donations of the given banks `{humanize_list([bank.name for bank in banks])}`?"
             " Reply with `yes`/`no`."
         )
         pred = MessagePredicate.yes_or_no(ctx)
@@ -969,33 +975,33 @@ class DonationLogging(commands.Cog):
             return await ctx.send("No response, aborting.")
 
         if pred.result:
-            for category in categories:
-                category._data = {}
-            return await ctx.send(f"Given categories' donations have been reset.")
+            for bank in banks:
+                bank._data = {}
+            return await ctx.send(f"Given banks' donations have been reset.")
 
         else:
             return await ctx.send("Alright!")
 
-    @category.group(name="roles", invoke_without_command=True)
+    @bank.group(name="roles", invoke_without_command=True)
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def category_role(self, ctx):
+    async def bank_role(self, ctx):
         """
-        See or edit auto roles for a given category"""
+        See or edit auto roles for a given bank"""
         await ctx.send_help()
 
-    @category_role.command(name="add")
-    async def category_role_add(
-        self, ctx, category: CategoryConverter, *, pairs: AmountRoleConverter
+    @bank_role.command(name="add")
+    async def bank_role_add(
+        self, ctx, bank: BankConverter, *, pairs: AmountRoleConverter
     ):
         """
-        Add autoroles for a category.
+        Add autoroles for a bank.
 
         The pairs argument should be in this format:
         `amount` `,` `multiple roles separated with a colon(:)`
         For example:
             `10000,someroleid:onemoreroleid 15k,@rolemention 20e4,arolename`"""
-        cat_roles = await category.getroles(ctx)
+        cat_roles = await bank.getroles(ctx)
 
         for k, v in pairs.items():
             k = str(k)
@@ -1009,10 +1015,10 @@ class DonationLogging(commands.Cog):
                         continue
                     r.append(role)
 
-        await category.setroles(cat_roles)
+        await bank.setroles(cat_roles)
 
         embed = discord.Embed(
-            title=f"Updated autoroles for {category.name.title()}!", color=await ctx.embed_color()
+            title=f"Updated autoroles for {bank.name.title()}!", color=await ctx.embed_color()
         )
         rolelist = ""
         for key, value in cat_roles.items():
@@ -1021,18 +1027,18 @@ class DonationLogging(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @category_role.command(name="remove")
-    async def category_role_remove(
-        self, ctx, category: CategoryConverter, *, pairs: AmountRoleConverter
+    @bank_role.command(name="remove")
+    async def bank_role_remove(
+        self, ctx, bank: BankConverter, *, pairs: AmountRoleConverter
     ):
         """
-        Remove autoroles for a category.
+        Remove autoroles for a bank.
 
         The pairs argument should be in this format:
         `amount` `,` `multiple roles separated with a colon(:)`
         For example:
             `10000,someroleid:onemoreroleid 15k,@rolemention 20e4,arolename`"""
-        cat_roles = await category.getroles(ctx)
+        cat_roles = await bank.getroles(ctx)
 
         for k, v in pairs.items():
             k = str(k)
@@ -1045,10 +1051,10 @@ class DonationLogging(commands.Cog):
                     if role in r:
                         r.remove(role)
 
-        await category.setroles(cat_roles)
+        await bank.setroles(cat_roles)
 
         embed = discord.Embed(
-            title=f"Updated autoroles for {category.name.title()}!", color=await ctx.embed_color()
+            title=f"Updated autoroles for {bank.name.title()}!", color=await ctx.embed_color()
         )
         rolelist = ""
         for key, value in cat_roles.items():
@@ -1057,13 +1063,13 @@ class DonationLogging(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @category_role.command(name="list")
-    async def category_role_list(self, ctx: commands.Context, category: CategoryConverter):
+    @bank_role.command(name="list")
+    async def bank_role_list(self, ctx: commands.Context, bank: BankConverter):
         """
-        List autoroles for a category."""
-        cat_roles = await category.getroles(ctx)
+        List autoroles for a bank."""
+        cat_roles = await bank.getroles(ctx)
         if not cat_roles:
-            return await ctx.send("No autoroles set for this category.")
+            return await ctx.send("No autoroles set for this bank.")
 
         tab = tabulate(
             [
@@ -1072,43 +1078,43 @@ class DonationLogging(commands.Cog):
             ],
             ["Amount", "Roles"],
         )
-        await ctx.send("Following autoroles are set for this category:\n" + box(tab, lang="py"))
+        await ctx.send("Following autoroles are set for this bank:\n" + box(tab, lang="py"))
         
-    @category.command(name="hide")
+    @bank.command(name="hide")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def category_hide(self, ctx: commands.Context, *, category: CategoryConverter):
+    async def bank_hide(self, ctx: commands.Context, *, bank: BankConverter):
         """
-        Hide a category from the `dono bal` command.
+        Hide a bank from the `dono bal` command.
         """
-        category.hidden = True
-        async with self.cache.config.guild(ctx.guild).categories() as cats:
-            cats.get(category.name).update({"hidden": True})
-        await ctx.send(f"Category {category.name} has been hidden.")
+        bank.hidden = True
+        async with self.cache.config.guild(ctx.guild).banks() as cats:
+            cats.get(bank.name).update({"hidden": True})
+        await ctx.send(f"bank {bank.name} has been hidden.")
         
-    @category.command(name="unhide")
+    @bank.command(name="unhide")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def category_unhide(self, ctx: commands.Context, *, category: CategoryConverter):
+    async def bank_unhide(self, ctx: commands.Context, *, bank: BankConverter):
         """
-        Unhide a category from the `dono bal` command."""
-        category.hidden = False
-        async with self.cache.config.guild(ctx.guild).categories() as cats:
-            cats.get(category.name).update({"hidden": False})
+        Unhide a bank from the `dono bal` command."""
+        bank.hidden = False
+        async with self.cache.config.guild(ctx.guild).banks() as cats:
+            cats.get(bank.name).update({"hidden": False})
             
-        await ctx.send(f"Category {category.name} has been unhidden.")
+        await ctx.send(f"bank {bank.name} has been unhidden.")
         
-    @category.command(name="emoji")
+    @bank.command(name="emoji")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def category_emoji(self, ctx: commands.Context, category: CategoryConverter, emoji: EmojiConverter):
+    async def bank_emoji(self, ctx: commands.Context, bank: BankConverter, emoji: EmojiConverter):
         """
-        Edit the emoji used for the category.
+        Edit the emoji used for the bank.
         """
-        category.emoji = str(emoji)
-        async with self.cache.config.guild(ctx.guild).categories() as cats:
-            cats.get(category.name).update({"emoji": str(emoji)})
-        await ctx.send(f"Category {category.name}'s emoji has been set to {emoji}.")
+        bank.emoji = str(emoji)
+        async with self.cache.config.guild(ctx.guild).banks() as cats:
+            cats.get(bank.name).update({"emoji": str(emoji)})
+        await ctx.send(f"bank {bank.name}'s emoji has been set to {emoji}.")
 
     @donoset.command(name="managers")
     @commands.mod_or_permissions(administrator=True)
@@ -1186,7 +1192,7 @@ class DonationLogging(commands.Cog):
             if data["managers"]
             else data["managers"]
         )
-        categories = await self.cache.config.guild(ctx.guild).categories()
+        banks = await self.cache.config.guild(ctx.guild).banks()
         embed.add_field(
             name="Donation Managers: ",
             value=(managers) if data["managers"] else "None",
@@ -1200,8 +1206,8 @@ class DonationLogging(commands.Cog):
         embed.add_field(name="Auto Add Roles: ", value=data["autoadd"], inline=False)
         embed.add_field(name="Auto Remove Roles: ", value=data["autoremove"])
         embed.add_field(
-            name="Categories: ",
-            value=f"{len(categories)} categories: `{humanize_list(list(categories.keys()))}`",
+            name="banks: ",
+            value=f"{len(banks)} banks: `{humanize_list(list(banks.keys()))}`",
             inline=False,
         )
         await ctx.send(embed=embed)

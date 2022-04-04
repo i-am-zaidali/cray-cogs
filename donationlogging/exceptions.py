@@ -1,32 +1,31 @@
-class CategoryError(Exception):
+class BankError(Exception):
     def __init__(self, message: str, name: str) -> None:
         self.message = message
         self.name = name
         super().__init__(message, name)
 
 
-class CategoryAlreadyExists(CategoryError):
+class BankAlreadyExists(BankError):
     """
-    Exception raised when a category already exists.
-    """
-
-    def __init__(self, message, name) -> None:
-        super().__init__(message, name)
-
-
-class CategoryDoesNotExist(CategoryError):
-    """
-    Exception raised when a category does not exist.
+    Exception raised when a Bank already exists.
     """
 
     def __init__(self, message, name) -> None:
         super().__init__(message, name)
 
 
-class SimilarCategoryExists(CategoryError):
+class BankDoesNotExist(BankError):
     """
-    Exception raised when a category with a similar name exists.
+    Exception raised when a Bank does not exist.
     """
 
+    def __init__(self, message, name) -> None:
+        super().__init__(message, name)
+
+
+class SimilarBankExists(BankError):
+    """
+    Exception raised when a Bank with a similar name exists.
+    """
     def __init__(self, message, name) -> None:
         super().__init__(message, name)

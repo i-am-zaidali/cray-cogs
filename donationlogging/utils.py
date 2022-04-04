@@ -12,7 +12,7 @@ from redbot.core.utils import mod
 from redbot.core.utils.chat_formatting import box
 from redbot.core.utils.predicates import MessagePredicate
 
-from .exceptions import CategoryAlreadyExists, CategoryDoesNotExist
+from .exceptions import BankAlreadyExists, BankDoesNotExist
 from .models import DonoBank
 
 time_regex = re.compile(r"(?:(\d{1,5})(h|s|m|d))+?")
@@ -30,37 +30,37 @@ class EmojiConverter(commands.EmojiConverter):
                 
         return emoji
 
-class CategoryConverter(commands.Converter):
+class BankConverter(commands.Converter):
     async def convert(self, ctx, argument):
         try:
             dono_bank = await ctx.cog.cache.get_existing_dono_bank(argument, ctx.guild.id)
-            ctx.dono_category = dono_bank
+            ctx.dono_bank = dono_bank
 
-        except CategoryDoesNotExist:
-            ctx.dono_category = await ctx.cog.cache.get_default_category(ctx.guild.id)
+        except BankDoesNotExist:
+            ctx.dono_bank = await ctx.cog.cache.get_default_bank(ctx.guild.id)
             raise BadArgument(
-                f"You haven't registered a currency category with the name `{argument}`."
-                f"Use `{ctx.prefix}help donoset category` to know how to add a currency category."
+                f"You haven't registered a currency bank with the name `{argument}`."
+                f"Use `{ctx.prefix}help donoset bank` to know how to add a currency bank."
             )
 
         return dono_bank
 
 
-class CategoryMaker(commands.Converter):
-    async def convert(self, ctx, argument) -> DonoBank:
+class BankMaker(commands.Converter):
+    async def convert(self, ctx: commands.Context, argument: str) -> DonoBank:
         try:
             name, emoji = argument.strip().split(",")
         except:
             raise BadArgument(
-                f"You need to provide a name and emoji for the category separated by a comma (`name,emoji`). You only provided `{argument}`."
+                f"You need to provide a name and emoji for the bank separated by a comma (`name,emoji`). You only provided `{argument}`."
             )
         if not emoji == "⏣":
             emoji = await EmojiConverter().convert(ctx, emoji)
         if len(name) > 32:
-            raise BadArgument("The name of the category can't be longer than 32 characters.")
+            raise BadArgument("The name of the bank can't be longer than 32 characters.")
 
         emoji = str(emoji)
-        exists, potential_name = await ctx.cog.cache._verify_guild_category(ctx.guild.id, name)
+        exists, potential_name = await ctx.cog.cache._verify_guild_bank(ctx.guild.id, name)
         if not exists:
             if not potential_name:
                 return await ctx.cog.cache.get_dono_bank(name, ctx.guild.id, emoji=emoji)
@@ -68,8 +68,8 @@ class CategoryMaker(commands.Converter):
             else:
                 pred = MessagePredicate.yes_or_no(ctx)
                 await ctx.send(
-                    f"The category name you sent has a potential match already: `{potential_name}`."
-                    " Send `yes` to use the match or `no` to force a new category."
+                    f"The bank name you sent has a potential match already: `{potential_name}`."
+                    " Send `yes` to use the match or `no` to force a new bank."
                 )
                 try:
                     await ctx.bot.wait_for("message", check=pred, timeout=30)
@@ -87,7 +87,7 @@ class CategoryMaker(commands.Converter):
                     )
 
         else:
-            raise CategoryAlreadyExists(f"The category: `{name}` already exists.", name)
+            raise BankAlreadyExists(f"The bank: `{name}` already exists.", name)
 
 
 class flags(commands.Converter):
@@ -179,15 +179,15 @@ class AmountOrItem(MoniConverter):
             return await super().convert(ctx, argument)
 
         except Exception:
-            category: DonoBank = ctx.dono_category
-            if not category:
-                raise BadArgument("No default category set.")
+            bank: DonoBank = ctx.dono_bank
+            if not bank:
+                raise BadArgument("No default bank set.")
 
-            items = category.items
+            items = bank.items
             if not items:
                 raise BadArgument(f"Couldn't convert {argument} to a proper item or amount.")
 
-            match = await category.get_item(argument)
+            match = await bank.get_item(argument)
             if match:
                 return match.amount
             else:
@@ -200,7 +200,7 @@ class AmountRoleConverter(commands.Converter):
             return {}
         pairs = argument.split()
         rconv = commands.RoleConverter().convert
-        mconv = commands.MoniConverter().convert
+        mconv = MoniConverter().convert
         final = {}
         for pair in pairs:
             amount, roles = pair.split(",")
@@ -356,9 +356,9 @@ def channel_conv(ctx):
     return predicate
 
 
-def category_conv(ctx):
+def bank_conv(ctx):
     async def predicate(answer: str):
-        return await CategoryMaker().convert(ctx, answer)
+        return await BankMaker().convert(ctx, answer)
 
     return predicate
 

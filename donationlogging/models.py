@@ -9,7 +9,7 @@ from redbot.core import Config
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list
 
-from .exceptions import CategoryAlreadyExists, CategoryDoesNotExist, SimilarCategoryExists
+from .exceptions import BankAlreadyExists, BankDoesNotExist, SimilarBankExists
 
 log = logging.getLogger("red.craycogs.donationlogging.models")
 
@@ -18,7 +18,7 @@ log = logging.getLogger("red.craycogs.donationlogging.models")
 class DonoItem:
     name: str
     amount: int
-    category: "DonoBank"
+    bank: "DonoBank"
 
 
 class DonoUser:
@@ -109,14 +109,14 @@ class DonoBank:
         pairs = {}
         for k, v in amountrolepairs.items():
             pairs[k] = [role.id for role in v]
-        async with self.manager.config.guild_from_id(self.guild_id).categories() as categories:
-            categories.setdefault(
+        async with self.manager.config.guild_from_id(self.guild_id).banks() as banks:
+            banks.setdefault(
                 self.name, {"emoji": self.emoji, "roles": {}}
-            )  # edge case that the category doesnt exist there.
-            categories[self.name].setdefault("roles", {}).update(pairs)
+            )  # edge case that the bank doesnt exist there.
+            banks[self.name].setdefault("roles", {}).update(pairs)
 
     async def getroles(self, ctx) -> Dict[int, List[discord.Role]]:
-        data = await self.manager.config.guild_from_id(self.guild_id).categories.get_attr(
+        data = await self.manager.config.guild_from_id(self.guild_id).banks.get_attr(
             self.name
         )()
         roles = data.get("roles", {})
@@ -188,62 +188,62 @@ class DonationManager:
         # config structure would be something like:
         # {
         #  guild_id: {
-        #      "categories": {
-        #          "category name": {
+        #      "banks": {
+        #          "bank name": {
         #               "emoji": emoji,
         #                "roles": {amount: roleid} # roles to assign
         #                "items": {},
         #                "hidden": bool
         #               }
         #          },
-        #      "default_category": "default category name"
-        #      "category name": {
+        #      "default_bank": "default bank name"
+        #      "bank name": {
         #          user_id: amount
         #          }
         #      }
         #  }
 
         self.config.register_global(schema=0)
-        self.config.register_guild(categories={}, default_category=None)
-        self.config.init_custom("guild_category", 2)
-        self.config.register_custom("guild_category", donations={})
+        self.config.register_guild(bank={}, default_bank=None)
+        self.config.init_custom("guild_bank", 2)
+        self.config.register_custom("guild_bank", donations={})
 
-    async def _verify_guild_category(
-        self, guild_id: int, category: str
+    async def _verify_guild_bank(
+        self, guild_id: int, bank: str
     ) -> Tuple[bool, Union[Tuple[str, int], None]]:
-        categories = await self.config.guild_from_id(guild_id).categories()
-        org = category.lower() in categories.keys()
+        banks = await self.config.guild_from_id(guild_id).banks()
+        org = bank.lower() in banks.keys()
         match = process.extractOne(
-            category, categories.keys(), score_cutoff=80
+            bank, banks.keys(), score_cutoff=80
         )  # Just to keep up with typos
 
         return (org and match), match[0] if match else None
         # if first value is true, the second one will almost always be the actual name
         # if first value is false, the second one will be a comparable match or None if not found at all.
 
-    async def _create_category(
-        self, guild_id: int, category: str, emoji: str = None, hidden: bool = False, force: bool = False
+    async def _create_bank(
+        self, guild_id: int, bank: str, emoji: str = None, hidden: bool = False, force: bool = False
     ):
-        if (tup := await self._verify_guild_category(guild_id, category))[0]:
-            raise CategoryAlreadyExists(f"Category with that name already exists.", tup[1])
+        if (tup := await self._verify_guild_bank(guild_id, bank))[0]:
+            raise BankAlreadyExists(f"Bank with that name already exists.", tup[1])
 
         elif not tup[0]:
             if tup[1] and not force:
-                raise SimilarCategoryExists(
-                    f"Category with a similar name already exists. Pass True to the force Kwarg to bypass this error",
+                raise SimilarBankExists(
+                    f"Bank with a similar name already exists. Pass True to the force Kwarg to bypass this error",
                     tup[1],
                 )
 
-        async with self.config.guild_from_id(guild_id).categories() as categories:
-            categories.setdefault(category.lower(), {"emoji": emoji, "roles": {}})
+        async with self.config.guild_from_id(guild_id).banks() as banks:
+            banks.setdefault(bank.lower(), {"emoji": emoji, "roles": {}, "hidden": False})
 
-        return category.lower()
+        return bank.lower()
 
     async def _schema_0_to_1(self):
         for guild, data in (await self.config.all_guilds()).items():
-            if not data["categories"]:
+            if not data["banks"]:
                 continue
-            for category_name, d in data["categories"].items():
+            for bank_name, d in data["categories"].items():
                 copy = d.copy()
                 d.clear()
                 d["emoji"] = copy.pop("emoji")
@@ -252,22 +252,44 @@ class DonationManager:
             await self.config.guild_from_id(guild).categories.set(data["categories"])
 
         await self.config.schema.set(1)
+        
+    async def _schema_1_to_2(self):
+        guilds = await self.config.all_guilds()
+        for guild, data in guilds.items():
+            if (cat_data:=data.get("categories")):
+                data["banks"] = cat_data
+                cat_data = self.config.custom("guild_category", guild)
+                await self.config.custom("guild_bank", guild).set(await cat_data.all())
+                await cat_data.clear()
+                del data["categories"]
+                
+            if (default_bank:=data.get("default_category")):
+                data["default_bank"] = default_bank
+                del data["default_category"]
+                
+            await self.config.guild_from_id(guild).set(data)
+            
+        await self.config.schema.set(2)
 
     async def _populate_cache(self):
-        if not (await self.config.schema()) == 1:
+        if not (schema:=await self.config.schema()) == 1:
             await self._schema_0_to_1()
+            
+        elif schema == 1:
+            await self._schema_1_to_2()
+            
         for guild, data in (await self.config.all_guilds()).items():
-            default = await self.get_default_category(guild, False)
-            if not data["categories"]:
+            default = await self.get_default_bank(guild, False)
+            if not data["banks"]:
                 continue
-            donations: dict = await self.config.custom("guild_category", guild).all()
-            for category_name, d in data["categories"].items():
+            donations: dict = await self.config.custom("guild_bank", guild).all()
+            for bank_name, d in data["banks"].items():
                 try:
-                    donos = donations.get(category_name, {}).get("donations", {}).copy()
-                    is_default = default == category_name
+                    donos = donations.get(bank_name, {}).get("donations", {}).copy()
+                    is_default = default == bank_name
                     hidden = d.get("hidden", False)
                     bank = DonoBank(
-                        self.bot, self, category_name, d["emoji"], guild, is_default, hidden, donos
+                        self.bot, self, bank_name, d["emoji"], guild, is_default, hidden, donos
                     )
                     items = d.get("items", {})
                     for name, amount in items.items():
@@ -285,17 +307,17 @@ class DonationManager:
             log.debug("DonationLogging cache is empty, not backing to config.")
             return
 
-        for i in copy:
-            await self.config.custom("guild_category", i.guild_id, i.name).donations.set(i._data)
+        for bank in copy:
+            await self.config.custom("guild_bank", bank.guild_id, bank.name).donations.set(bank._data)
         log.debug("Cache backed up to config.")
 
     async def get_dono_bank(
         self, name: str, guild_id: int, *, emoji=None, hidden=False, force=False
     ) -> DonoBank:
         try:
-            name = await self._create_category(guild_id, name, emoji=emoji, force=force)
+            name = await self._create_bank(guild_id, name, emoji=emoji, force=force)
 
-        except CategoryAlreadyExists as e:
+        except BankAlreadyExists as e:
             name = e.name
 
         for i in self._CACHE:
@@ -308,9 +330,9 @@ class DonationManager:
             name,
             emoji,
             guild_id,
-            await self.get_default_category(guild_id, False) == name,
+            await self.get_default_bank(guild_id, False) == name,
             hidden,
-            await self.config.custom("guild_category", guild_id, name).donations(),
+            await self.config.custom("guild_bank", guild_id, name).donations(),
         )
         self._CACHE.append(bank)
         return bank
@@ -320,14 +342,14 @@ class DonationManager:
             if i.name == name and i.guild_id == guild_id:
                 return i
 
-        raise CategoryDoesNotExist(f"Category with that name does not exist.", name)
+        raise BankDoesNotExist(f"Bank with that name does not exist.", name)
 
     async def delete_all_user_data(self, user_id: int, guild_id: int = None):
         if not guild_id:
             for bank in self._CACHE:
                 bank.remove_user(user_id)
                 async with self.config.custom(
-                    "guild_category", bank.guild_id, bank.name
+                    "guild_bank", bank.guild_id, bank.name
                 ).donations() as data:
                     with contextlib.suppress(KeyError):
                         del data[user_id]
@@ -339,7 +361,7 @@ class DonationManager:
 
     async def clear_guild_settings(self, guild_id: int):
         await self.config.guild_from_id(guild_id).clear()
-        await self.config.custom("guild_category", guild_id).clear()
+        await self.config.custom("guild_bank", guild_id).clear()
         for i in await self.get_all_dono_banks(guild_id):
             self._CACHE.remove(i)
 
@@ -352,18 +374,18 @@ class DonationManager:
         else:
             return list(filter(lambda x: x.guild_id == guild_id, self._CACHE))
 
-    async def get_default_category(self, guild_id: int, obj: bool = True) -> DonoBank:
-        cat = await self.config.guild_from_id(guild_id).default_category()
-        if not cat:
+    async def get_default_bank(self, guild_id: int, obj: bool = True) -> DonoBank:
+        bank = await self.config.guild_from_id(guild_id).default_bank()
+        if not bank:
             return None
 
         if obj:
-            return await self.get_dono_bank(cat, guild_id)
+            return await self.get_dono_bank(bank, guild_id)
 
-        return cat
+        return bank
 
-    async def set_default_category(self, guild_id: int, category: DonoBank):
-        await self.config.guild_from_id(guild_id).default_category.set(category.name)
+    async def set_default_bank(self, guild_id: int, bank: DonoBank):
+        await self.config.guild_from_id(guild_id).default_bank.set(bank.name)
 
     @classmethod
     async def initialize(cls, bot):

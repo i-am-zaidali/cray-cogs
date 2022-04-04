@@ -119,7 +119,7 @@ class GiveawayFlags(commands.Converter):
         parser.add_argument("--no-donor", action="store_true", dest="no_donor")
         donolog = parser.add_argument_group()
         donolog.add_argument("--amount", "--amt", nargs="?", dest="amount", default=None)
-        donolog.add_argument("--bank", "--category", nargs="?", dest="bank", default=None)
+        donolog.add_argument("--bank", "--bank", nargs="?", dest="bank", default=None)
 
         msg_req = parser.add_argument_group()
         msg_req.add_argument(
@@ -250,9 +250,9 @@ class GiveawayFlags(commands.Converter):
                     try:
                         bank = await cog.cache.get_dono_bank(ctx.guild.id, bank)
                     except Exception as e:
-                        bank = await cog.cache.get_default_category(ctx.guild.id)
+                        bank = await cog.cache.get_default_bank(ctx.guild.id)
                 mem = flags.get("donor") or ctx.author
-                await ctx.invoke(command, category=bank, amount=amt, user=mem)
+                await ctx.invoke(command, bank=bank, amount=amt, user=mem)
 
             else:
                 raise commands.BadArgument(
