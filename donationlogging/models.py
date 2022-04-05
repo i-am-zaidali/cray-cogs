@@ -276,7 +276,7 @@ class DonationManager:
         await self.config.schema.set(2)
 
     async def _populate_cache(self):
-        if not (schema := await self.config.schema()) == 1:
+        if (schema := await self.config.schema()) == 0:
             await self._schema_0_to_1()
 
         elif schema == 1:
