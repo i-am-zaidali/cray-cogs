@@ -1,6 +1,6 @@
 import asyncio
 import operator
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import discord
 from discord.ext import tasks
@@ -123,7 +123,7 @@ class DonationLogging(commands.Cog):
         await self.bot.wait_until_red_ready()
 
     @commands.group(name="dono", invoke_without_command=True)
-    async def dono(self, ctx):
+    async def dono(self, ctx: commands.Context,):
         """
         Donation Logging for your server.
 
@@ -280,7 +280,7 @@ class DonationLogging(commands.Cog):
     @dono.command(name="bal", aliases=["mydono"])
     @commands.guild_only()
     @setup_done()
-    async def bal(self, ctx, bank: BankConverter = None):
+    async def bal(self, ctx: commands.Context, bank: BankConverter = None):
         """
         Check the amount you have donated in the current server
 
@@ -463,7 +463,7 @@ class DonationLogging(commands.Cog):
     @is_dmgr()
     @commands.guild_only()
     @setup_done()
-    async def reset(self, ctx, bank: Optional[BankConverter] = None, user: discord.Member = None):
+    async def reset(self, ctx: commands.Context, bank: Optional[BankConverter] = None, user: discord.User = None):
         """
         Reset a bank or a user's donation balance.
 
@@ -523,7 +523,7 @@ class DonationLogging(commands.Cog):
     @commands.guild_only()
     @is_dmgr()
     @setup_done()
-    async def check_notes(self, ctx, member: Optional[discord.Member] = None):
+    async def check_notes(self, ctx: commands.Context, member: Optional[discord.Member] = None):
         """
         See donation notes taken for users.
 
@@ -554,15 +554,14 @@ class DonationLogging(commands.Cog):
     @commands.guild_only()
     @is_dmgr()
     @setup_done()
-    async def check(self, ctx, user: discord.Member = None, bank: BankConverter = None):
+    async def check(self, ctx: commands.Context, user: discord.Member = None, bank: BankConverter = None):
         """
         Check someone's donation balance.
 
         The bank must be the name of a registered bank. These can be seen with `[p]donoset bank list`
         This requires either one of the donation manager roles or the bot mod role."""
         if not user:
-            await ctx.send("Please mention a user or provide their id to check their donations")
-            return
+            return await ctx.send("Please mention a user or provide their id to check their donations")
 
         if not bank:
             banks = await self.cache.get_all_dono_banks(ctx.guild.id)
@@ -661,7 +660,7 @@ class DonationLogging(commands.Cog):
     )
     @commands.guild_only()
     @setup_done()
-    async def leaderboard(self, ctx, bank: BankConverter, topnumber=5):
+    async def leaderboard(self, ctx: commands.Context, bank: BankConverter, topnumber=5):
         """
         See the top donators in the server.
 
@@ -721,7 +720,7 @@ class DonationLogging(commands.Cog):
     @autorole.command(name="add")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def ar_add(self, ctx, true_or_false: bool):
+    async def ar_add(self, ctx: commands.Context, true_or_false: bool):
         """
         Set whether donation roles(set with `[p]donoset bank roles`) automatically get added to users or not.
 
@@ -741,7 +740,7 @@ class DonationLogging(commands.Cog):
     @autorole.command(name="remove")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def ar_remove(self, ctx, true_or_false: bool):
+    async def ar_remove(self, ctx: commands.Context, true_or_false: bool):
         """
         Set whether donation roles (set with `[p]donoset bank roles`) automatically get removed from users or not.
 
@@ -772,7 +771,7 @@ class DonationLogging(commands.Cog):
     @bank.command(name="add")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def bank_add(self, ctx, *banks: BankMaker):
+    async def bank_add(self, ctx: commands.Context, *banks: BankMaker):
         """
         Add a new bank to your server.
 
@@ -799,7 +798,7 @@ class DonationLogging(commands.Cog):
     @bank.command(name="remove")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def bank_remove(self, ctx, *banks: BankConverter):
+    async def bank_remove(self, ctx: commands.Context, *banks: BankConverter):
         """
         Remove a bank from your server.
 
@@ -839,7 +838,7 @@ class DonationLogging(commands.Cog):
         await ctx.send_help()
 
     @bank_item.command(name="add")
-    async def bank_item_add(self, ctx, bank: BankConverter, *, items: DictConverter):
+    async def bank_item_add(self, ctx: commands.Context, bank: BankConverter, *, items: DictConverter):
         """
         Add items to a bank.
 
@@ -870,7 +869,7 @@ class DonationLogging(commands.Cog):
         await ctx.send(f"Given items have been added to {bank.name}")
 
     @bank_item.command(name="remove")
-    async def bank_item_remove(self, ctx, bank: BankConverter, *items):
+    async def bank_item_remove(self, ctx: commands.Context, bank: BankConverter, *items):
         """
         Remove items from a bank.
 
@@ -894,7 +893,7 @@ class DonationLogging(commands.Cog):
         await ctx.send(f"Given items have been removed from {bank.name}")
 
     @bank_item.command(name="list")
-    async def bank_item_list(self, ctx, bank: BankConverter):
+    async def bank_item_list(self, ctx: commands.Context, bank: BankConverter):
         """
         List all registered items of a bank.
         """
@@ -932,7 +931,7 @@ class DonationLogging(commands.Cog):
     @bank.command(name="default")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def bank_default(self, ctx, *, bank: BankConverter = None):
+    async def bank_default(self, ctx: commands.Context, *, bank: BankConverter = None):
         """
         See or set the default bank for your server.
 
@@ -984,7 +983,7 @@ class DonationLogging(commands.Cog):
         await ctx.send_help()
 
     @bank_role.command(name="add")
-    async def bank_role_add(self, ctx, bank: BankConverter, *, pairs: AmountRoleConverter):
+    async def bank_role_add(self, ctx: commands.Context, bank: BankConverter, *, pairs: AmountRoleConverter):
         """
         Add autoroles for a bank.
 
@@ -1019,7 +1018,7 @@ class DonationLogging(commands.Cog):
         await ctx.send(embed=embed)
 
     @bank_role.command(name="remove")
-    async def bank_role_remove(self, ctx, bank: BankConverter, *, pairs: AmountRoleConverter):
+    async def bank_role_remove(self, ctx: commands.Context, bank: BankConverter, *, pairs: AmountRoleConverter):
         """
         Remove autoroles for a bank.
 
@@ -1108,7 +1107,7 @@ class DonationLogging(commands.Cog):
     @donoset.command(name="managers")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def set_managers(self, ctx, add_or_remove, roles: Greedy[discord.Role] = None):
+    async def set_managers(self, ctx: commands.Context, add_or_remove, roles: Greedy[discord.Role] = None):
         """Adds or removes managers for your guild.
 
         This is an alternative to `[p]dono setup`.
@@ -1136,7 +1135,7 @@ class DonationLogging(commands.Cog):
     @donoset.command(name="logchannel")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def set_channel(self, ctx, channel: discord.TextChannel = None):
+    async def set_channel(self, ctx: commands.Context, channel: discord.TextChannel = None):
         """Set the donation logging channel or reset it.
 
         This is an alternative to `[p]dono setup`.
