@@ -1,6 +1,6 @@
 import asyncio
 import operator
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import discord
 from discord.ext import tasks
@@ -123,7 +123,10 @@ class DonationLogging(commands.Cog):
         await self.bot.wait_until_red_ready()
 
     @commands.group(name="dono", invoke_without_command=True)
-    async def dono(self, ctx: commands.Context,):
+    async def dono(
+        self,
+        ctx: commands.Context,
+    ):
         """
         Donation Logging for your server.
 
@@ -463,7 +466,12 @@ class DonationLogging(commands.Cog):
     @is_dmgr()
     @commands.guild_only()
     @setup_done()
-    async def reset(self, ctx: commands.Context, bank: Optional[BankConverter] = None, user: discord.User = None):
+    async def reset(
+        self,
+        ctx: commands.Context,
+        bank: Optional[BankConverter] = None,
+        user: discord.User = None,
+    ):
         """
         Reset a bank or a user's donation balance.
 
@@ -554,14 +562,18 @@ class DonationLogging(commands.Cog):
     @commands.guild_only()
     @is_dmgr()
     @setup_done()
-    async def check(self, ctx: commands.Context, user: discord.Member = None, bank: BankConverter = None):
+    async def check(
+        self, ctx: commands.Context, user: discord.Member = None, bank: BankConverter = None
+    ):
         """
         Check someone's donation balance.
 
         The bank must be the name of a registered bank. These can be seen with `[p]donoset bank list`
         This requires either one of the donation manager roles or the bot mod role."""
         if not user:
-            return await ctx.send("Please mention a user or provide their id to check their donations")
+            return await ctx.send(
+                "Please mention a user or provide their id to check their donations"
+            )
 
         if not bank:
             banks = await self.cache.get_all_dono_banks(ctx.guild.id)
@@ -838,7 +850,9 @@ class DonationLogging(commands.Cog):
         await ctx.send_help()
 
     @bank_item.command(name="add")
-    async def bank_item_add(self, ctx: commands.Context, bank: BankConverter, *, items: DictConverter):
+    async def bank_item_add(
+        self, ctx: commands.Context, bank: BankConverter, *, items: DictConverter
+    ):
         """
         Add items to a bank.
 
@@ -983,7 +997,9 @@ class DonationLogging(commands.Cog):
         await ctx.send_help()
 
     @bank_role.command(name="add")
-    async def bank_role_add(self, ctx: commands.Context, bank: BankConverter, *, pairs: AmountRoleConverter):
+    async def bank_role_add(
+        self, ctx: commands.Context, bank: BankConverter, *, pairs: AmountRoleConverter
+    ):
         """
         Add autoroles for a bank.
 
@@ -1018,7 +1034,9 @@ class DonationLogging(commands.Cog):
         await ctx.send(embed=embed)
 
     @bank_role.command(name="remove")
-    async def bank_role_remove(self, ctx: commands.Context, bank: BankConverter, *, pairs: AmountRoleConverter):
+    async def bank_role_remove(
+        self, ctx: commands.Context, bank: BankConverter, *, pairs: AmountRoleConverter
+    ):
         """
         Remove autoroles for a bank.
 
@@ -1107,7 +1125,9 @@ class DonationLogging(commands.Cog):
     @donoset.command(name="managers")
     @commands.mod_or_permissions(administrator=True)
     @setup_done()
-    async def set_managers(self, ctx: commands.Context, add_or_remove, roles: Greedy[discord.Role] = None):
+    async def set_managers(
+        self, ctx: commands.Context, add_or_remove, roles: Greedy[discord.Role] = None
+    ):
         """Adds or removes managers for your guild.
 
         This is an alternative to `[p]dono setup`.
