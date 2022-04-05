@@ -47,7 +47,7 @@ class Giveaways(commands.Cog):
     This cog is a very complex cog and could be resource intensive on your bot.
     Use `giveaway explain` command for an indepth explanation on how to use the commands."""
 
-    __version__ = "2.4.2"
+    __version__ = "2.4.3"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -95,10 +95,9 @@ class Giveaways(commands.Cog):
                 g = g.from_json(more_data)
                 if (
                     isinstance(g, EndedGiveaway)
-                    and (datetime.now(timezone.utc) - g.ended_at).days > 2
-                    and g.duration < (5 * 60)
+                    and (datetime.now(timezone.utc) - g.ended_at).days > 7
                 ):
-                    # if giveaway is over 2 days old and the duration is under 5 minutes, remove it from config
+                    # if giveaway is over 7 days old, remove it from config
                     # no need for it to occupy space anyways.
                     await self.config.custom("giveaway").clear_raw(guild_id, g.message_id)
                     continue
