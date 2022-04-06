@@ -278,6 +278,7 @@ class DonationManager:
     async def _populate_cache(self):
         if (schema := await self.config.schema()) == 0:
             await self._schema_0_to_1()
+            schema += 1 #to keep up with its update within config itself
 
         elif schema == 1:
             await self._schema_1_to_2()
