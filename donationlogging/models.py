@@ -204,6 +204,7 @@ class DonationManager:
 
         self.config.register_global(schema=0)
         self.config.register_guild(bank={}, default_bank=None)
+        self.config.init_custom("guild_category", 2) #backwards compatibility for new schema
         self.config.init_custom("guild_bank", 2)
         self.config.register_custom("guild_bank", donations={})
 
