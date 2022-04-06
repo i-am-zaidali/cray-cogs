@@ -245,7 +245,7 @@ class DonationManager:
 
     async def _schema_0_to_1(self):
         for guild, data in (await self.config.all_guilds()).items():
-            if not data["banks"]:
+            if not data.get("categories"):
                 continue
             for bank_name, d in data["categories"].items():
                 copy = d.copy()
