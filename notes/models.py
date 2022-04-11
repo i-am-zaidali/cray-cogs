@@ -23,7 +23,7 @@ class UserNote:
         self._author: int = author
         self.content: str = content
         self._date: float = int(date)
-        self.type: NoteType = NoteType[type] if type else NoteType.RegularNote
+        self.type: NoteType = NoteType[type] if isinstance(type, str) else type if isinstance(type, NoteType) else NoteType.RegularNote
 
     def __str__(self):
         return f"""Content: ***{self.content}***
