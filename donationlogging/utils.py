@@ -13,7 +13,7 @@ from redbot.core.utils.chat_formatting import box
 from redbot.core.utils.predicates import MessagePredicate
 
 from .exceptions import BankAlreadyExists, BankDoesNotExist
-from .models import DonoBank
+from .models import DonoBank, log
 
 time_regex = re.compile(r"(?:(\d{1,5})(h|s|m|d))+?")
 time_dict = {"h": 3600, "s": 1, "m": 60, "d": 86400}
@@ -229,9 +229,9 @@ async def ask_for_answers(
     final = {}
     for question in questions:
         title, description, key, check = question
-        answer = None
+        answer = False
         sent = False
-        while answer is None:
+        while answer is False:
             if not sent:
                 embed = discord.Embed(
                     title=title,
@@ -256,6 +256,7 @@ async def ask_for_answers(
                 result = await check(message.content)
 
             except Exception as e:
+                log.exception(f"Error in ask_for_answers: ", exc_info=e)
                 await ctx.send(
                     f"The following error has occurred:\n{box(e, lang='py')}\nPlease try again. (The process has not stopped. Send your answer again)"
                 )

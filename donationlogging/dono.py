@@ -24,7 +24,7 @@ class DonationLogging(commands.Cog):
     Helps you in counting and tracking user donations (**for discord bot currencies**) and automatically assigning them roles.
     """
 
-    __version__ = "2.6.3"
+    __version__ = "2.6.5"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
