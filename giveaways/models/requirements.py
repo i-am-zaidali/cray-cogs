@@ -61,7 +61,7 @@ class Requirements(commands.Converter):
         for key, value in items.items():
             if value:
                 if isinstance(value, int):
-                    final += f"Required {key.replace('_', ' ').capitalize()}: {value:>4}"
+                    final += f"Required {key.replace('_', ' ').capitalize()}: {value:>4}\n"
                     continue
                 final += (
                     f"*{key.capitalize()} Roles:*\t{humanize_list([f'<@&{i}>' for i in value])}\n"
