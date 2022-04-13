@@ -8,7 +8,7 @@
         "crayyy_zee#2900"
     ],
     "required_cogs": {},
-    "requirements": [],
+    "requirements": ["dateparser", "cachetools"],
     "tags": [
         "giveaways",
         "requirements",
