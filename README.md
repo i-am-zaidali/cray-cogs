@@ -23,8 +23,8 @@
 ## Cogs
 | Name              | Version          | Functionality (Click to see full description)                                                                                                              |
 |-------------------|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| DonationLogging   | 2.6.3            | <details><summary>Store donation amounts.</summary>This cog allows you to store a member's donations in a guild.</details>                                 |
-| Giveaways         | 2.4.3            | <details><summary>Host embedded giveaways using reactions.</summary>Start giveaways in your server using reactions and advanced requirements.</details>    |
+| DonationLogging   | 2.6.5            | <details><summary>Store donation amounts.</summary>This cog allows you to store a member's donations in a guild.</details>                                 |
+| Giveaways         | 2.4.4            | <details><summary>Host embedded giveaways using reactions.</summary>Start giveaways in your server using reactions and advanced requirements.</details>    |
 | Notes             | 1.1.0            | <details><summary>Moderation Notes</summary>Keep moderation notes on people.</details>                                                                     |
 | HitOrMiss         | 1.3.1            | <details><summary>Throw stuff at others.</summary>Throw items at users and hope you kill them. Buy items from the shop.</details>                          |
 | TickChanger       | 1.2.0            | <details><summary>Change `ctx.tick`'s emoji.</summary>Monkeypatches the ctx.tick method to react with a given emoji of your choice.</details>              |
