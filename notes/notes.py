@@ -19,7 +19,7 @@ class Notes(commands.Cog):
     """
     Store moderator notes on users"""
 
-    __version__ = "1.1.3"
+    __version__ = "1.1.4"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot):
@@ -149,7 +149,7 @@ class Notes(commands.Cog):
 
         The member argument is optional and defaults to the command invoker"""
         member = member or ctx.author
-        note = self._create_note(ctx.guild.id, ctx.author, note, member.id, NoteType.RegularNote)
+        note = self._create_note(ctx.guild.id, ctx.author.id, note, member.id, NoteType.RegularNote)
         await ctx.send(f"Note added to **{member}**\nNote:- {note}")
 
     @commands.command(name="allnotes", aliases=["guildnotes"])
