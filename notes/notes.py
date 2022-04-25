@@ -149,7 +149,9 @@ class Notes(commands.Cog):
 
         The member argument is optional and defaults to the command invoker"""
         member = member or ctx.author
-        note = self._create_note(ctx.guild.id, ctx.author.id, note, member.id, NoteType.RegularNote)
+        note = self._create_note(
+            ctx.guild.id, ctx.author.id, note, member.id, NoteType.RegularNote
+        )
         await ctx.send(f"Note added to **{member}**\nNote:- {note}")
 
     @commands.command(name="allnotes", aliases=["guildnotes"])
