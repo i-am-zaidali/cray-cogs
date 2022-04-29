@@ -13,10 +13,10 @@ guild_defaults = {"timers": [], "timer_settings": {"notify_users": True, "emoji"
 
 
 class Timer(commands.Cog):
-    
+
     __authors__ = ["crayyy_zee#2900"]
     __version__ = "1.0.2"
-    
+
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, 1, True)
@@ -24,7 +24,7 @@ class Timer(commands.Cog):
         self.config.register_global(max_duration=3600 * 12)  # a day long duration by default
 
         self.cache: Dict[int, List[TimerObj]] = {}
-        
+
     async def red_delete_data_for_user(self, *, requester, user_id: int):
         for timers in self.cache.values():
             for timer in timers:
@@ -116,7 +116,7 @@ class Timer(commands.Cog):
         `time`: The duration to start the timer. The duration uses basic time units
                 `s` (seconds), `m` (minutes), `h` (hours), `d` (days), `w` (weeks)
                 The maximum duration is 12 hours. change that with `timerset maxduration`.
-        
+
         `name`: The name of the timer.
         """
 
