@@ -205,15 +205,8 @@ class HitOrMiss(commands.Cog):
         except (ValueError, ItemOnCooldown) as e:
             return await ctx.send(str(e))
         except Exception as e:
-<<<<<<< HEAD
             log.exception("Error occurred in command `throw`: ", exc_info=e)
             return await ctx.send(f"An error occurred trying to throw `{item.name}` at `{target.name}`. Check logs for more information.")
-=======
-            log.debug("error: ", exc_info=e)
-            return await ctx.send(
-                f"An error occurred trying to throw `{item.name}` at `{target.name}`. Check logs for more information."
-            )
->>>>>>> 0bb5594465ba19cf138dad95afc062f1995b6988
 
     @commands.command(name="heal")
     @commands.cooldown(1, 60, commands.BucketType.user)
