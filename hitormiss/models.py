@@ -53,7 +53,6 @@ class BaseItem:
         return self.name
 
     def _handle_usage(self, message: discord.Message, user: "Player"):
-        user = message.author
         u = self.cache.setdefault(user.id, {"uses": self.uses})
         bucket = self._cooldown.get_bucket(message)
         retry_after = bucket.update_rate_limit()

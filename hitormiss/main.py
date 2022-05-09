@@ -32,7 +32,7 @@ class HitOrMiss(commands.Cog):
     *Yet*."""
 
     __author__ = ["crayyy_zee#2900"]
-    __version__ = "1.3.2"
+    __version__ = "1.3.3"
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -186,7 +186,7 @@ class HitOrMiss(commands.Cog):
             return await ctx.send_help()
 
         try:
-            item = await ItemConverter().convert(ctx, item)
+            item: BaseItem = await ItemConverter().convert(ctx, item)
         except Exception as e:
             return await ctx.send(str(e))
 
@@ -194,12 +194,16 @@ class HitOrMiss(commands.Cog):
             return await ctx.send(f"No, a {item} can not be thrown at others.")
         if target.id == ctx.author.id:
             return await ctx.send("Why do you wanna hurt yourself? sadistic much?")
+        if target.user.bot:
+            return await ctx.send("MY KIND. BACK OFF!") # xD
+        
         player = await self.converter.convert(ctx, f"{ctx.author.id}")
         try:
             result, string = player.throw(ctx.message, target, item)
             return await ctx.send(string)
         except Exception as e:
-            return await ctx.send(e)
+            log.debug("error: ", exc_info=e)
+            return await ctx.send(f"An error occurred trying to throw `{item.name}` at `{target.name}`. Check logs for more information.")
 
     @commands.command(name="heal")
     @commands.cooldown(1, 60, commands.BucketType.user)
