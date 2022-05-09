@@ -195,15 +195,17 @@ class HitOrMiss(commands.Cog):
         if target.id == ctx.author.id:
             return await ctx.send("Why do you wanna hurt yourself? sadistic much?")
         if target.user.bot:
-            return await ctx.send("MY KIND. BACK OFF!") # xD
-        
+            return await ctx.send("MY KIND. BACK OFF!")  # xD
+
         player = await self.converter.convert(ctx, f"{ctx.author.id}")
         try:
             result, string = player.throw(ctx.message, target, item)
             return await ctx.send(string)
         except Exception as e:
             log.debug("error: ", exc_info=e)
-            return await ctx.send(f"An error occurred trying to throw `{item.name}` at `{target.name}`. Check logs for more information.")
+            return await ctx.send(
+                f"An error occurred trying to throw `{item.name}` at `{target.name}`. Check logs for more information."
+            )
 
     @commands.command(name="heal")
     @commands.cooldown(1, 60, commands.BucketType.user)
