@@ -18,9 +18,9 @@ from tabulate import tabulate
 
 from .CONSTANTS import dc_fields, global_defaults, lb_types, user_defaults
 from .converters import ItemConverter, PlayerConverter
+from .exceptions import ItemOnCooldown
 from .models import BaseItem, Player
 from .utils import is_lt, no_special_characters
-from .exceptions import ItemOnCooldown
 
 log = logging.getLogger("red.craycogs.HitOrMiss")
 
@@ -206,7 +206,9 @@ class HitOrMiss(commands.Cog):
             return await ctx.send(str(e))
         except Exception as e:
             log.exception("Error occurred in command `throw`: ", exc_info=e)
-            return await ctx.send(f"An error occurred trying to throw `{item.name}` at `{target.name}`. Check logs for more information.")
+            return await ctx.send(
+                f"An error occurred trying to throw `{item.name}` at `{target.name}`. Check logs for more information."
+            )
 
     @commands.command(name="heal")
     @commands.cooldown(1, 60, commands.BucketType.user)
