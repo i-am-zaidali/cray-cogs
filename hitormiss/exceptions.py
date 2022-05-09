@@ -1,13 +1,13 @@
 from typing import Union
 
-from discord.ext.commands.errors import CommandError
+from discord.ext.commands.errors import CommandError, BadArgument
 
 
-class ItemAlreadyExists(CommandError):
+class ItemAlreadyExists(BadArgument):
     pass
 
 
-class ItemDoesntExist(CommandError):
+class ItemDoesntExist(BadArgument):
     pass
 
 
