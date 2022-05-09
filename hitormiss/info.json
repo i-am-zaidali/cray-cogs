@@ -9,7 +9,7 @@
         "crayyy_zee"
     ],
     "required_cogs": {},
-    "requirements": ["emoji"],
+    "requirements": ["emoji==1.6.3"],
     "tags": [
         "snow",
         "christmas",
