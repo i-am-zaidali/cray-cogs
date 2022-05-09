@@ -20,6 +20,7 @@ from .CONSTANTS import dc_fields, global_defaults, lb_types, user_defaults
 from .converters import ItemConverter, PlayerConverter
 from .models import BaseItem, Player
 from .utils import is_lt, no_special_characters
+from .exceptions import ItemOnCooldown
 
 log = logging.getLogger("red.craycogs.HitOrMiss")
 
@@ -32,7 +33,7 @@ class HitOrMiss(commands.Cog):
     *Yet*."""
 
     __author__ = ["crayyy_zee#2900"]
-    __version__ = "1.3.3"
+    __version__ = "1.3.4"
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -201,8 +202,10 @@ class HitOrMiss(commands.Cog):
         try:
             result, string = player.throw(ctx.message, target, item)
             return await ctx.send(string)
+        except (ValueError, ItemOnCooldown) as e:
+            return await ctx.send(str(e))
         except Exception as e:
-            log.debug("error: ", exc_info=e)
+            log.exception("Error occurred in command `throw`: ", exc_info=e)
             return await ctx.send(f"An error occurred trying to throw `{item.name}` at `{target.name}`. Check logs for more information.")
 
     @commands.command(name="heal")
