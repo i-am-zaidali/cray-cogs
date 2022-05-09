@@ -1,6 +1,6 @@
 from typing import Union
 
-from discord.ext.commands.errors import CommandError, BadArgument
+from discord.ext.commands.errors import BadArgument, CommandError
 
 
 class ItemAlreadyExists(BadArgument):
