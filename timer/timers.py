@@ -14,8 +14,8 @@ guild_defaults = {"timers": [], "timer_settings": {"notify_users": True, "emoji"
 
 class Timer(commands.Cog):
 
-    __authors__ = ["crayyy_zee#2900"]
-    __version__ = "1.0.2"
+    __author__ = ["crayyy_zee#2900"]
+    __version__ = "1.0.3"
 
     def __init__(self, bot: Red):
         self.bot = bot
