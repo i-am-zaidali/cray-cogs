@@ -379,6 +379,7 @@ class Giveaways(commands.Cog):
     @commands.Cog.listener()
     async def on_command_completion(self, ctx: commands.Context):
 
+        if not ctx.guild: return
         settings = await get_guild_settings(ctx.guild.id)
 
         if settings.autodelete and ctx.command.qualified_name in commands_to_delete:
