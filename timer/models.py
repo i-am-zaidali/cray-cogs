@@ -204,6 +204,9 @@ class TimerObj:
     async def end(self):
         msg = await self.message
         if not msg:
+            await self.cog.remove_timer(self)
+            self._tasks[self.message_id].cancel()
+            del self._tasks[self.message_id]
             raise TimerError(
                 f"Couldn't find timer message with id {self.message_id}. Removing from cache."
             )
