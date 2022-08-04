@@ -3,11 +3,10 @@ import time
 from typing import Dict, List, Optional
 
 import discord
+from donationlogging.views import PaginationView
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list
-
-from donationlogging.views import PaginationView
 
 from .models import UserNote
 
