@@ -4,12 +4,12 @@ import time as _time
 from typing import Dict, List, Optional
 
 import discord
-from .views import PaginationView
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list
 
 from .models import NoteType, UserNote
+from .views import PaginationView
 
 log = logging.getLogger("red.craycogs.notes")
 log.setLevel(logging.DEBUG)
