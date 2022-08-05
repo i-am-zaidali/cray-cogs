@@ -80,8 +80,8 @@ class Notes(commands.Cog):
         asyncio.create_task(self.to_cache())
         return self
 
-    def cog_unload(self):
-        self.bot.loop.create_task(self.to_config())
+    async def cog_unload(self):
+        await self.to_config()
 
     def _create_note(
         self,

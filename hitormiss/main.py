@@ -179,8 +179,8 @@ class HitOrMiss(commands.Cog):
         for player in self.cache.copy():
             await self.config.user_from_id(player.id).set(player.to_dict())
 
-    def cog_unload(self):
-        asyncio.create_task(self._unload())
+    async def cog_unload(self):
+        await self._unload()
 
     @commands.command(name="throw")
     @commands.cooldown(1, 5, commands.BucketType.user)
