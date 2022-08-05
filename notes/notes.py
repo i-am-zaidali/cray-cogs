@@ -1,16 +1,16 @@
+import asyncio
 import logging
-import time
+import time as _time
 from typing import Dict, List, Optional
 
 import discord
-from donationlogging.views import PaginationView
+from .views import PaginationView
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list
 
-from .models import UserNote
+from .models import NoteType, UserNote
 
-global log
 log = logging.getLogger("red.craycogs.notes")
 log.setLevel(logging.DEBUG)
 
@@ -19,7 +19,7 @@ class Notes(commands.Cog):
     """
     Store moderator notes on users"""
 
-    __version__ = "1.0.0"
+    __version__ = "1.1.4"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot):
@@ -27,6 +27,7 @@ class Notes(commands.Cog):
         self.config = Config.get_conf(None, 1, True, "Notes")
         self.config.register_member(notes=[])
         self.cache: Dict[int, Dict[int, List[UserNote]]] = {}
+        self.note_type = NoteType
 
     def format_help_for_context(self, ctx: commands.Context) -> str:
         pre_processed = super().format_help_for_context(ctx)
@@ -39,24 +40,25 @@ class Notes(commands.Cog):
         return "\n".join(text)
 
     async def to_cache(self):
+        await self.bot.wait_until_red_ready()
         members = await self.config.all_members()
         if not members:
             return
         final = {}
         for key, value in members.items():
             guild = self.bot.get_guild(key)
-            final.update(
-                {
-                    guild.id: {
-                        member: [
-                            UserNote(bot=self.bot, guild=guild.id, **note)
-                            for note in data["notes"]
-                            if data["notes"]
-                        ]
-                        for member, data in value.items()
+            if guild:
+                final.update(
+                    {
+                        guild.id: {
+                            member: [
+                                UserNote(bot=self.bot, guild=guild.id, **note)
+                                for note in data["notes"]
+                            ]
+                            for member, data in value.items()
+                        }
                     }
-                }
-            )
+                )
 
         log.debug(f"Cached all user notes.")
 
@@ -75,11 +77,32 @@ class Notes(commands.Cog):
     @classmethod
     async def initialize(cls, bot):
         self = cls(bot)
-        await self.to_cache()
+        asyncio.create_task(self.to_cache())
         return self
 
     def cog_unload(self):
         self.bot.loop.create_task(self.to_config())
+
+    def _create_note(
+        self,
+        guild: int,
+        author: int,
+        content: str,
+        user: int = None,
+        note_type: NoteType = None,
+        time: int = None,
+    ):
+        note = UserNote(
+            bot=self.bot,
+            guild=guild,
+            user=user,
+            author=author,
+            content=content,
+            type=note_type,
+            date=time or _time.time(),
+        )
+        self._add_note(note)
+        return note
 
     def _get_notes(self, guild: discord.guild, member: discord.Member = None):
         if not member:
@@ -87,8 +110,15 @@ class Notes(commands.Cog):
 
         return self.cache.setdefault(guild.id, {}).setdefault(member.id, [])
 
-    def _add_note(self, ctx: commands.Context, member: discord.Member, note: UserNote):
-        user = self.cache.setdefault(ctx.guild.id, {}).setdefault(member.id, [])
+    def _get_notes_of_type(self, guild: discord.Guild, member: discord.Member, type: NoteType):
+        user = self._get_notes(guild, member)
+        if not user:
+            return []
+
+        return [note for note in user if note.type == type]
+
+    def _add_note(self, note: UserNote):
+        user = self.cache.setdefault(note._guild, {}).setdefault(note._user, [])
         user.append(note)
         return user
 
@@ -117,8 +147,9 @@ class Notes(commands.Cog):
 
         The member argument is optional and defaults to the command invoker"""
         member = member or ctx.author
-        note = UserNote(self.bot, ctx.guild.id, member.id, ctx.author.id, note, time.time())
-        self._add_note(ctx, member, note)
+        note = self._create_note(
+            ctx.guild.id, ctx.author.id, note, member.id, NoteType.RegularNote
+        )
         await ctx.send(f"Note added to **{member}**\nNote:- {note}")
 
     @commands.command(name="allnotes", aliases=["guildnotes"])
@@ -138,7 +169,7 @@ class Notes(commands.Cog):
                 if not n:
                     return await ctx.send("No notes found for this server.")
                 for i, note in enumerate(n, 1):
-                    final += f"**{i}**. {note}/n"
+                    final += f"**{i}** ({note.type.name}). \n{note}\n"
             return await ctx.send(
                 embed=discord.Embed(
                     title=f"Notes for {ctx.guild}", color=discord.Color.green()
@@ -155,7 +186,7 @@ class Notes(commands.Cog):
             if not n:
                 continue
             for i, note in enumerate(n, 1):
-                final += f"**{i}**. {note}\n"
+                final += f"**{i}** ({note.type.name}). \n{note}\n"
             user = ctx.guild.get_member(user)
             embeds.append(
                 discord.Embed(
@@ -189,7 +220,7 @@ class Notes(commands.Cog):
             embed.color = member.color
 
             for i, note in enumerate(notes, 1):
-                embed.add_field(name=f"Note:- {i}", value=note, inline=False)
+                embed.add_field(name=f"Note:- {i} ({note.type.name})", value=note, inline=False)
         else:
             embed.description = "No notes found"
         await ctx.send(embed=embed)

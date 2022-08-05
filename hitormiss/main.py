@@ -21,6 +21,7 @@ from hitormiss.views import PaginationView
 
 from .CONSTANTS import dc_fields, global_defaults, lb_types, user_defaults
 from .converters import ItemConverter, PlayerConverter
+from .exceptions import ItemOnCooldown
 from .models import BaseItem, Player
 from .utils import is_lt, no_special_characters
 
@@ -35,7 +36,7 @@ class HitOrMiss(commands.Cog):
     *Yet*."""
 
     __author__ = ["crayyy_zee#2900"]
-    __version__ = "1.3.1"
+    __version__ = "1.3.5"
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -189,7 +190,7 @@ class HitOrMiss(commands.Cog):
             return await ctx.send_help()
 
         try:
-            item = await ItemConverter().convert(ctx, item)
+            item: BaseItem = await ItemConverter().convert(ctx, item)
         except Exception as e:
             return await ctx.send(str(e))
 
@@ -197,12 +198,20 @@ class HitOrMiss(commands.Cog):
             return await ctx.send(f"No, a {item} can not be thrown at others.")
         if target.id == ctx.author.id:
             return await ctx.send("Why do you wanna hurt yourself? sadistic much?")
+        if target.user.bot:
+            return await ctx.send("MY KIND. BACK OFF!")  # xD
+
         player = await self.converter.convert(ctx, f"{ctx.author.id}")
         try:
             result, string = player.throw(ctx.message, target, item)
             return await ctx.send(string)
+        except (ValueError, ItemOnCooldown) as e:
+            return await ctx.send(str(e))
         except Exception as e:
-            return await ctx.send(e)
+            log.exception("Error occurred in command `throw`: ", exc_info=e)
+            return await ctx.send(
+                f"An error occurred trying to throw `{item.name}` at `{target.name}`. Check logs for more information."
+            )
 
     @commands.command(name="heal")
     @commands.cooldown(1, 60, commands.BucketType.user)
@@ -285,8 +294,8 @@ class HitOrMiss(commands.Cog):
 
         for item, amount in me.inv.items.items():
             item_cooldown = (
-                f"Can be used <t:{int(item.on_cooldown(me))}:R>."
-                if item.on_cooldown(me)
+                f"Can be used <t:{item.on_cooldown(me)}:R>."
+                if (cd := item.on_cooldown(ctx.message))
                 else "Not on cooldown."
             )
             fields.append(

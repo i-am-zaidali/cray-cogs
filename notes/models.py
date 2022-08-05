@@ -1,17 +1,30 @@
 import datetime
+import enum
 
 import discord
 from redbot.core.bot import Red
 
 
+class NoteType(enum.Enum):
+    DonationNote = 1
+    RegularNote = 2
+
+
 class UserNote:
-    def __init__(self, bot, guild, user, author, content, date):
+    def __init__(self, bot, guild, user, author, content, date, type=None):
         self.bot: Red = bot
         self._guild: int = guild
         self._user: int = user
         self._author: int = author
         self.content: str = content
         self._date: float = int(date)
+        self.type: NoteType = (
+            NoteType[type]
+            if isinstance(type, str)
+            else type
+            if isinstance(type, NoteType)
+            else NoteType.RegularNote
+        )
 
     def __str__(self):
         return f"""Content: ***{self.content}***
@@ -41,4 +54,5 @@ class UserNote:
             "author": self._author,
             "content": self.content,
             "date": self._date,
+            "type": self.type.name,
         }

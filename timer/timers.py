@@ -13,6 +13,10 @@ guild_defaults = {"timers": [], "timer_settings": {"notify_users": True, "emoji"
 
 
 class Timer(commands.Cog):
+
+    __author__ = ["crayyy_zee#2900"]
+    __version__ = "1.0.3"
+
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, 1, True)
@@ -20,6 +24,23 @@ class Timer(commands.Cog):
         self.config.register_global(max_duration=3600 * 12)  # a day long duration by default
 
         self.cache: Dict[int, List[TimerObj]] = {}
+
+    async def red_delete_data_for_user(self, *, requester, user_id: int):
+        for timers in self.cache.values():
+            for timer in timers:
+                if timer._host == user_id:
+                    await timer.end()
+                    await self.remove_timer(timer)
+
+    def format_help_for_context(self, ctx: commands.Context) -> str:
+        pre_processed = super().format_help_for_context(ctx) or ""
+        n = "\n" if "\n\n" not in pre_processed else ""
+        text = [
+            f"{pre_processed}{n}",
+            f"Cog Version: **{self.__version__}**",
+            f"Author: {cf.humanize_list(self.__author__)}",
+        ]
+        return "\n".join(text)
 
     @classmethod
     async def initialize(cls, bot):
@@ -92,7 +113,10 @@ class Timer(commands.Cog):
         """
         Start a timer.
 
-        `time`: The duration to start the timer.
+        `time`: The duration to start the timer. The duration uses basic time units
+                `s` (seconds), `m` (minutes), `h` (hours), `d` (days), `w` (weeks)
+                The maximum duration is 12 hours. change that with `timerset maxduration`.
+
         `name`: The name of the timer.
         """
 
@@ -131,6 +155,8 @@ class Timer(commands.Cog):
 
     @timer.command(name="list")
     async def timer_list(self, ctx: commands.Context):
+        """
+        Get a list of all the active timers in this server."""
         if not self.cache.get(ctx.guild.id):
             await ctx.send("No timers found.")
             return

@@ -130,3 +130,6 @@ dmypy.json
 
 # launch.json
 launch.json
+
+# git-rewrite
+.git-rewrite
