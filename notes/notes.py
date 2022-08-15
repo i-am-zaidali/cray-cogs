@@ -129,7 +129,7 @@ class Notes(commands.Cog):
             for field in fields_to_add:
                 groups[ind].add_field(**field)
         return groups
-    
+
     def _get_notes(self, guild: discord.Guild, member: discord.Member = None):
         if member is None:
             return self.cache.setdefault(guild.id, {})
@@ -281,11 +281,14 @@ class Notes(commands.Cog):
         for i, note in enumerate(notes, 1):
             fields.append({"name": f"Note #{i}", "value": note, "inline": False})
 
-        for ind, embed in enumerate(embs:=await self.group_embeds_by_fields(
-            *fields, author=member, per_embed=5, color=member.color
-        ), 1):
+        for ind, embed in enumerate(
+            embs := await self.group_embeds_by_fields(
+                *fields, author=member, per_embed=5, color=member.color
+            ),
+            1,
+        ):
             embed.set_footer(text=f"Page {ind}/{len(embs)}")
-            
+
         await menu(ctx, embs, DEFAULT_CONTROLS)
 
     @commands.command()
