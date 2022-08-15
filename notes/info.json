@@ -8,7 +8,7 @@
         "crayyy_zee"
     ],
     "required_cogs": {},
-    "requirements": ["discord-components"],
+    "requirements": ["https://github.com/kiki7000/discord.py-components/archive/refs/tags/2.1.2.tar.gz"],
     "tags": [
         "notes",
         "note",
