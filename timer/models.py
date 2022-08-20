@@ -221,7 +221,7 @@ class TimerObj:
 
         await msg.reply(
             f"{self.host.mention} your timer for **{self.name}** has ended!\n"
-            + ("\n".join([i.mention for i in self.entrants]) if self._entrants and notify else "")
+            + ("\n".join([i.mention for i in self.entrants if i is not None]) if self._entrants and notify else "")
             + f"\n{self.jump_url}"
         )
 
