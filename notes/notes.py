@@ -283,7 +283,7 @@ class Notes(commands.Cog):
 
         for ind, embed in enumerate(
             embs := await self.group_embeds_by_fields(
-                *fields, author=member, per_embed=5, color=member.color
+                *fields, author={"name": str(member)}, per_embed=5, color=member.color
             ),
             1,
         ):
