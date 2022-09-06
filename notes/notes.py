@@ -123,7 +123,7 @@ class Notes(commands.Cog):
         groups: list[discord.Embed] = []
         for ind, i in enumerate(range(0, len(fields), per_embed)):
             groups.append(
-                discord.Embed.from_dict(**kwargs)
+                discord.Embed.from_dict(kwargs)
             )  # append embeds in the loop to prevent incorrect embed count
             fields_to_add = fields[i : i + per_embed]
             for field in fields_to_add:
