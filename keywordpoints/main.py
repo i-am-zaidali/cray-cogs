@@ -30,7 +30,7 @@ class KeyWordPoints(commands.Cog):
     But multiple different keywords in a message will reward points multiple times.
     """
 
-    __version__ = "1.0.0"
+    __version__ = "1.0.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -58,10 +58,14 @@ class KeyWordPoints(commands.Cog):
 
         self.settings_cache: Dict[
             str, Dict[str, KeyWordDetails]
-        ] = {}  # this cache would just mirror the config structure
+        ] = {}  
+        # this cache would just mirror the config structure
         self.member_cache: Dict[
             int, Dict[int, Dict[Literal["points"], int]]
-        ] = {}  # {guild_id: {member_id: {points: x}, ...}, ...}
+        ] = {}  
+        # {guild_id: {member_id: {points: x}, ...}, ...}
+        
+        self._task = self._update_config.start()
 
     def format_help_for_context(self, ctx: commands.Context) -> str:
         pre_processed = super().format_help_for_context(ctx)
@@ -98,6 +102,10 @@ class KeyWordPoints(commands.Cog):
     async def initialize(self):
         self.settings_cache.update(await self.config.custom(KEYWORDPOINTS).all())
         self.member_cache.update(await self.config.all_members())
+        
+    def cog_unload(self) -> None:
+        self._task.cancel()
+        asyncio.create_task(self._update_config())
 
     @tasks.loop(minutes=2)
     async def _update_config(self):
