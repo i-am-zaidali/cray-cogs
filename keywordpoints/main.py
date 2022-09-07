@@ -33,7 +33,7 @@ class KeyWordPoints(commands.Cog):
     But multiple different keywords in a message will reward points multiple times.
     """
 
-    __version__ = "1.0.6"
+    __version__ = "1.0.7"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -256,7 +256,7 @@ class KeyWordPoints(commands.Cog):
         members = dict(
             sorted(
                 filter(
-                    lambda x: ctx.guild.get_member(x[0]) is not None,
+                    lambda x: ctx.guild.get_member(x[0]) is not None and x[1]["points"] > 0,
                     self.member_cache[ctx.guild.id].items(),
                 ),
                 key=lambda x: x[1]["points"],
