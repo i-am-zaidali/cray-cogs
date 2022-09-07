@@ -1,0 +1,19 @@
+{
+    "name": "KeyWordPoints",
+    "short": "Add keywords to assign points to users when they use them.",
+    "description": "Set keywords that allow users to gain points when detected in their messages.",
+    "end_user_data_statement": "This cog stores user and guild ids to keep track of points and keywords.",
+    "install_msg": "Thanks for installing Notes. Load the cog with `[p]load keywordpoints` and see all its commands with `[p]help KeyWordPoints`",
+    "author": [
+        "crayyy_zee"
+    ],
+    "required_cogs": {},
+    "tags": [
+        "points",
+        "rewards",
+        "kwywords",
+        "level",
+        "utility"
+    ],
+    "type": "COG"
+}
