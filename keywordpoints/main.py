@@ -1,5 +1,6 @@
 import asyncio
 from collections import deque
+import logging
 from typing import Dict, List, Literal, TypedDict, Union
 
 import discord
@@ -12,6 +13,8 @@ from redbot.core.utils.predicates import MessagePredicate
 from tabulate import tabulate
 
 KEYWORDPOINTS = "keywordpoints"
+
+log = logging.getLogger("red.craycogs.kwp")
 
 
 class KeyWordDetails(TypedDict):
@@ -30,7 +33,7 @@ class KeyWordPoints(commands.Cog):
     But multiple different keywords in a message will reward points multiple times.
     """
 
-    __version__ = "1.0.5"
+    __version__ = "1.0.6"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -61,8 +64,6 @@ class KeyWordPoints(commands.Cog):
         self.member_cache: Dict[int, Dict[int, Dict[Literal["points"], int]]] = {}
         # {guild_id: {member_id: {points: x}, ...}, ...}
 
-        self._task = self._update_config.start()
-
     def format_help_for_context(self, ctx: commands.Context) -> str:
         pre_processed = super().format_help_for_context(ctx)
         n = "\n" if "\n\n" not in pre_processed else ""
@@ -88,7 +89,7 @@ class KeyWordPoints(commands.Cog):
         groups: list[discord.Embed] = []
         for ind, i in enumerate(range(0, len(fields), per_embed)):
             groups.append(
-                discord.Embed.from_dict(**kwargs)
+                discord.Embed.from_dict(kwargs)
             )  # append embeds in the loop to prevent incorrect embed count
             fields_to_add = fields[i : i + per_embed]
             for field in fields_to_add:
@@ -98,6 +99,7 @@ class KeyWordPoints(commands.Cog):
     async def initialize(self):
         self.settings_cache.update(await self.config.custom(KEYWORDPOINTS).all())
         self.member_cache.update(await self.config.all_members())
+        self._task = self._update_config.start()
 
     def cog_unload(self) -> None:
         self._task.cancel()
@@ -133,12 +135,7 @@ class KeyWordPoints(commands.Cog):
         )
 
         def add_points(word: str):
-            self.member_cache.setdefault(message.guild.id, {}).setdefault(
-                message.author.id, {"points": 0}
-            )
-            self.member_cache[message.guild.id][message.author.id]["points"] += cache[word][
-                "points"
-            ]
+            self.member_cache.setdefault(message.guild.id, {}).setdefault(message.author.id, {"points": 0})["points"] += cache[word]["points"]
 
         deque(map(add_points, valid_keywords), maxlen=0)  # cursed?
 
@@ -195,7 +192,7 @@ class KeyWordPoints(commands.Cog):
 
         await ctx.send(
             cf.success(
-                f"Keyword `{keyword}` added with {points} points, enabled in {cf.humanize_list([channel.mention for channel in channels])} and blacklisted members: {cf.humanize_list([member.mention for member in blacklist_members])}"
+                f"Keyword `{keyword}` added with {points} points, enabled in {cf.humanize_list([channel.mention for channel in channels])} and blacklisted members: {cf.humanize_list([member.mention for member in blacklist_members]) or None}"
             )
         )
 
@@ -223,8 +220,6 @@ class KeyWordPoints(commands.Cog):
             return await ctx.send(cf.error("No keywords registered in this server."))
 
         keywords = self.settings_cache[guild_id]
-        embed = discord.Embed(title=f"Keywords in {ctx.guild.name}", description="")
-
         fields: List[Dict[str, Union[str, bool]]] = []
 
         def handle_keyword(keyword: str):
@@ -234,8 +229,8 @@ class KeyWordPoints(commands.Cog):
                     "name": f"**{keyword}**",
                     "value": (
                         f"Points Awarded: **{details['points']}**\n"
-                        f"Channels: {cf.humanize_list([channel.mention for channel in details['channels']])}\n"
-                        f"Blacklisted Members: {cf.humanize_list([f'<@{member}>' for member in details['blacklisted_members']])}"
+                        f"Channels: {cf.humanize_list([f'<#{channel}>' for channel in details['channels']])}\n"
+                        f"Blacklisted Members: {cf.humanize_list([f'<@{member}>' for member in details['blacklisted_members']]) or 'No one is blacklisted.'}"
                     ),
                 }
             )
@@ -243,11 +238,11 @@ class KeyWordPoints(commands.Cog):
         deque(map(handle_keyword, keywords), maxlen=0)
 
         embeds = await self.group_embeds_by_fields(
-            *fields, per_embed=5, color=ctx.author.color, title=f"Keywords in {ctx.guild.name}"
+            *fields, per_embed=5, color=ctx.author.color.value, title=f"Keywords in {ctx.guild.name}"
         )
 
         if len(embeds) == 1:
-            return await ctx.send(embed=embed)
+            return await ctx.send(embed=embeds[0])
 
         await menu(ctx, embeds, DEFAULT_CONTROLS)
 
@@ -261,7 +256,7 @@ class KeyWordPoints(commands.Cog):
         members = dict(
             sorted(
                 filter(
-                    lambda x: ctx.guild.get_member(x) is not None,
+                    lambda x: ctx.guild.get_member(x[0]) is not None,
                     self.member_cache[ctx.guild.id].items(),
                 ),
                 key=lambda x: x[1]["points"],
@@ -270,7 +265,7 @@ class KeyWordPoints(commands.Cog):
         )
 
         tab_data = map(
-            lambda x: (str(ctx.guild.get_member(x)), str(members[x]["points"])), members
+            lambda x: (str(ctx.guild.get_member(x[0])), str(x[1]["points"])), members.items()
         )
         headers = ("Member", "Points")
 
