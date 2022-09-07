@@ -30,7 +30,7 @@ class KeyWordPoints(commands.Cog):
     But multiple different keywords in a message will reward points multiple times.
     """
 
-    __version__ = "1.0.1"
+    __version__ = "1.0.2"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
