@@ -30,7 +30,7 @@ class KeyWordPoints(commands.Cog):
     But multiple different keywords in a message will reward points multiple times.
     """
 
-    __version__ = "1.0.4"
+    __version__ = "1.0.5"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -109,6 +109,10 @@ class KeyWordPoints(commands.Cog):
         for guild_id, member_data in self.member_cache.items():
             for member_id, member_details in member_data.items():
                 await self.config.member_from_ids(guild_id, member_id).set(member_details)
+                
+    @_update_config.before_loop
+    async def before_loop(self):
+        await self.bot.wait_until_ready()
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
