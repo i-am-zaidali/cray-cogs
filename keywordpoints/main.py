@@ -1,6 +1,6 @@
 import asyncio
-from collections import deque
 import logging
+from collections import deque
 from typing import Dict, List, Literal, TypedDict, Union
 
 import discord
@@ -135,7 +135,9 @@ class KeyWordPoints(commands.Cog):
         )
 
         def add_points(word: str):
-            self.member_cache.setdefault(message.guild.id, {}).setdefault(message.author.id, {"points": 0})["points"] += cache[word]["points"]
+            self.member_cache.setdefault(message.guild.id, {}).setdefault(
+                message.author.id, {"points": 0}
+            )["points"] += cache[word]["points"]
 
         deque(map(add_points, valid_keywords), maxlen=0)  # cursed?
 
@@ -238,7 +240,10 @@ class KeyWordPoints(commands.Cog):
         deque(map(handle_keyword, keywords), maxlen=0)
 
         embeds = await self.group_embeds_by_fields(
-            *fields, per_embed=5, color=ctx.author.color.value, title=f"Keywords in {ctx.guild.name}"
+            *fields,
+            per_embed=5,
+            color=ctx.author.color.value,
+            title=f"Keywords in {ctx.guild.name}",
         )
 
         if len(embeds) == 1:
