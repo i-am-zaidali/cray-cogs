@@ -30,7 +30,7 @@ class KeyWordPoints(commands.Cog):
     But multiple different keywords in a message will reward points multiple times.
     """
 
-    __version__ = "1.0.2"
+    __version__ = "1.0.3"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -112,7 +112,7 @@ class KeyWordPoints(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.author.bot:
+        if message.author.bot or not message.guild:
             return
 
         guild_id = str(message.guild.id)
@@ -129,7 +129,7 @@ class KeyWordPoints(commands.Cog):
         )
 
         def add_points(word: str):
-            self.member_cache.setdefault(guild_id, {}).setdefault(message.author.id, {})["points"] += cache[word]["points"]
+            self.member_cache.setdefault(message.guild.id, {}).setdefault(message.author.id, {})["points"] += cache[word]["points"]
 
         deque(map(add_points, valid_keywords), maxlen=0)  # cursed?
 
