@@ -129,8 +129,12 @@ class KeyWordPoints(commands.Cog):
         )
 
         def add_points(word: str):
-            self.member_cache.setdefault(message.guild.id, {}).setdefault(message.author.id, {"points": 0})
-            self.member_cache[message.guild.id][message.author.id]["points"] += cache[word]["points"]
+            self.member_cache.setdefault(message.guild.id, {}).setdefault(
+                message.author.id, {"points": 0}
+            )
+            self.member_cache[message.guild.id][message.author.id]["points"] += cache[word][
+                "points"
+            ]
 
         deque(map(add_points, valid_keywords), maxlen=0)  # cursed?
 
