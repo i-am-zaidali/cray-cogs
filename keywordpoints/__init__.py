@@ -1,8 +1,9 @@
-from .main import KeyWordPoints
-
 from redbot.core.utils import get_end_user_data_statement
 
+from .main import KeyWordPoints
+
 __red_end_user_data_statement__ = get_end_user_data_statement()
+
 
 async def setup(bot):
     cog = KeyWordPoints(bot)
