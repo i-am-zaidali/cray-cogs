@@ -220,11 +220,14 @@ class TimerObj:
         notify = (await self.cog.get_guild_settings(self.guild_id)).notify_users
 
         await msg.reply(
-            f"{self.host.mention} your timer for **{self.name}** has ended!\n"
-            + self.jump_url
+            f"{self.host.mention} your timer for **{self.name}** has ended!\n" + self.jump_url
         )
 
-        pings = "\n".join((i.mention for i in self.entrants if i is not None)) if self._entrants and notify else ""
+        pings = (
+            "\n".join((i.mention for i in self.entrants if i is not None))
+            if self._entrants and notify
+            else ""
+        )
 
         if pings:
             for page in cf.pagify(pings, delims=[" "], page_length=2000):
