@@ -221,13 +221,14 @@ class TimerObj:
 
         await msg.reply(
             f"{self.host.mention} your timer for **{self.name}** has ended!\n"
-            + (
-                "\n".join([i.mention for i in self.entrants if i is not None])
-                if self._entrants and notify
-                else ""
-            )
-            + f"\n{self.jump_url}"
+            + self.jump_url
         )
+
+        pings = "\n".join((i.mention for i in self.entrants if i is not None)) if self._entrants and notify else ""
+
+        if pings:
+            for page in cf.pagify(pings, delims=[" "], page_length=2000):
+                await msg.channel.send(page)
 
         await self.cog.remove_timer(self)
         self._tasks[self.message_id].cancel()
