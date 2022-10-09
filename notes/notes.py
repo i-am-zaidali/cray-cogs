@@ -236,16 +236,24 @@ class Notes(commands.Cog):
         # await paginator.start()
 
         await menu(ctx, embeds, DEFAULT_CONTROLS)
-        
+
     @commands.command(name="listnotes")
     @commands.mod_or_permissions(manage_messages=True)
     async def listnotes(self, ctx: commands.Context):
         notes = self._get_notes(ctx.guild)
-        
-        data = sorted([(i, u, len(notes)) for i, (user, notes) in enumerate(notes.items()) if (u := ctx.guild.get_member(user))], key=lambda x: x[2], reverse=True)
-        
+
+        data = sorted(
+            [
+                (i, u, len(notes))
+                for i, (user, notes) in enumerate(notes.items())
+                if (u := ctx.guild.get_member(user))
+            ],
+            key=lambda x: x[2],
+            reverse=True,
+        )
+
         tabbed = tabulate(data, headers=["User", "Notes"], tablefmt="rst")
-        
+
         return await ctx.send(
             embed=discord.Embed(
                 title="Notes for this server",

@@ -110,7 +110,9 @@ class KeyWordPoints(commands.Cog):
         await self.config.custom(KEYWORDPOINTS).set(self.settings_cache)
         for guild_id, member_data in self.member_cache.items():
             for member_id, member_details in member_data.items():
-                await self.config.member_from_ids(guild_id, member_id).points.set(member_details["points"])
+                await self.config.member_from_ids(guild_id, member_id).points.set(
+                    member_details["points"]
+                )
 
     @_update_config.before_loop
     async def before_loop(self):
