@@ -7,7 +7,7 @@
     "author": [
         "crayyy_zee"
     ],
-    "requirements": ["tabualte"],
+    "requirements": ["tabulate"],
     "required_cogs": {},
     "tags": [
         "notes",
