@@ -141,7 +141,7 @@ class Timer(commands.Cog):
         """
         End a timer.
 
-        `timer_id`: The ID of the timer to end.
+        `timer_id`: The `msg-ID` of the timer to end.
         """
 
         timer = await self.get_timer(ctx.guild.id, timer_id)
@@ -173,7 +173,7 @@ class Timer(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-    @commands.group(name="timerset", aliases=["ts", "tset", "timersettings"])
+    @commands.group(name="timerset", aliases=["tset", "timersettings"])
     @commands.mod_or_permissions(manage_messages=True)
     async def tset(self, ctx: commands.Context):
         """
