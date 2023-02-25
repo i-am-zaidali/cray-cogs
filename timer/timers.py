@@ -1,6 +1,4 @@
 import asyncio
-from datetime import datetime as dt
-from datetime import timezone as tz
 from typing import Dict, List
 
 import discord
@@ -195,14 +193,14 @@ class Timer(commands.Cog):
 
     @tset.command(name="maxduration", aliases=["duration", "md"])
     @commands.is_owner()
-    async def tset_duration(self, ctx: commands.Context, duration: TimeConverter):
+    async def tset_duration(self, ctx: commands.Context, duration: TimeConverter(True)):
         """
         Change the max duration for timers.
 
         `duration`: The duration to set.
         """
 
-        await self.config.max_duration.set((duration - dt.now(tz.utc)).total_seconds())
+        await self.config.max_duration.set(duration.total_seconds())
         await ctx.tick()
 
     @tset.command(name="notifyusers", aliases=["notify"])
