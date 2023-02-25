@@ -5,7 +5,7 @@ import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
-
+from datetime import datetime as dt, timedelta as td, timezone as tz
 from .models import TimerObj, TimerSettings
 from .utils import EmojiConverter, TimeConverter
 
@@ -200,7 +200,7 @@ class Timer(commands.Cog):
         `duration`: The duration to set.
         """
 
-        await self.config.max_duration.set(duration)
+        await self.config.max_duration.set((duration - dt.now(tz.utc)).total_seconds())
         await ctx.tick()
 
     @tset.command(name="notifyusers", aliases=["notify"])
