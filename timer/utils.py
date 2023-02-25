@@ -13,7 +13,8 @@ class TimeConverter(commands.Converter):
     def __init__(self, setting: bool = False):
         self.setting = setting
 
-    def __call__(self): return self
+    def __call__(self):
+        return self
 
     async def convert(self, ctx: commands.Context, argument: str):
         args = argument.lower()
