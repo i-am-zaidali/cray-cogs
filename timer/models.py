@@ -20,7 +20,6 @@ class TimerSettings:
 
 
 class TimerObj:
-
     _tasks: Dict[int, asyncio.Task] = {}
 
     # haha ctrl C + Ctrl V from giveaways go brrrrrrrrr

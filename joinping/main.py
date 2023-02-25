@@ -115,7 +115,8 @@ class JoinPing(commands.Cog):
 
         - server (the name of the server the member joined)
 
-        These placeholders must be places within `{}` (curly brackets) to be replaced with actual values."""
+        These placeholders must be places within `{}` (curly brackets) to be replaced with actual values.
+        """
         await self.config.guild(ctx.guild).ping_message.set(message)
         await self._build_cache()
         await ctx.send(f"The ping message has been set to:\n{message}")
@@ -153,7 +154,8 @@ class JoinPing(commands.Cog):
     @jpset_channels.command(name="add", aliases=["a"])
     async def jpsetchan_add(self, ctx, *channels: discord.TextChannel):
         """
-        Remove the channels from the list of channels where the pings will be sent on member join."""
+        Remove the channels from the list of channels where the pings will be sent on member join.
+        """
         cached_chans = self.cache.setdefault(ctx.guild.id, guild_defaults).get("ping_channels")
         al_present = (channels := {a.id for a in channels}) & set(cached_chans)
         channels -= al_present

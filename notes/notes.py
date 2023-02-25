@@ -209,7 +209,6 @@ class Notes(commands.Cog):
 
         embeds = []
         for user, n in notes.items():
-
             if not n:
                 continue
             user = ctx.guild.get_member(user)
@@ -323,7 +322,8 @@ class Notes(commands.Cog):
         Delete a note of a user.
 
         The member argument is optional and defaults to the command invoker
-        The id argument is the index of the note which can be checked with the `[p]notes` command"""
+        The id argument is the index of the note which can be checked with the `[p]notes` command
+        """
         member = member or ctx.author
         try:
             removed = self._remove_note(ctx, member, id)

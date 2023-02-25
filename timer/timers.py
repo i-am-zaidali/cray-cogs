@@ -1,11 +1,13 @@
 import asyncio
+from datetime import datetime as dt
+from datetime import timezone as tz
 from typing import Dict, List
 
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
-from datetime import datetime as dt, timedelta as td, timezone as tz
+
 from .models import TimerObj, TimerSettings
 from .utils import EmojiConverter, TimeConverter
 
