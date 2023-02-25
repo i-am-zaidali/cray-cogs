@@ -10,6 +10,11 @@ class TimeConverter(commands.Converter):
     time_regex = re.compile(r"(?:(\d{1,5})(h|s|m|d|w))+?")
     time_dict = {"h": 3600, "s": 1, "m": 60, "d": 86400, "w": 86400 * 7}
 
+    def __init__(self, setting: bool = False):
+        self.setting = setting
+
+    def __call__(self): return self
+
     async def convert(self, ctx: commands.Context, argument: str):
         args = argument.lower()
         matches = re.findall(self.time_regex, args)
@@ -29,7 +34,7 @@ class TimeConverter(commands.Converter):
         if not time >= 10:
             raise commands.BadArgument("Time must be greater than 10 seconds.")
 
-        if time > (seconds := await ctx.cog.config.max_duration()):
+        if not self.setting and time > (seconds := await ctx.cog.config.max_duration()):
             suggestion = (
                 f"You can change this with `{ctx.prefix}timerset maxduration`."
                 if await ctx.bot.is_owner(ctx.author)
@@ -39,9 +44,9 @@ class TimeConverter(commands.Converter):
                 f"Time for timers must be less than {humanize_timedelta(seconds=seconds)}. {suggestion}"
             )
 
-        time = timedelta(seconds=time)
-        time = datetime.now(timezone.utc) + time
-        return time
+        timed = timedelta(seconds=time)
+        time = datetime.now(timezone.utc) + timed
+        return timed if self.setting else time
 
 
 class EmojiConverter(commands.EmojiConverter):
