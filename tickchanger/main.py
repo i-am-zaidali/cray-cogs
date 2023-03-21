@@ -13,7 +13,7 @@ class TickChanger(commands.Cog):
     is called anywhere in the bot"""
 
     __author__ = ["crayyy_zee#2900"]
-    __version__ = "1.2.0"
+    __version__ = "1.3.0"
 
     def __init__(self, bot):
         self.bot = bot

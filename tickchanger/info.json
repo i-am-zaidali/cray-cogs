@@ -8,7 +8,9 @@
         "crayyy_zee"
     ],
     "required_cogs": {},
-    "requirements": ["emoji==1.6.3"],
+    "requirements": [
+        "emoji"
+    ],
     "max_bot_version": "3.4.14",
     "tags": [
         "tick",
