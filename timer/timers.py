@@ -13,9 +13,10 @@ guild_defaults = {"timers": [], "timer_settings": {"notify_users": True, "emoji"
 
 
 class Timer(commands.Cog):
+    """Start countdowns that help you keep track of the time passed"""
 
     __author__ = ["crayyy_zee#2900"]
-    __version__ = "1.0.3"
+    __version__ = "1.0.4"
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -141,7 +142,7 @@ class Timer(commands.Cog):
         """
         End a timer.
 
-        `timer_id`: The ID of the timer to end.
+        `timer_id`: The `msg-ID` of the timer to end.
         """
 
         timer = await self.get_timer(ctx.guild.id, timer_id)
@@ -173,7 +174,7 @@ class Timer(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-    @commands.group(name="timerset", aliases=["ts", "tset", "timersettings"])
+    @commands.group(name="timerset", aliases=["tset", "timersettings"])
     @commands.mod_or_permissions(manage_messages=True)
     async def tset(self, ctx: commands.Context):
         """
@@ -192,14 +193,14 @@ class Timer(commands.Cog):
 
     @tset.command(name="maxduration", aliases=["duration", "md"])
     @commands.is_owner()
-    async def tset_duration(self, ctx: commands.Context, duration: TimeConverter):
+    async def tset_duration(self, ctx: commands.Context, duration: TimeConverter(True)):
         """
         Change the max duration for timers.
 
         `duration`: The duration to set.
         """
 
-        await self.config.max_duration.set(duration)
+        await self.config.max_duration.set(duration.total_seconds())
         await ctx.tick()
 
     @tset.command(name="notifyusers", aliases=["notify"])

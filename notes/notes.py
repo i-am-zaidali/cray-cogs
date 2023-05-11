@@ -1,12 +1,14 @@
 import asyncio
 import logging
 import time as _time
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
+from tabulate import tabulate
 
 from .models import NoteType, UserNote
 from .views import PaginationView
@@ -19,7 +21,7 @@ class Notes(commands.Cog):
     """
     Store moderator notes on users"""
 
-    __version__ = "1.1.4"
+    __version__ = "1.2.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot):
@@ -104,8 +106,30 @@ class Notes(commands.Cog):
         self._add_note(note)
         return note
 
-    def _get_notes(self, guild: discord.guild, member: discord.Member = None):
-        if not member:
+    @staticmethod
+    async def group_embeds_by_fields(
+        *fields: Dict[str, Union[str, bool]], per_embed: int = 3, **kwargs
+    ) -> List[discord.Embed]:
+        """
+        This was the result of a big brain moment i had
+
+        This method takes dicts of fields and groups them into separate embeds
+        keeping `per_embed` number of fields per embed.
+
+        Extra kwargs can be passed to create embeds off of.
+        """
+        groups: list[discord.Embed] = []
+        for ind, i in enumerate(range(0, len(fields), per_embed)):
+            groups.append(
+                discord.Embed.from_dict(kwargs)
+            )  # append embeds in the loop to prevent incorrect embed count
+            fields_to_add = fields[i : i + per_embed]
+            for field in fields_to_add:
+                groups[ind].add_field(**field)
+        return groups
+
+    def _get_notes(self, guild: discord.Guild, member: discord.Member = None):
+        if member is None:
             return self.cache.setdefault(guild.id, {})
 
         return self.cache.setdefault(guild.id, {}).setdefault(member.id, [])
@@ -182,9 +206,12 @@ class Notes(commands.Cog):
 
         embeds = []
         for user, n in notes.items():
-            final = ""
             if not n:
                 continue
+            user = ctx.guild.get_member(user)
+
+            final = f"**{user}**\n\n"
+
             for i, note in enumerate(n, 1):
                 final += f"**{i}** ({note.type.name}). \n{note}\n"
             user = ctx.guild.get_member(user)
@@ -207,7 +234,7 @@ class Notes(commands.Cog):
 
     @commands.command()
     @commands.mod_or_permissions(manage_messages=True)
-    async def notes(self, ctx: commands.Context, member: discord.User = None):
+    async def notes(self, ctx: commands.Context, member: Optional[discord.User] = None):
         """
         See all the notes of a user.
 
@@ -219,11 +246,50 @@ class Notes(commands.Cog):
         if notes:
             embed.color = member.color
 
-            for i, note in enumerate(notes, 1):
-                embed.add_field(name=f"Note:- {i} ({note.type.name})", value=note, inline=False)
-        else:
+        # if notes:
+        #     fields = [
+        #         {
+        #             "name": f"Note:- {i} ({note.type.name})",
+        #             "value": f"{note}",
+        #             "inline": False,
+        #         }
+        #         for i, note in enumerate(notes, 1)
+        #     ]
+        #     embeds = await self.group_embeds_by_fields(*fields, per_embed=5, color=member.color)
+
+        #     for embed in embeds:
+        #         embed.set_author(name=f"{member}", icon_url=member.avatar_url)
+
+        #     pag = ButtonPaginator(self.bot.ButtonClient, ctx, embeds)
+        #     return await pag.start()
+
+        # else:
+        #     embed = discord.Embed(color=member.color)
+        #     embed.set_author(name=f"{member}", icon_url=member.avatar_url)
+        #     embed.description = "No notes found"
+
+        #     return await ctx.send(embed=embed)
+
+        if not notes:
+            embed: discord.Embed = discord.Embed(color=member.color)
+            embed.set_author(name=f"{member}", icon_url=member.avatar_url)
             embed.description = "No notes found"
-        await ctx.send(embed=embed)
+
+            return await ctx.send(embed=embed)
+
+        fields = []
+        for i, note in enumerate(notes, 1):
+            fields.append({"name": f"Note #{i}", "value": note, "inline": False})
+
+        for ind, embed in enumerate(
+            embs := await self.group_embeds_by_fields(
+                *fields, author={"name": str(member)}, per_embed=5, color=member.color.value
+            ),
+            1,
+        ):
+            embed.set_footer(text=f"Page {ind}/{len(embs)}")
+
+        await menu(ctx, embs, DEFAULT_CONTROLS)
 
     @commands.command()
     @commands.mod_or_permissions(manage_messages=True)
@@ -232,7 +298,8 @@ class Notes(commands.Cog):
         Delete a note of a user.
 
         The member argument is optional and defaults to the command invoker
-        The id argument is the index of the note which can be checked with the `[p]notes` command"""
+        The id argument is the index of the note which can be checked with the `[p]notes` command
+        """
         member = member or ctx.author
         try:
             removed = self._remove_note(ctx, member, id)

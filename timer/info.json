@@ -7,6 +7,6 @@
     "author": [
         "crayyy_zee"
     ],
-    "requirements": [],
+    "requirements": ["emoji==1.6.3"],
     "type": "COG"
 }

@@ -7,8 +7,8 @@
     "author": [
         "crayyy_zee"
     ],
+    "requirements": ["tabulate"],
     "required_cogs": {},
-    "requirements": ["discord-components"],
     "tags": [
         "notes",
         "note",

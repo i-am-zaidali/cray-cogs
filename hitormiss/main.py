@@ -392,7 +392,8 @@ class HitOrMiss(commands.Cog):
         Create a new Hit Or Miss item.
 
         Owner only command.
-        This is an interactive questionaire asking you details about the item You want to create."""
+        This is an interactive questionaire asking you details about the item You want to create.
+        """
         creating_questions = [
             (
                 "What will be the name of this item?",

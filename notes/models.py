@@ -4,6 +4,9 @@ import enum
 import discord
 from redbot.core.bot import Red
 
+# import time
+# from typing import List, Union
+
 
 class NoteType(enum.Enum):
     DonationNote = 1
