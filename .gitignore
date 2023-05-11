@@ -133,3 +133,5 @@ launch.json
 
 # git-rewrite
 .git-rewrite
+
+.vscode
