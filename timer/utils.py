@@ -54,9 +54,9 @@ class EmojiConverter(commands.EmojiConverter):
     async def convert(self, ctx: commands.Context, argument: str):
         try:
             emoji.EMOJI_DATA[argument]
-            
+
         except KeyError:
             return await super().convert(ctx, argument)
-        
+
         else:
             return argument

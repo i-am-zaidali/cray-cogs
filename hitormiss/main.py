@@ -300,11 +300,12 @@ class HitOrMiss(commands.Cog):
             )
 
         embeds = await self.group_embeds_by_fields(
-            *fields, 
-            page_in_footer=True, 
-            title="Hit or Miss Shop", 
-            description="All the items available in H.O.M", 
-            color=(await ctx.embed_color()).value, thumbnail=getattr(ctx.guild.icon, "url", None)
+            *fields,
+            page_in_footer=True,
+            title="Hit or Miss Shop",
+            description="All the items available in H.O.M",
+            color=(await ctx.embed_color()).value,
+            thumbnail=getattr(ctx.guild.icon, "url", None),
         )
 
         view = PaginationView(ctx, embeds, 60, True)
@@ -340,7 +341,12 @@ class HitOrMiss(commands.Cog):
                 }
             )
 
-        embeds = await self.group_embeds_by_fields(*fields, page_in_footer=True, color=(await ctx.embed_color()).value, thumbnail=ctx.author.display_avatar.url)
+        embeds = await self.group_embeds_by_fields(
+            *fields,
+            page_in_footer=True,
+            color=(await ctx.embed_color()).value,
+            thumbnail=ctx.author.display_avatar.url,
+        )
         for ind, embed in enumerate(embeds, 1):
             embed.color = await ctx.embed_color()
             embed.set_thumbnail(url=ctx.author.display_avatar.url)
