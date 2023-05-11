@@ -52,7 +52,11 @@ class TimeConverter(commands.Converter):
 
 class EmojiConverter(commands.EmojiConverter):
     async def convert(self, ctx: commands.Context, argument: str):
-        if argument in emoji.UNICODE_EMOJI_ENGLISH:
-            return argument
+        try:
+            emoji.EMOJI_DATA[argument]
 
-        return str(await super().convert(ctx, argument))
+        except KeyError:
+            return await super().convert(ctx, argument)
+
+        else:
+            return argument

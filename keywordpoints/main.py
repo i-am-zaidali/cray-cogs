@@ -76,7 +76,10 @@ class KeyWordPoints(commands.Cog):
 
     @staticmethod
     async def group_embeds_by_fields(
-        *fields: Dict[str, Union[str, bool]], per_embed: int = 3, **kwargs
+        *fields: Dict[str, Union[str, bool]],
+        per_embed: int = 3,
+        page_in_footer: Union[str, bool] = True,
+        **kwargs,
     ) -> List[discord.Embed]:
         """
         This was the result of a big brain moment i had
@@ -84,16 +87,41 @@ class KeyWordPoints(commands.Cog):
         This method takes dicts of fields and groups them into separate embeds
         keeping `per_embed` number of fields per embed.
 
+        page_in_footer can be passed either as a boolen value ( True to enable, False to disable. in which case the footer will look like `Page {index of page}/{total pages}` )
+        Or it can be passed as a string template to format. The allowed variables are: `page` and `total_pages`
+
         Extra kwargs can be passed to create embeds off of.
         """
+
+        fix_kwargs = lambda kwargs: {
+            next(x): (fix_kwargs({next(x): v}) if "__" in k else v)
+            for k, v in kwargs.copy().items()
+            if (x := iter(k.split("__", 1)))
+        }
+
+        kwargs = fix_kwargs(kwargs)
+        # yea idk man.
+
         groups: list[discord.Embed] = []
-        for ind, i in enumerate(range(0, len(fields), per_embed)):
+        page_format = ""
+        if page_in_footer:
+            kwargs.get("footer", {}).pop("text", None)  # to prevent being overridden
+            page_format = (
+                page_in_footer if isinstance(page_in_footer, str) else "Page {page}/{total_pages}"
+            )
+
+        ran = list(range(0, len(fields), per_embed))
+
+        for ind, i in enumerate(ran):
             groups.append(
                 discord.Embed.from_dict(kwargs)
             )  # append embeds in the loop to prevent incorrect embed count
             fields_to_add = fields[i : i + per_embed]
             for field in fields_to_add:
                 groups[ind].add_field(**field)
+
+            if page_format:
+                groups[ind].set_footer(text=page_format.format(page=ind + 1, total_pages=len(ran)))
         return groups
 
     async def initialize(self):

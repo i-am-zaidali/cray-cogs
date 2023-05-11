@@ -4,8 +4,6 @@ import time as _time
 from typing import Dict, List, Optional, Union
 
 import discord
-
-# from discord_components.client import DiscordComponents
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list
@@ -13,6 +11,7 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from tabulate import tabulate
 
 from .models import NoteType, UserNote
+from .views import PaginationView
 
 log = logging.getLogger("red.craycogs.notes")
 log.setLevel(logging.DEBUG)
@@ -27,8 +26,6 @@ class Notes(commands.Cog):
 
     def __init__(self, bot):
         self.bot: Red = bot
-        # if not getattr(bot, "ButtonClient", None):
-        # self.bot.ButtonClient = DiscordComponents(bot)
         self.config = Config.get_conf(None, 1, True, "Notes")
         self.config.register_member(notes=[])
         self.cache: Dict[int, Dict[int, List[UserNote]]] = {}
@@ -85,8 +82,8 @@ class Notes(commands.Cog):
         asyncio.create_task(self.to_cache())
         return self
 
-    def cog_unload(self):
-        self.bot.loop.create_task(self.to_config())
+    async def cog_unload(self):
+        await self.to_config()
 
     def _create_note(
         self,
@@ -111,7 +108,10 @@ class Notes(commands.Cog):
 
     @staticmethod
     async def group_embeds_by_fields(
-        *fields: Dict[str, Union[str, bool]], per_embed: int = 3, **kwargs
+        *fields: Dict[str, Union[str, bool]],
+        per_embed: int = 3,
+        page_in_footer: Union[str, bool] = True,
+        **kwargs,
     ) -> List[discord.Embed]:
         """
         This was the result of a big brain moment i had
@@ -119,16 +119,41 @@ class Notes(commands.Cog):
         This method takes dicts of fields and groups them into separate embeds
         keeping `per_embed` number of fields per embed.
 
+        page_in_footer can be passed either as a boolen value ( True to enable, False to disable. in which case the footer will look like `Page {index of page}/{total pages}` )
+        Or it can be passed as a string template to format. The allowed variables are: `page` and `total_pages`
+
         Extra kwargs can be passed to create embeds off of.
         """
+
+        fix_kwargs = lambda kwargs: {
+            next(x): (fix_kwargs({next(x): v}) if "__" in k else v)
+            for k, v in kwargs.copy().items()
+            if (x := iter(k.split("__", 1)))
+        }
+
+        kwargs = fix_kwargs(kwargs)
+        # yea idk man.
+
         groups: list[discord.Embed] = []
-        for ind, i in enumerate(range(0, len(fields), per_embed)):
+        page_format = ""
+        if page_in_footer:
+            kwargs.get("footer", {}).pop("text", None)  # to prevent being overridden
+            page_format = (
+                page_in_footer if isinstance(page_in_footer, str) else "Page {page}/{total_pages}"
+            )
+
+        ran = list(range(0, len(fields), per_embed))
+
+        for ind, i in enumerate(ran):
             groups.append(
                 discord.Embed.from_dict(kwargs)
             )  # append embeds in the loop to prevent incorrect embed count
             fields_to_add = fields[i : i + per_embed]
             for field in fields_to_add:
                 groups[ind].add_field(**field)
+
+            if page_format:
+                groups[ind].set_footer(text=page_format.format(page=ind + 1, total_pages=len(ran)))
         return groups
 
     def _get_notes(self, guild: discord.Guild, member: discord.Member = None):
@@ -217,11 +242,12 @@ class Notes(commands.Cog):
 
             for i, note in enumerate(n, 1):
                 final += f"**{i}** ({note.type.name}). \n{note}\n"
-
-            embed = discord.Embed(
-                title=f"Notes for {ctx.guild}", description=final, color=discord.Color.green()
+            user = ctx.guild.get_member(user)
+            embeds.append(
+                discord.Embed(
+                    title=f"Notes for {ctx.guild}", color=discord.Color.green()
+                ).add_field(name=f"**{user}: **", value=final)
             )
-            embeds.append(embed)
 
         embeds = [
             embed.set_footer(text=f"Page {embeds.index(embed)+1}/{len(embeds)}")
@@ -231,34 +257,8 @@ class Notes(commands.Cog):
         if not embeds:
             return await ctx.send("No notes found for this server.")
 
-        # paginator = ButtonPaginator(self.bot.ButtonClient, ctx, embeds)
-        # await paginator.start()
-
-        await menu(ctx, embeds, DEFAULT_CONTROLS)
-
-    @commands.command(name="listnotes")
-    @commands.mod_or_permissions(manage_messages=True)
-    async def listnotes(self, ctx: commands.Context):
-        notes = self._get_notes(ctx.guild)
-
-        data = sorted(
-            [
-                (i, u, len(notes))
-                for i, (user, notes) in enumerate(notes.items())
-                if (u := ctx.guild.get_member(user))
-            ],
-            key=lambda x: x[2],
-            reverse=True,
-        )
-
-        tabbed = tabulate(data, headers=["User", "Notes"], tablefmt="rst")
-
-        return await ctx.send(
-            embed=discord.Embed(
-                title="Notes for this server",
-                description=f"```rst\n{tabbed}```",
-            )
-        )
+        view = PaginationView(ctx, embeds, 60, True)
+        await view.start()
 
     @commands.command()
     @commands.mod_or_permissions(manage_messages=True)
@@ -269,6 +269,10 @@ class Notes(commands.Cog):
         The member argument is optional and defaults to the command invoker"""
         member = member or ctx.author
         notes = self._get_notes(ctx.guild, member)
+        embed = discord.Embed(color=await ctx.embed_color())
+        embed.set_author(name=f"{member}", icon_url=member.display_avatar.url)
+        if notes:
+            embed.color = member.color
 
         # if notes:
         #     fields = [
@@ -305,15 +309,15 @@ class Notes(commands.Cog):
         for i, note in enumerate(notes, 1):
             fields.append({"name": f"Note #{i}", "value": note, "inline": False})
 
-        for ind, embed in enumerate(
-            embs := await self.group_embeds_by_fields(
-                *fields, author={"name": str(member)}, per_embed=5, color=member.color.value
-            ),
-            1,
-        ):
-            embed.set_footer(text=f"Page {ind}/{len(embs)}")
+        embeds = await self.group_embeds_by_fields(
+            *fields,
+            page_in_footer=True,
+            author={"name": str(member)},
+            per_embed=5,
+            color=member.color.value,
+        )
 
-        await menu(ctx, embs, DEFAULT_CONTROLS)
+        await menu(ctx, embeds, DEFAULT_CONTROLS)
 
     @commands.command()
     @commands.mod_or_permissions(manage_messages=True)

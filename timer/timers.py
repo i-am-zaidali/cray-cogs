@@ -49,7 +49,7 @@ class Timer(commands.Cog):
 
         guilds = await self.config.all_guilds()
 
-        for guild_id, guild_data in guilds.items():
+        for guild_data in guilds.values():
             for x in guild_data.get("timers", []):
                 x.update({"bot": bot})
                 timer = TimerObj.from_json(x)
@@ -59,7 +59,7 @@ class Timer(commands.Cog):
             for timer in v:
                 TimerObj._tasks[timer.message_id] = asyncio.create_task(timer._start_edit_task())
 
-        self.max_duration = await self.config.max_duration()
+        self.max_duration: int = await self.config.max_duration()
 
         return self
 
@@ -84,11 +84,11 @@ class Timer(commands.Cog):
         for guild_id, timers in self.cache.items():
             await self.config.guild_from_id(guild_id).timers.set([x.json for x in timers])
 
-    def cog_unload(self):
+    async def cog_unload(self):
         for message_id, task in TimerObj._tasks.items():
             task.cancel()
 
-        asyncio.create_task(self._back_to_config())
+        await self._back_to_config()
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):

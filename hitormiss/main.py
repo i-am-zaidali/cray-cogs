@@ -16,6 +16,8 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils.predicates import MessagePredicate
 from tabulate import tabulate
 
+from hitormiss.views import PaginationView
+
 from .CONSTANTS import dc_fields, global_defaults, lb_types, user_defaults
 from .converters import ItemConverter, PlayerConverter
 from .exceptions import ItemOnCooldown
@@ -72,19 +74,53 @@ class HitOrMiss(commands.Cog):
         return "\n".join(text)
 
     @staticmethod
-    def group_embeds_by_fields(*fields: Dict[str, Union[str, bool]], per_embed: int = 3):
+    async def group_embeds_by_fields(
+        *fields: Dict[str, Union[str, bool]],
+        per_embed: int = 3,
+        page_in_footer: Union[str, bool] = True,
+        **kwargs,
+    ) -> List[discord.Embed]:
         """
         This was the result of a big brain moment i had
 
         This method takes dicts of fields and groups them into separate embeds
         keeping `per_embed` number of fields per embed.
+
+        page_in_footer can be passed either as a boolen value ( True to enable, False to disable. in which case the footer will look like `Page {index of page}/{total pages}` )
+        Or it can be passed as a string template to format. The allowed variables are: `page` and `total_pages`
+
+        Extra kwargs can be passed to create embeds off of.
         """
+
+        fix_kwargs = lambda kwargs: {
+            next(x): (fix_kwargs({next(x): v}) if "__" in k else v)
+            for k, v in kwargs.copy().items()
+            if (x := iter(k.split("__", 1)))
+        }
+
+        kwargs = fix_kwargs(kwargs)
+        # yea idk man.
+
         groups: list[discord.Embed] = []
-        for ind, i in enumerate(range(0, len(fields), per_embed)):
-            groups.append(discord.Embed())
+        page_format = ""
+        if page_in_footer:
+            kwargs.get("footer", {}).pop("text", None)  # to prevent being overridden
+            page_format = (
+                page_in_footer if isinstance(page_in_footer, str) else "Page {page}/{total_pages}"
+            )
+
+        ran = list(range(0, len(fields), per_embed))
+
+        for ind, i in enumerate(ran):
+            groups.append(
+                discord.Embed.from_dict(kwargs)
+            )  # append embeds in the loop to prevent incorrect embed count
             fields_to_add = fields[i : i + per_embed]
             for field in fields_to_add:
                 groups[ind].add_field(**field)
+
+            if page_format:
+                groups[ind].set_footer(text=page_format.format(page=ind + 1, total_pages=len(ran)))
         return groups
 
     async def ask_for_answers(
@@ -176,8 +212,8 @@ class HitOrMiss(commands.Cog):
         for player in self.cache.copy():
             await self.config.user_from_id(player.id).set(player.to_dict())
 
-    def cog_unload(self):
-        asyncio.create_task(self._unload())
+    async def cog_unload(self):
+        await self._unload()
 
     @commands.command(name="throw")
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -263,16 +299,17 @@ class HitOrMiss(commands.Cog):
                 }
             )
 
-        embeds = self.group_embeds_by_fields(*fields)
+        embeds = await self.group_embeds_by_fields(
+            *fields,
+            page_in_footer=True,
+            title="Hit or Miss Shop",
+            description="All the items available in H.O.M",
+            color=(await ctx.embed_color()).value,
+            thumbnail=getattr(ctx.guild.icon, "url", None),
+        )
 
-        for embed in embeds:
-            embed.title = "Hit or Miss Items"
-            embed.description = "All the items available in H.O.M"
-            embed.color = await ctx.embed_color()
-            embed.set_thumbnail(url=ctx.guild.icon_url)
-            embed.set_footer(text=f"Page {embeds.index(embed) + 1}/{len(embeds)}")
-
-        return await menu(ctx, embeds, DEFAULT_CONTROLS)
+        view = PaginationView(ctx, embeds, 60, True)
+        await view.start()
 
     @hom.command(name="inventory", aliases=["inv"])
     async def hom_inv(self, ctx: commands.Context):
@@ -286,21 +323,37 @@ class HitOrMiss(commands.Cog):
 
         embed = discord.Embed(title=f"{me}'s Hit or Miss Inventory", color=await ctx.embed_color())
 
+        fields = []
+
         for item, amount in me.inv.items.items():
             item_cooldown = (
                 f"Can be used <t:{item.on_cooldown(me)}:R>."
                 if (cd := item.on_cooldown(ctx.message))
                 else "Not on cooldown."
             )
-            embed.add_field(
-                name=f"{item.__class__.__name__} {item.emoji if item.emoji else ''}",
-                value=f"> **Amount Owned: ** {amount}\n"
-                f"> **Uses remaining: ** {item.get_remaining_uses(me)}\n"
-                f"> **On cooldown?: ** {item_cooldown}",
-                inline=False,
+            fields.append(
+                {
+                    "name": f"{item.__class__.__name__} {item.emoji if item.emoji else ''}",
+                    "value": f"> **Amount Owned: ** {amount}\n"
+                    f"> **Uses remaining: ** {item.get_remaining_uses(me)}\n"
+                    f"> **On cooldown?: ** {item_cooldown}",
+                    "inline": False,
+                }
             )
 
-        return await ctx.send(embed=embed)
+        embeds = await self.group_embeds_by_fields(
+            *fields,
+            page_in_footer=True,
+            color=(await ctx.embed_color()).value,
+            thumbnail=ctx.author.display_avatar.url,
+        )
+        for ind, embed in enumerate(embeds, 1):
+            embed.color = await ctx.embed_color()
+            embed.set_thumbnail(url=ctx.author.display_avatar.url)
+            embed.set_footer(text=f"Page {ind}/{len(embeds)}")
+
+        view = PaginationView(ctx, embeds, 60, True)
+        await view.start()
 
     @hom.command(name="buy", aliases=["purchase"], usage="[amount] <item>")
     async def hom_buy(
@@ -334,7 +387,7 @@ class HitOrMiss(commands.Cog):
             title=f"HitOrMiss stats for {user}",
             description=user.stats,
             color=await ctx.embed_color(),
-        ).set_thumbnail(url=ctx.bot.user.avatar_url)
+        ).set_thumbnail(url=ctx.me.display_avatar.url)
 
         await ctx.send(embed=embed)
 
@@ -495,6 +548,5 @@ class HitOrMiss(commands.Cog):
             page = title + "\n\n" + page + "\n\n"
             pages.append(box(page, lang="html"))
 
-        if len(pages) == 1:
-            return await ctx.send(pages[0])
-        return await menu(ctx, pages, DEFAULT_CONTROLS)
+        view = PaginationView(ctx, pages, 60, True)
+        await view.start()

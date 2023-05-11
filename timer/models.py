@@ -162,7 +162,7 @@ class TimerObj:
                 description=await self.get_embed_description(),
                 color=await self.get_embed_color(),
             )
-            .set_thumbnail(url=self.guild.icon_url)
+            .set_thumbnail(url=getattr(self.guild.icon, "url", ""))
             .set_footer(text=f"Hosted by: {self.host}", icon_url=self.host.avatar_url)
         )
 
