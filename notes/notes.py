@@ -310,7 +310,11 @@ class Notes(commands.Cog):
             fields.append({"name": f"Note #{i}", "value": note, "inline": False})
 
         embeds = await self.group_embeds_by_fields(
-            *fields, page_in_footer=True,author={"name": str(member)}, per_embed=5, color=member.color.value
+            *fields,
+            page_in_footer=True,
+            author={"name": str(member)},
+            per_embed=5,
+            color=member.color.value,
         )
 
         await menu(ctx, embeds, DEFAULT_CONTROLS)
