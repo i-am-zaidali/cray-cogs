@@ -5,7 +5,6 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import box, humanize_list
 import TagScriptEngine as tse
-from .utils import Coordinate
 
 log = logging.getLogger("red.craycogs.joinping")
 
