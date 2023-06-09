@@ -1,6 +1,7 @@
 import logging
 
 import discord
+import TagScriptEngine as tse
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import box, humanize_list
@@ -58,10 +59,16 @@ class JoinPing(commands.Cog):
             if not channel:
                 continue
 
-            message = guild_data.get('ping_message', '')
+            message = guild_data.get("ping_message", "")
             engine = tse.AsyncInterpreter([tse.EmbedBlock()])
-            message = await engine.process(message, seed_variables={"member": tse.MemberAdapter(member), "server": tse.GuildAdapter(member.guild)})
-            if not message: 
+            message = await engine.process(
+                message,
+                seed_variables={
+                    "member": tse.MemberAdapter(member),
+                    "server": tse.GuildAdapter(member.guild),
+                },
+            )
+            if not message:
                 return
             try:
                 await channel.send(
