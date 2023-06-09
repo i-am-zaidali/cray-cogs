@@ -1,10 +1,10 @@
 import logging
 
 import discord
+import TagScriptEngine as tse
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import box, humanize_list
-import TagScriptEngine as tse
 
 log = logging.getLogger("red.craycogs.joinping")
 
@@ -64,7 +64,7 @@ class JoinPing(commands.Cog):
         )
         if not resp.body and not resp.actions.get("embed"):
             return
-        
+
         for i in guild_data.get("ping_channels"):
             channel = self.bot.get_channel(i)
             if not channel:
