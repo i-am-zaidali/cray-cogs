@@ -8,7 +8,9 @@
         "crayyy_zee"
     ],
     "required_cogs": {},
-    "requirements": [],
+    "requirements": [
+        "git+https://github.com/phenom4n4n/TagScript.git@dpy2"
+    ],
     "tags": [
         "joinping",
         "member join",
