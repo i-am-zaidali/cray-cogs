@@ -4,7 +4,7 @@ import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import box, humanize_list
-
+import TagScriptEngine as tse
 from .utils import Coordinate
 
 log = logging.getLogger("red.craycogs.joinping")
@@ -12,7 +12,7 @@ log = logging.getLogger("red.craycogs.joinping")
 guild_defaults = {
     "ping_channels": [],
     "delete_after": 2,
-    "ping_message": "{member.mention}",
+    "ping_message": "{member(mention)}",
 }
 
 
@@ -20,7 +20,7 @@ class JoinPing(commands.Cog):
     """
     Ghost ping users when they join."""
 
-    __version__ = "1.0.2"
+    __version__ = "1.1.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -59,7 +59,11 @@ class JoinPing(commands.Cog):
             if not channel:
                 continue
 
-            message = f"{(guild_data.get('ping_message', '')).format_map(Coordinate(member=member, server=member.guild.name, guild=member.guild.name))}"
+            message = guild_data.get('ping_message', '')
+            engine = tse.AsyncInterpreter([tse.EmbedBlock()])
+            message = await engine.process(message, seed_variables={"member": tse.MemberAdapter(member), "server": tse.GuildAdapter(member.guild)})
+            if not message: 
+                return
             try:
                 await channel.send(
                     message,
@@ -107,15 +111,15 @@ class JoinPing(commands.Cog):
         """Set the message that will be sent when a user joins.
 
         Usable placeholders include:
-        - member (the member that joined)
-            - member.mention (the mention)
-            - member.id (the id)
-            - member.name (the name)
-            - member.discriminator (the discriminator)
+        - {member} (the member that joined)
+            - {member(mention)} (the mention)
+            - {member(id)} (the id)
+            - {member(name)} (the name)
+            - {member(discriminator)} (the discriminator)
 
-        - server (the name of the server the member joined)
+        - {server} (the server the member joined)
 
-        These placeholders must be places within `{}` (curly brackets) to be replaced with actual values.
+        This messsage uses tagscript.
         """
         await self.config.guild(ctx.guild).ping_message.set(message)
         await self._build_cache()
