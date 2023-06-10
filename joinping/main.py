@@ -54,7 +54,13 @@ class JoinPing(commands.Cog):
             return
 
         message = guild_data.get("ping_message", "")
-        engine = tse.AsyncInterpreter([tse.EmbedBlock(), tse.LooseVariableGetterBlock(), tse.StrictVariableGetterBlock(),])
+        engine = tse.AsyncInterpreter(
+            [
+                tse.EmbedBlock(),
+                tse.LooseVariableGetterBlock(),
+                tse.StrictVariableGetterBlock(),
+            ]
+        )
         resp = await engine.process(
             message,
             seed_variables={
