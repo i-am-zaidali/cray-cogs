@@ -142,6 +142,7 @@ class JoinPing(commands.Cog):
     async def jpset_channels(self, ctx):
         """
         Set the channels where the pings will be sent on member join."""
+        return await ctx.send_help()
 
     @jpset_channels.command(name="remove", aliases=["r"])
     async def jpsetchan_remove(self, ctx, *channels: discord.TextChannel):
@@ -190,6 +191,9 @@ class JoinPing(commands.Cog):
 
     @jpset.command(name="show", aliases=["showsettings", "settings", "setting"])
     async def jpset_show(self, ctx):
+        """
+        Show the current joinping settings.
+        """
         data = self.cache.setdefault(ctx.guild.id, guild_defaults)
         channels = data.get("ping_channels", [])
         message = data.get("ping_message", "{member.mention}")
