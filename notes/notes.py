@@ -22,7 +22,7 @@ class Notes(commands.Cog):
     Store moderator notes on users"""
 
     __version__ = "1.2.0"
-    __author__ = ["crayyy_zee#2900"]
+    __author__ = ["crayyy_zee"]
 
     def __init__(self, bot):
         self.bot: Red = bot

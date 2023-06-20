@@ -20,7 +20,7 @@ class JoinPing(commands.Cog):
     Ghost ping users when they join."""
 
     __version__ = "1.1.0"
-    __author__ = ["crayyy_zee#2900"]
+    __author__ = ["crayyy_zee"]
 
     def __init__(self, bot: Red):
         self.bot = bot

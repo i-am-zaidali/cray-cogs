@@ -34,7 +34,7 @@ class KeyWordPoints(commands.Cog):
     """
 
     __version__ = "1.0.8"
-    __author__ = ["crayyy_zee#2900"]
+    __author__ = ["crayyy_zee"]
 
     def __init__(self, bot: Red):
         self.bot = bot

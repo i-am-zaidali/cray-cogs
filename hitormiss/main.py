@@ -34,7 +34,7 @@ class HitOrMiss(commands.Cog):
     And no it doesn't use slash commands.
     *Yet*."""
 
-    __author__ = ["crayyy_zee#2900"]
+    __author__ = ["crayyy_zee"]
     __version__ = "1.3.5"
 
     def __init__(self, bot: Red):

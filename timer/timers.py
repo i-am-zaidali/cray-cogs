@@ -15,7 +15,7 @@ guild_defaults = {"timers": [], "timer_settings": {"notify_users": True, "emoji"
 class Timer(commands.Cog):
     """Start countdowns that help you keep track of the time passed"""
 
-    __author__ = ["crayyy_zee#2900"]
+    __author__ = ["crayyy_zee"]
     __version__ = "1.0.4"
 
     def __init__(self, bot: Red):
