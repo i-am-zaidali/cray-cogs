@@ -15,12 +15,12 @@ from redbot.core.utils.chat_formatting import box, humanize_list, pagify
 from redbot.core.utils.predicates import MessagePredicate
 from tabulate import tabulate
 
-from .views import PaginationView
 from .CONSTANTS import dc_fields, global_defaults, lb_types, user_defaults
 from .converters import ItemConverter, PlayerConverter
 from .exceptions import ItemOnCooldown
 from .models import BaseItem, Player
 from .utils import is_lt, no_special_characters
+from .views import PaginationView
 
 log = logging.getLogger("red.craycogs.HitOrMiss")
 

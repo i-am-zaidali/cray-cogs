@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import time as _time
+from operator import attrgetter
 from typing import Dict, List, Union, overload
 
 import discord
@@ -8,7 +9,6 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
-from operator import attrgetter
 
 from .models import NoteType, UserNote
 from .views import PaginationView
