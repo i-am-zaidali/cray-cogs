@@ -10,7 +10,7 @@ from .models import Player
 class ItemConverter(Converter):
     async def convert(self, ctx, name: str):
         items = ctx.cog.items
-        match = extractOne(name, items.keys(), score_cutoff=80)
+        match = extractOne(name.lower(), items.keys(), score_cutoff=70)
         if match:
             return items[match[0]]
 

@@ -9,7 +9,7 @@
     ],
     "required_cogs": {},
     "requirements": [
-        "emoji==1.6.3",
+        "emoji",
         "rapidfuzz"
     ],
     "tags": [
