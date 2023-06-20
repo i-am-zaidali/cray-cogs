@@ -15,7 +15,7 @@ guild_defaults = {"timers": [], "timer_settings": {"notify_users": True, "emoji"
 class Timer(commands.Cog):
     """Start countdowns that help you keep track of the time passed"""
 
-    __author__ = ["crayyy_zee#2900"]
+    __author__ = ["crayyy_zee"]
     __version__ = "1.0.4"
 
     def __init__(self, bot: Red):
@@ -108,6 +108,7 @@ class Timer(commands.Cog):
         Manage Timers."""
 
     @timer.command(name="start")
+    @commands.bot_has_permissions(embed_links=True)
     async def timer_start(
         self, ctx: commands.Context, time: TimeConverter, *, name: str = "New Timer!"
     ):
@@ -148,13 +149,14 @@ class Timer(commands.Cog):
         timer = await self.get_timer(ctx.guild.id, timer_id)
 
         if timer is None:
-            await ctx.tick(message="Timer not found.")
+            await ctx.send("Timer not found.")
             return
 
         await timer.end()
         await ctx.tick(message="Timer ended!")
 
     @timer.command(name="list")
+    @commands.bot_has_permissions(embed_links=True)
     async def timer_list(self, ctx: commands.Context):
         """
         Get a list of all the active timers in this server."""
@@ -175,6 +177,7 @@ class Timer(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.group(name="timerset", aliases=["tset", "timersettings"])
+    @commands.bot_has_permissions(embed_links=True)
     @commands.mod_or_permissions(manage_messages=True)
     async def tset(self, ctx: commands.Context):
         """

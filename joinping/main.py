@@ -20,7 +20,7 @@ class JoinPing(commands.Cog):
     Ghost ping users when they join."""
 
     __version__ = "1.1.0"
-    __author__ = ["crayyy_zee#2900"]
+    __author__ = ["crayyy_zee"]
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -99,6 +99,7 @@ class JoinPing(commands.Cog):
         return await ctx.send_help()
 
     @jpset.command(name="test", aliases=["testping"], hidden=True)
+    @commands.bot_has_permissions(embed_links=True)
     async def jpset_test(self, ctx):
         """
         Test whether the pings and message you set up work correctly.
@@ -111,6 +112,7 @@ class JoinPing(commands.Cog):
         await self.on_member_join(ctx.author)
 
     @jpset.command(name="deleteafter", aliases=["da"])
+    @commands.bot_has_permissions(embed_links=True)
     async def jpset_da(self, ctx, seconds: int):
         """Set the time in seconds after which the ping message will be deleted."""
         if seconds < 0:
@@ -120,6 +122,7 @@ class JoinPing(commands.Cog):
         await ctx.send(f"The ping message will be deleted after {seconds} seconds.")
 
     @jpset.command(name="message", aliases=["m"])
+    @commands.bot_has_permissions(embed_links=True)
     async def jpset_msg(self, ctx, *, message: str):
         """Set the message that will be sent when a user joins.
 
@@ -139,12 +142,14 @@ class JoinPing(commands.Cog):
         await ctx.send(f"The ping message has been set to:\n{message}")
 
     @jpset.group(name="channel", aliases=["c", "channels"], invoke_without_command=True)
+    @commands.bot_has_permissions(embed_links=True)
     async def jpset_channels(self, ctx):
         """
         Set the channels where the pings will be sent on member join."""
         return await ctx.send_help()
 
     @jpset_channels.command(name="remove", aliases=["r"])
+    @commands.bot_has_permissions(embed_links=True)
     async def jpsetchan_remove(self, ctx, *channels: discord.TextChannel):
         """
         Add the channels to the list of channels where the pings will be sent on member join."""
@@ -170,6 +175,7 @@ class JoinPing(commands.Cog):
         )
 
     @jpset_channels.command(name="add", aliases=["a"])
+    @commands.bot_has_permissions(embed_links=True)
     async def jpsetchan_add(self, ctx, *channels: discord.TextChannel):
         """
         Remove the channels from the list of channels where the pings will be sent on member join.
@@ -190,6 +196,7 @@ class JoinPing(commands.Cog):
         )
 
     @jpset.command(name="show", aliases=["showsettings", "settings", "setting"])
+    @commands.bot_has_permissions(embed_links=True)
     async def jpset_show(self, ctx):
         """
         Show the current joinping settings.

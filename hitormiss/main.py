@@ -7,22 +7,20 @@ from typing import Dict, List, Literal, Optional, Tuple, Type, Union
 
 import discord
 from discord.ext.commands.converter import EmojiConverter
-from emoji.unicode_codes import UNICODE_EMOJI_ENGLISH
+from emoji import EMOJI_DATA
 from redbot.core import Config, bank, commands
 from redbot.core.bot import Red
 from redbot.core.errors import CogLoadError
 from redbot.core.utils.chat_formatting import box, humanize_list, pagify
-from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils.predicates import MessagePredicate
 from tabulate import tabulate
-
-from hitormiss.views import PaginationView
 
 from .CONSTANTS import dc_fields, global_defaults, lb_types, user_defaults
 from .converters import ItemConverter, PlayerConverter
 from .exceptions import ItemOnCooldown
 from .models import BaseItem, Player
 from .utils import is_lt, no_special_characters
+from .views import PaginationView
 
 log = logging.getLogger("red.craycogs.HitOrMiss")
 
@@ -34,7 +32,7 @@ class HitOrMiss(commands.Cog):
     And no it doesn't use slash commands.
     *Yet*."""
 
-    __author__ = ["crayyy_zee#2900"]
+    __author__ = ["crayyy_zee"]
     __version__ = "1.3.5"
 
     def __init__(self, bot: Red):
@@ -149,7 +147,7 @@ class HitOrMiss(commands.Cog):
                 if m.content.lower() == "none":
                     emoji = None
 
-                elif m.content not in UNICODE_EMOJI_ENGLISH.keys():
+                elif not EMOJI_DATA.get(m.content):
                     try:
                         emoji = await EmojiConverter().convert(ctx, m.content)
                     except Exception as e:
@@ -217,15 +215,16 @@ class HitOrMiss(commands.Cog):
 
     @commands.command(name="throw")
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def throw(self, ctx, item: str = None, target: PlayerConverter = None):
-        """Throw an item you own at a user"""
-        if not item or not target:
-            return await ctx.send_help()
+    async def throw(
+        self,
+        ctx,
+        item: BaseItem = commands.parameter(converter=ItemConverter),
+        target: Player = commands.parameter(converter=PlayerConverter),
+    ):
+        """Throw an item you own at a user
 
-        try:
-            item: BaseItem = await ItemConverter().convert(ctx, item)
-        except Exception as e:
-            return await ctx.send(str(e))
+        `item` is the name of the item you want to throw
+        `target` is the user you want to throw the item at"""
 
         if not item.throwable:
             return await ctx.send(f"No, a {item} can not be thrown at others.")
@@ -277,6 +276,7 @@ class HitOrMiss(commands.Cog):
         await ctx.send_help(ctx.command)
 
     @hom.command(name="shop", aliases=["items"])
+    @commands.bot_has_permissions(embed_links=True)
     async def hom_shop(self, ctx: commands.Context):
         """
         See items available to buy for Hit Or Miss.
@@ -305,13 +305,14 @@ class HitOrMiss(commands.Cog):
             title="Hit or Miss Shop",
             description="All the items available in H.O.M",
             color=(await ctx.embed_color()).value,
-            thumbnail=getattr(ctx.guild.icon, "url", None),
+            thumbnail__url=getattr(ctx.guild.icon, "url", None),
         )
 
         view = PaginationView(ctx, embeds, 60, True)
         await view.start()
 
     @hom.command(name="inventory", aliases=["inv"])
+    @commands.bot_has_permissions(embed_links=True)
     async def hom_inv(self, ctx: commands.Context):
         """
         See all the items that you currently own in Hit Or Miss."""
@@ -357,12 +358,19 @@ class HitOrMiss(commands.Cog):
 
     @hom.command(name="buy", aliases=["purchase"], usage="[amount] <item>")
     async def hom_buy(
-        self, ctx: commands.Context, amount: Optional[int] = None, item: ItemConverter = None
+        self,
+        ctx: commands.Context,
+        amount: Optional[int] = None,
+        item: BaseItem = commands.parameter(converter=ItemConverter),
     ):
         """
-        Buy a Hit Or Miss item for your inventory."""
-        if not item:
-            return await ctx.send_help()
+        Buy a Hit Or Miss item for your inventory.
+
+        `[p]buy <item>` to buy 1 of the item.
+        `[p]buy <amount> <item>` to buy a specific amount of the item.
+
+        where,
+        `<item>` is the name of the item you want to buy."""
         amount = amount or 1
         needed_to_buy = int(item.price) * amount
         if await bank.can_spend(ctx.author, needed_to_buy):
@@ -379,7 +387,12 @@ class HitOrMiss(commands.Cog):
         )
 
     @hom.command(name="stats", aliases=["profile"])
-    async def hom_stats(self, ctx: commands.Context, user: PlayerConverter = None):
+    @commands.bot_has_permissions(embed_links=True)
+    async def hom_stats(
+        self,
+        ctx: commands.Context,
+        user: Player = commands.parameter(converter=PlayerConverter, default=None),
+    ):
         """
         See yours or others Hit Or Miss stats."""
         user: Player = user or await self.converter.convert(ctx, str(ctx.author.id))
@@ -392,6 +405,7 @@ class HitOrMiss(commands.Cog):
         await ctx.send(embed=embed)
 
     @hom.command(name="createitem", aliases=["make", "create", "newitem", "ci"])
+    @commands.bot_has_permissions(embed_links=True)
     @commands.is_owner()
     async def hom_create(self, ctx: commands.Context):
         """
@@ -453,7 +467,7 @@ class HitOrMiss(commands.Cog):
 
         name = answers.pop("name")
 
-        if functools.reduce(lambda x: x.lower() == name.lower(), self.items.keys()):
+        if next(filter(lambda x: x.lower() == name.lower(), self.items.keys()), None) is None:
             return await ctx.send(f"An item with the name `{name}` already exists.")
 
         answers["throwable"] = True
@@ -470,7 +484,9 @@ class HitOrMiss(commands.Cog):
 
     @hom.command(name="deleteitem", aliases=["remove", "delete", "di"])
     @commands.is_owner()
-    async def hom_delete(self, ctx: commands.Context, item: ItemConverter):
+    async def hom_delete(
+        self, ctx: commands.Context, item: BaseItem = commands.parameter(converter=ItemConverter)
+    ):
         """
         Delete an item from the Hit Or Miss shop that you created.
 
@@ -490,8 +506,12 @@ class HitOrMiss(commands.Cog):
         cooldown_after_parsing=True,
         usage="[type=kills] [global_or_local=False]",
     )
+    @commands.bot_has_permissions(embed_links=True)
     async def hom_lb(
-        self, ctx: commands.Context, _type: str = "kills", global_or_local: bool = False
+        self,
+        ctx: commands.Context,
+        _type: Literal["kills", "throws", "deaths", "hits", "misses", "kdr", "all"] = "kills",
+        global_or_local: Union[Literal["global", "local"], bool] = False,
     ):
         """
         Show the top players in the Hit Or Miss leaderboard.
@@ -516,6 +536,9 @@ class HitOrMiss(commands.Cog):
             )
 
         final = []
+
+        if isinstance(global_or_local, str):
+            global_or_local = True if global_or_local == "global" else False
 
         users = self.cache.copy()
         if not users:

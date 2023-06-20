@@ -1,5 +1,5 @@
 from discord.ext.commands.converter import UserConverter
-from fuzzywuzzy.process import extractOne
+from rapidfuzz.process import extractOne
 from redbot.core.commands import Converter
 
 from .CONSTANTS import user_defaults
@@ -10,7 +10,7 @@ from .models import Player
 class ItemConverter(Converter):
     async def convert(self, ctx, name: str):
         items = ctx.cog.items
-        match = extractOne(name, items.keys(), score_cutoff=80)
+        match = extractOne(name.lower(), items.keys(), score_cutoff=70)
         if match:
             return items[match[0]]
 

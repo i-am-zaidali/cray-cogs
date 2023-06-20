@@ -1,4 +1,3 @@
-
 {
     "name": "HitOrMiss",
     "short": "Throw items at other users bought from the shop through the bot's currency.",
@@ -9,7 +8,10 @@
         "crayyy_zee"
     ],
     "required_cogs": {},
-    "requirements": ["emoji==1.6.3"],
+    "requirements": [
+        "emoji",
+        "rapidfuzz"
+    ],
     "tags": [
         "snow",
         "christmas",
