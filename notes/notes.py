@@ -1,14 +1,14 @@
 import asyncio
 import logging
 import time as _time
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union, overload
 
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
-from tabulate import tabulate
+from operator import attrgetter
 
 from .models import NoteType, UserNote
 from .views import PaginationView
@@ -156,6 +156,14 @@ class Notes(commands.Cog):
                 groups[ind].set_footer(text=page_format.format(page=ind + 1, total_pages=len(ran)))
         return groups
 
+    @overload
+    def _get_notes(self, guild: discord.Guild) -> Dict[int, List[UserNote]]:
+        ...
+
+    @overload
+    def _get_notes(self, guild: discord.Guild, member: discord.Member) -> List[UserNote]:
+        ...
+
     def _get_notes(self, guild: discord.Guild, member: discord.Member = None):
         if member is None:
             return self.cache.setdefault(guild.id, {})
@@ -192,7 +200,7 @@ class Notes(commands.Cog):
     @commands.command()
     @commands.mod_or_permissions(manage_messages=True)
     async def setnote(
-        self, ctx: commands.Context, member: Optional[discord.Member] = None, *, note
+        self, ctx: commands.Context, member: discord.Member = commands.Author, *, note
     ):
         """
         Add a note to a user.
@@ -205,6 +213,7 @@ class Notes(commands.Cog):
         await ctx.send(f"Note added to **{member}**\nNote:- {note}")
 
     @commands.command(name="allnotes", aliases=["guildnotes"])
+    @commands.has_permissions(embed_links=True)
     @commands.mod_or_permissions(manage_messages=True)
     async def allnotes(self, ctx: commands.Context):
         """
@@ -215,25 +224,11 @@ class Notes(commands.Cog):
         if not notes:
             return await ctx.send("No notes found for this server.")
 
-        if len(notes) == 1:
-            final = ""
-            for user, n in notes.items():
-                if not n:
-                    return await ctx.send("No notes found for this server.")
-                for i, note in enumerate(n, 1):
-                    final += f"**{i}** ({note.type.name}). \n{note}\n"
-            return await ctx.send(
-                embed=discord.Embed(
-                    title=f"Notes for {ctx.guild}", color=discord.Color.green()
-                ).add_field(
-                    name=f"**{ctx.guild.get_member(list(notes.keys())[0])}: **",
-                    value=final,
-                    inline=False,
-                )
-            )
+        if not any(notes.values()):
+            return await ctx.send("No notes found for this server.")
 
         embeds = []
-        for user, n in notes.items():
+        for page, (user, n) in enumerate(notes.items()):
             if not n:
                 continue
             user = ctx.guild.get_member(user)
@@ -242,17 +237,13 @@ class Notes(commands.Cog):
 
             for i, note in enumerate(n, 1):
                 final += f"**{i}** ({note.type.name}). \n{note}\n"
-            user = ctx.guild.get_member(user)
             embeds.append(
                 discord.Embed(
-                    title=f"Notes for {ctx.guild}", color=discord.Color.green()
-                ).add_field(name=f"**{user}: **", value=final)
+                    title=f"Notes for {ctx.guild}",
+                    description=(final[:2500] + "..." if len(final) > 2500 else final),
+                    color=discord.Color.green(),
+                ).set_footer(text=f"Page {page+1}/{len(notes)}")
             )
-
-        embeds = [
-            embed.set_footer(text=f"Page {embeds.index(embed)+1}/{len(embeds)}")
-            for embed in embeds
-        ]
 
         if not embeds:
             return await ctx.send("No notes found for this server.")
@@ -261,48 +252,18 @@ class Notes(commands.Cog):
         await view.start()
 
     @commands.command()
+    @commands.has_permissions(embed_links=True)
     @commands.mod_or_permissions(manage_messages=True)
-    async def notes(self, ctx: commands.Context, member: Optional[discord.User] = None):
+    async def notes(self, ctx: commands.Context, member: discord.User = commands.Author):
         """
         See all the notes of a user.
 
         The member argument is optional and defaults to the command invoker"""
-        member = member or ctx.author
         notes = self._get_notes(ctx.guild, member)
-        embed = discord.Embed(color=await ctx.embed_color())
-        embed.set_author(name=f"{member}", icon_url=member.display_avatar.url)
-        if notes:
-            embed.color = member.color
-
-        # if notes:
-        #     fields = [
-        #         {
-        #             "name": f"Note:- {i} ({note.type.name})",
-        #             "value": f"{note}",
-        #             "inline": False,
-        #         }
-        #         for i, note in enumerate(notes, 1)
-        #     ]
-        #     embeds = await self.group_embeds_by_fields(*fields, per_embed=5, color=member.color)
-
-        #     for embed in embeds:
-        #         embed.set_author(name=f"{member}", icon_url=member.avatar_url)
-
-        #     pag = ButtonPaginator(self.bot.ButtonClient, ctx, embeds)
-        #     return await pag.start()
-
-        # else:
-        #     embed = discord.Embed(color=member.color)
-        #     embed.set_author(name=f"{member}", icon_url=member.avatar_url)
-        #     embed.description = "No notes found"
-
-        #     return await ctx.send(embed=embed)
-
         if not notes:
-            embed: discord.Embed = discord.Embed(color=member.color)
-            embed.set_author(name=f"{member}", icon_url=member.avatar_url)
+            embed = discord.Embed(color=await ctx.embed_color())
+            embed.set_author(name=f"{member}", icon_url=member.display_avatar.url)
             embed.description = "No notes found"
-
             return await ctx.send(embed=embed)
 
         fields = []
@@ -312,7 +273,7 @@ class Notes(commands.Cog):
         embeds = await self.group_embeds_by_fields(
             *fields,
             page_in_footer=True,
-            author={"name": str(member)},
+            author__name=str(member),
             per_embed=5,
             color=member.color.value,
         )
@@ -321,14 +282,20 @@ class Notes(commands.Cog):
 
     @commands.command()
     @commands.mod_or_permissions(manage_messages=True)
-    async def delnote(self, ctx, member: Optional[discord.Member] = None, id: int = 0):
+    async def delnote(
+        self,
+        ctx,
+        member: discord.Member = commands.parameter(
+            default=attrgetter("author"), displayed_default="<you>"
+        ),
+        id: int = commands.parameter(converter=int, default=0),
+    ):
         """
         Delete a note of a user.
 
         The member argument is optional and defaults to the command invoker
         The id argument is the index of the note which can be checked with the `[p]notes` command
         """
-        member = member or ctx.author
         try:
             removed = self._remove_note(ctx, member, id)
 
@@ -343,12 +310,12 @@ class Notes(commands.Cog):
 
     @commands.command()
     @commands.mod_or_permissions(manage_messages=True)
-    async def removenotes(self, ctx, user: discord.User = None):
+    async def removenotes(self, ctx, user: discord.User = commands.Author):
         """
         Delete all notes of a user.
 
         The user argument is optional and defaults to the command invoker"""
-        user = user or ctx.author
+
         notes = self._get_notes(ctx.guild, user)
         if not notes:
             return await ctx.send("No notes found.")
