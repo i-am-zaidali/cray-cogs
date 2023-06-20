@@ -1,5 +1,5 @@
 from discord.ext.commands.converter import UserConverter
-from fuzzywuzzy.process import extractOne
+from rapidfuzz.process import extractOne
 from redbot.core.commands import Converter
 
 from .CONSTANTS import user_defaults
