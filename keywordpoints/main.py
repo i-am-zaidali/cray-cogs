@@ -244,6 +244,7 @@ class KeyWordPoints(commands.Cog):
         await ctx.send(cf.success(f"Keyword `{keyword}` removed."))
 
     @kwp.command(name="list")
+    @commands.bot_has_permissions(embed_links=True)
     @commands.mod_or_permissions(manage_guild=True)
     async def kwp_list(self, ctx: commands.Context):
         """List all keywords in this server."""
@@ -282,6 +283,7 @@ class KeyWordPoints(commands.Cog):
         await menu(ctx, embeds, DEFAULT_CONTROLS)
 
     @kwp.command(name="leaderboard", aliases=["lb"])
+    @commands.bot_has_permissions(embed_links=True)
     async def kwp_lb(self, ctx: commands.Context):
         """
         See a leaderboard of points of each member in the server."""

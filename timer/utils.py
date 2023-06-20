@@ -56,7 +56,7 @@ class EmojiConverter(commands.EmojiConverter):
             emoji.EMOJI_DATA[argument]
 
         except KeyError:
-            return await super().convert(ctx, argument)
+            return str(await super().convert(ctx, argument))
 
         else:
             return argument

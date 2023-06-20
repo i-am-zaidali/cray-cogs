@@ -276,7 +276,7 @@ class HitOrMiss(commands.Cog):
         await ctx.send_help(ctx.command)
 
     @hom.command(name="shop", aliases=["items"])
-    @commands.has_permissions(embed_links=True)
+    @commands.bot_has_permissions(embed_links=True)
     async def hom_shop(self, ctx: commands.Context):
         """
         See items available to buy for Hit Or Miss.
@@ -312,7 +312,7 @@ class HitOrMiss(commands.Cog):
         await view.start()
 
     @hom.command(name="inventory", aliases=["inv"])
-    @commands.has_permissions(embed_links=True)
+    @commands.bot_has_permissions(embed_links=True)
     async def hom_inv(self, ctx: commands.Context):
         """
         See all the items that you currently own in Hit Or Miss."""
@@ -387,7 +387,7 @@ class HitOrMiss(commands.Cog):
         )
 
     @hom.command(name="stats", aliases=["profile"])
-    @commands.has_permissions(embed_links=True)
+    @commands.bot_has_permissions(embed_links=True)
     async def hom_stats(
         self,
         ctx: commands.Context,
@@ -405,7 +405,7 @@ class HitOrMiss(commands.Cog):
         await ctx.send(embed=embed)
 
     @hom.command(name="createitem", aliases=["make", "create", "newitem", "ci"])
-    @commands.has_permissions(embed_links=True)
+    @commands.bot_has_permissions(embed_links=True)
     @commands.is_owner()
     async def hom_create(self, ctx: commands.Context):
         """
@@ -506,7 +506,7 @@ class HitOrMiss(commands.Cog):
         cooldown_after_parsing=True,
         usage="[type=kills] [global_or_local=False]",
     )
-    @commands.has_permissions(embed_links=True)
+    @commands.bot_has_permissions(embed_links=True)
     async def hom_lb(
         self,
         ctx: commands.Context,

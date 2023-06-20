@@ -213,7 +213,7 @@ class Notes(commands.Cog):
         await ctx.send(f"Note added to **{member}**\nNote:- {note}")
 
     @commands.command(name="allnotes", aliases=["guildnotes"])
-    @commands.has_permissions(embed_links=True)
+    @commands.bot_has_permissions(embed_links=True)
     @commands.mod_or_permissions(manage_messages=True)
     async def allnotes(self, ctx: commands.Context):
         """
@@ -252,7 +252,7 @@ class Notes(commands.Cog):
         await view.start()
 
     @commands.command()
-    @commands.has_permissions(embed_links=True)
+    @commands.bot_has_permissions(embed_links=True)
     @commands.mod_or_permissions(manage_messages=True)
     async def notes(self, ctx: commands.Context, member: discord.User = commands.Author):
         """
