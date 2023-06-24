@@ -218,7 +218,7 @@ class TimerObj:
 
         notify = (await self.cog.get_guild_settings(self.guild_id)).notify_users
 
-        await msg.reply(
+        await msg.channel.send(
             f"{self.host.mention} your timer for **{self.name}** has ended!\n" + self.jump_url
         )
 
