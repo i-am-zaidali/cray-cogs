@@ -230,7 +230,7 @@ class TimerObj:
 
         if pings:
             for page in cf.pagify(pings, delims=[" "], page_length=2000):
-                await msg.channel.send(page,delete_after=1)
+                await msg.channel.send(page)
 
         await self.cog.remove_timer(self)
         self._tasks[self.message_id].cancel()
