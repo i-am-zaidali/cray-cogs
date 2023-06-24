@@ -136,7 +136,7 @@ class Timer(commands.Cog):
         )
 
         await timer.start()
-        await ctx.message.delete()
+        await ctx.tick(message="Timer for `{}` started!".format(name))
 
     @timer.command(name="end")
     async def timer_end(self, ctx: commands.Context, timer_id: int):

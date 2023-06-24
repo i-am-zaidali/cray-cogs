@@ -158,7 +158,7 @@ class TimerObj:
     async def start(self):
         embed = (
             discord.Embed(
-                title=f"**{self.name}**",
+                title=f"Timer for **{self.name}**",
                 description=await self.get_embed_description(),
                 color=await self.get_embed_color(),
             )
