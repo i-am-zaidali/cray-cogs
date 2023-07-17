@@ -1,6 +1,6 @@
 import random
 import secrets
-from typing import Dict, Optional, Type
+from typing import Dict, Optional
 
 import discord
 from redbot.core import commands
