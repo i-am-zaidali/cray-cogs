@@ -19,7 +19,7 @@ class JoinPing(commands.Cog):
     """
     Ghost ping users when they join."""
 
-    __version__ = "1.1.0"
+    __version__ = "1.1.1"
     __author__ = ["crayyy_zee"]
 
     def __init__(self, bot: Red):
@@ -45,7 +45,7 @@ class JoinPing(commands.Cog):
         return True
 
     @commands.Cog.listener()
-    async def on_member_join(self, member):
+    async def on_member_join(self, member: discord.Member):
         guild_data: dict = self.cache.get(member.guild.id)
         if not guild_data:
             return
@@ -74,6 +74,15 @@ class JoinPing(commands.Cog):
         for i in guild_data.get("ping_channels"):
             channel = self.bot.get_channel(i)
             if not channel:
+                continue
+
+            if channel.permissions_for(member.guild.me).send_messages is False:
+                continue
+
+            if channel.permissions_for(member.guild.me).embed_links is False and isinstance(
+                emb := resp.actions.get("embed"), discord.Embed
+            ):
+                await channel.send(f"{member.mention} {emb.description or ''}")
                 continue
 
             try:
