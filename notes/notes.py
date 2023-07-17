@@ -1,9 +1,9 @@
 import asyncio
 import logging
-import time as _time
 import math
+import time as _time
 from operator import attrgetter
-from typing import Dict, List, Union, overload, Optional, TypeVar
+from typing import Dict, List, Optional, TypeVar, Union, overload
 
 import discord
 from redbot.core import Config, commands
