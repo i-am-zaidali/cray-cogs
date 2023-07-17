@@ -30,9 +30,9 @@ class UserNote:
         )
 
     def __str__(self):
-        return f"""Content: ***{self.content}***
-    Taken by: ***{self.author}***
-    Taken on: <t:{self._date}:F>
+        return f"""- Content: ***{self.content}***
+- Taken by: ***{self.author}***
+- Taken on: <t:{self._date}:F>
     """
 
     @property

@@ -1,13 +1,14 @@
 import asyncio
 import logging
 import time as _time
+import math
 from operator import attrgetter
-from typing import Dict, List, Union, overload
+from typing import Dict, List, Union, overload, Optional, TypeVar
 
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import humanize_list
+from redbot.core.utils.chat_formatting import humanize_list, pagify
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 
 from .models import NoteType, UserNote
@@ -15,6 +16,13 @@ from .views import PaginationView
 
 log = logging.getLogger("red.craycogs.notes")
 log.setLevel(logging.DEBUG)
+
+T = TypeVar("T")
+
+
+def chunkify(iterable: list[T], chunk_size: int):
+    for i in range(0, len(iterable), chunk_size):
+        yield iterable[i : i + chunk_size]
 
 
 class Notes(commands.Cog):
@@ -200,7 +208,11 @@ class Notes(commands.Cog):
     @commands.command()
     @commands.mod_or_permissions(manage_messages=True)
     async def setnote(
-        self, ctx: commands.Context, member: discord.Member = commands.Author, *, note
+        self,
+        ctx: commands.Context,
+        member: Optional[discord.Member] = None,
+        *,
+        note,
     ):
         """
         Add a note to a user.
@@ -228,22 +240,23 @@ class Notes(commands.Cog):
             return await ctx.send("No notes found for this server.")
 
         embeds = []
-        for page, (user, n) in enumerate(notes.items()):
+        total_pages = math.ceil(sum(1 for l in notes.values() for i in l) / 5)
+        for user, n in notes.items():
             if not n:
                 continue
             user = ctx.guild.get_member(user)
 
-            final = f"**{user}**\n\n"
-
-            for i, note in enumerate(n, 1):
-                final += f"**{i}** ({note.type.name}). \n{note}\n"
-            embeds.append(
-                discord.Embed(
-                    title=f"Notes for {ctx.guild}",
-                    description=(final[:2500] + "..." if len(final) > 2500 else final),
-                    color=discord.Color.green(),
-                ).set_footer(text=f"Page {page+1}/{len(notes)}")
-            )
+            for page, chunk in enumerate(chunkify(n, 5)):
+                final = f"**{user}**\n\n"
+                for j, note in enumerate(chunk, 1):
+                    final += f"""**{page*5+j}**. {"(Donation note)" if note.type is NoteType.DonationNote else ""} \n{note}\n\n"""
+                embeds.append(
+                    discord.Embed(
+                        title=f"Notes for {ctx.guild}",
+                        description=final,
+                        color=discord.Color.green(),
+                    ).set_footer(text=f"Page {page+1}/{total_pages}")
+                )
 
         if not embeds:
             return await ctx.send("No notes found for this server.")
@@ -278,7 +291,7 @@ class Notes(commands.Cog):
             color=member.color.value,
         )
 
-        await menu(ctx, embeds, DEFAULT_CONTROLS)
+        await PaginationView(ctx, embeds, 60, True).start()
 
     @commands.command()
     @commands.mod_or_permissions(manage_messages=True)
