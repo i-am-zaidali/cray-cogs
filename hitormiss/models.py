@@ -196,7 +196,7 @@ class Player:
 
 
 class Inventory:
-    def __init__(self, user: Player, items: Dict[Type[BaseItem], int]) -> None:
+    def __init__(self, user: Player, items: Dict[BaseItem, int]) -> None:
         self.user = user
         self.items = self._verify_items(items)
 

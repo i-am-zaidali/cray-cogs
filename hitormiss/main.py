@@ -2,6 +2,7 @@ import asyncio
 import functools
 import logging
 import random
+import time
 from dataclasses import make_dataclass
 from typing import Dict, List, Literal, Optional, Tuple, Type, Union
 
@@ -329,7 +330,7 @@ class HitOrMiss(commands.Cog):
 
         for item, amount in me.inv.items.items():
             item_cooldown = (
-                f"Can be used <t:{item.on_cooldown(me)}:R>."
+                f"Can be used <t:{int(time.time()+cd)}:R>."
                 if (cd := item.on_cooldown(ctx.message))
                 else "Not on cooldown."
             )
