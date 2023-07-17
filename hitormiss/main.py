@@ -218,8 +218,9 @@ class HitOrMiss(commands.Cog):
     async def throw(
         self,
         ctx,
-        item: BaseItem = commands.parameter(converter=ItemConverter),
         target: Player = commands.parameter(converter=PlayerConverter),
+        *,
+        item: BaseItem = commands.parameter(converter=ItemConverter),
     ):
         """Throw an item you own at a user
 
@@ -361,6 +362,7 @@ class HitOrMiss(commands.Cog):
         self,
         ctx: commands.Context,
         amount: Optional[int] = None,
+        *,
         item: BaseItem = commands.parameter(converter=ItemConverter),
     ):
         """
@@ -467,7 +469,7 @@ class HitOrMiss(commands.Cog):
 
         name = answers.pop("name")
 
-        if next(filter(lambda x: x.lower() == name.lower(), self.items.keys()), None) is None:
+        if next(filter(lambda x: x.lower() == name.lower(), self.items.keys()), None) is not None:
             return await ctx.send(f"An item with the name `{name}` already exists.")
 
         answers["throwable"] = True
