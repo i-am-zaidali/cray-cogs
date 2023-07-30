@@ -54,9 +54,6 @@ class Timer(commands.Cog):
                 x.update({"bot": bot})
                 timer = TimerObj.from_json(x)
                 await self.add_timer(timer)
-
-        for k, v in self.cache.items():
-            for timer in v:
                 TimerObj._tasks[timer.message_id] = asyncio.create_task(timer._start_edit_task())
 
         self.max_duration: int = await self.config.max_duration()
