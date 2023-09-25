@@ -1,7 +1,9 @@
 import asyncio
+import logging
 from typing import Dict, List
 
 import discord
+from discord.ext import tasks
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
@@ -10,13 +12,14 @@ from .models import TimerObj, TimerSettings
 from .utils import EmojiConverter, TimeConverter
 
 guild_defaults = {"timers": [], "timer_settings": {"notify_users": True, "emoji": "\U0001f389"}}
+log = logging.getLogger("red.craycogs.Timer.timers")
 
 
 class Timer(commands.Cog):
     """Start countdowns that help you keep track of the time passed"""
 
     __author__ = ["crayyy_zee"]
-    __version__ = "1.0.4"
+    __version__ = "1.1.0"
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -43,22 +46,16 @@ class Timer(commands.Cog):
         ]
         return "\n".join(text)
 
-    @classmethod
-    async def initialize(cls, bot):
-        self = cls(bot)
-
+    async def cog_load(self):
         guilds = await self.config.all_guilds()
 
         for guild_data in guilds.values():
             for x in guild_data.get("timers", []):
-                x.update({"bot": bot})
+                x.update({"bot": self.bot})
                 timer = TimerObj.from_json(x)
                 await self.add_timer(timer)
-                TimerObj._tasks[timer.message_id] = asyncio.create_task(timer._start_edit_task())
 
         self.max_duration: int = await self.config.max_duration()
-
-        return self
 
     async def get_timer(self, guild_id: int, timer_id: int):
         if not (guild := self.cache.get(guild_id)):
@@ -69,9 +66,13 @@ class Timer(commands.Cog):
                 return timer
 
     async def add_timer(self, timer: TimerObj):
+        if await self.get_timer(timer.guild_id, timer.message_id):
+            return
         self.cache.setdefault(timer.guild_id, []).append(timer)
 
     async def remove_timer(self, timer: TimerObj):
+        if not (guild := self.cache.get(timer.guild_id)):
+            return
         self.cache[timer.guild_id].remove(timer)
 
     async def get_guild_settings(self, guild_id: int):
@@ -82,23 +83,43 @@ class Timer(commands.Cog):
             await self.config.guild_from_id(guild_id).timers.set([x.json for x in timers])
 
     async def cog_unload(self):
-        for message_id, task in TimerObj._tasks.items():
-            task.cancel()
-
+        self.timer_task.cancel()
         await self._back_to_config()
 
-    @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        if not payload.guild_id or payload.member.bot:
+    @tasks.loop(seconds=3)
+    async def end_timer(self):
+        if self.end_timer._current_loop and self.end_timer._current_loop % 100 == 0:
+            await self.to_config()
+
+        if not self.bot.get_cog("Giveaways"):
+            # safeguard idk
             return
 
-        timer = await self.get_timer(payload.guild_id, payload.message_id)
-        if not timer:
+        c = self.cache.copy()
+        timers = [
+            timer
+            for data in c.values()
+            for timer in data
+            if isinstance(timer, TimerObj) and timer.ended
+        ]
+
+        if not timers:
             return
 
-        await timer.add_entrant(payload.user_id)
+        results = await asyncio.gather(*[timer.end() for timer in timers], return_exceptions=True)
 
-    @commands.group(name="timer", aliases=["t"])
+        list(
+            map(
+                lambda x: self.remove_from_cache(x),
+                timers,
+            )
+        )
+
+        for result in results:
+            if isinstance(result, Exception):
+                log.error(f"A timer ended with an error:", exc_info=result)
+
+    @commands.group(name="timer")
     @commands.mod_or_permissions(manage_messages=True)
     async def timer(self, ctx: commands.Context):
         """

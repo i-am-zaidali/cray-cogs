@@ -1,14 +1,20 @@
 import asyncio
+import functools
 import logging
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Coroutine, Dict, List, Optional
+from typing import Any, Coroutine, Dict, List, Optional, TYPE_CHECKING
 
 import discord
+from discord.ui import Button, View
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
 
 from .exceptions import TimerError
+
+if TYPE_CHECKING:
+    from .timers import Timer
 
 log = logging.getLogger("red.craycogs.Timer.models")
 
@@ -19,11 +25,62 @@ class TimerSettings:
     emoji: str
 
 
+class TimerView(View):
+    def __init__(self, cog: "Timer", emoji=":tada:", disabled=False):
+        super().__init__(timeout=None)
+        self.bot = cog.bot
+        self.cog = cog
+        self.JTB = JoinTimerButton(emoji, self._callback, disabled)
+        self.add_item(self.JTB)
+
+    async def _callback(self, button: "JoinTimerButton", interaction: discord.Interaction):
+        log.debug("callback called")
+        cog: "Timer" = self.cog
+
+        timer = await cog.get_timer(interaction.guild.id, interaction.message.id)
+        if not timer:
+            return await interaction.response.send_message(
+                "This timer does not exist in my database. It might've been erased due to a glitch.",
+                ephemeral=True,
+            )
+
+        elif not timer.remaining_seconds:
+            await interaction.response.defer()
+            return await timer.end()
+
+        log.debug("timer exists")
+
+        result = await timer.add_entrant(interaction.user)
+        kwargs = {}
+
+        if result:
+            kwargs.update(
+                {"content": f"{interaction.user.mention} you will be notfied when the timer ends."}
+            )
+
+        else:
+            await timer.remove_entrant(interaction.user)
+            kwargs.update(
+                {
+                    "content": f"{interaction.user.mention} you will no longer be notified for the timer."
+                }
+            )
+
+        await interaction.response.send_message(**kwargs, ephemeral=True)
+
+
+class JoinTimerButton(Button[TimerView]):
+    def __init__(self, emoji: str | None, callback, disabled=False, custom_id="JOIN_TIMER_BUTTON"):
+        super().__init__(
+            emoji=emoji,
+            style=discord.ButtonStyle.green,
+            disabled=disabled,
+            custom_id=custom_id,
+        )
+        self.callback = functools.partial(callback, self)
+
+
 class TimerObj:
-    _tasks: Dict[int, asyncio.Task] = {}
-
-    # haha ctrl C + Ctrl V from giveaways go brrrrrrrrr
-
     def __init__(self, **kwargs):
         gid, cid, e, bot = self.check_kwargs(kwargs)
 
@@ -39,7 +96,7 @@ class TimerObj:
         self.ends_at: datetime = e
 
     @property
-    def cog(self):
+    def cog(self) -> Optional["Timer"]:
         return self.bot.get_cog("Timer")
 
     @property
@@ -67,7 +124,7 @@ class TimerObj:
         return f"https://discord.com/channels/{self.guild_id}/{self.channel_id}/{self.message_id}"
 
     @property
-    def remaining_time(self):
+    def remaining_seconds(self):
         return self.ends_at - datetime.now(timezone.utc)
 
     @property
@@ -131,9 +188,9 @@ class TimerObj:
     async def get_embed_description(self):
         return (
             f"React with {self.emoji} to be notified when the timer ends.\n"
-            f"Remaining time: **{cf.humanize_timedelta(timedelta=self.remaining_time)}**"
+            f"Remaining time: **<t:{int(time.time() + self.remaining_time)}:R>** (<t:{int(time.time() + self.remaining_time)}:F>)\n"
             if (await self.cog.get_guild_settings(self.guild_id)).notify_users
-            else f"Remaining time: **{cf.humanize_timedelta(timedelta=self.remaining_time)}**"
+            else f"Remaining time: **<t:{int(time.time() + self.remaining_time)}:R>** (<t:{int(time.time() + self.remaining_time)}:F>)\n"
         )
 
     async def get_embed_color(self):
@@ -152,8 +209,15 @@ class TimerObj:
 
     async def add_entrant(self, user_id: int):
         if user_id == self._host:
-            return
+            return False
         self._entrants.add(user_id)
+        return True
+
+    async def remove_entrant(self, user_id: int):
+        if user_id == self._host:
+            return False
+        self._entrants.remove(user_id)
+        return True
 
     async def start(self):
         embed = (
@@ -166,46 +230,22 @@ class TimerObj:
             .set_footer(text=f"Hosted by: {self.host}", icon_url=self.host.display_avatar.url)
         )
 
-        msg: discord.Message = await self.channel.send(embed=embed)
+        kwargs = {
+            "embed": embed,
+        }
         if (await self.cog.get_guild_settings(self.guild_id)).notify_users:
-            await msg.add_reaction(self.emoji)
+            kwargs.update({"view": TimerView()})
+
+        msg: discord.Message = await self.channel.send(**kwargs)
+
         self.message_id = msg.id
 
-        self._tasks[self.message_id] = asyncio.create_task(self._start_edit_task())
         await self.cog.add_timer(self)
-
-    async def _start_edit_task(self):
-        try:
-            while True:
-                await asyncio.sleep(self.edit_wait_duration)
-
-                if self.ended:
-                    await self.end()
-                    break
-
-                msg = await self.message
-                if not msg:
-                    raise TimerError(
-                        f"Couldn't find timer message with id {self.message_id}. Removing from cache."
-                    )
-
-                embed: discord.Embed = msg.embeds[0]
-
-                embed.description = await self.get_embed_description()
-
-                await msg.edit(embed=embed)
-
-            return True
-
-        except Exception as e:
-            log.exception("Error when editing timer: ", exc_info=e)
 
     async def end(self):
         msg = await self.message
         if not msg:
             await self.cog.remove_timer(self)
-            self._tasks[self.message_id].cancel()
-            del self._tasks[self.message_id]
             raise TimerError(
                 f"Couldn't find timer message with id {self.message_id}. Removing from cache."
             )
@@ -214,27 +254,29 @@ class TimerObj:
 
         embed.description = "This timer has ended!"
 
-        await msg.edit(embed=embed)
+        settings = await self.cog.get_guild_settings(self.guild_id)
 
-        notify = (await self.cog.get_guild_settings(self.guild_id)).notify_users
+        view = TimerView(self.cog, settings.emoji, True)
 
-        await msg.reply(
+        await msg.edit(embed=embed, view=view)
+
+        notify = settings.notify_users
+
+        rep = await msg.reply(
             f"{self.host.mention} your timer for **{self.name}** has ended!\n" + self.jump_url
         )
 
         pings = (
-            "\n".join((i.mention for i in self.entrants if i is not None))
+            " ".join((i.mention for i in self.entrants if i is not None))
             if self._entrants and notify
             else ""
         )
 
         if pings:
             for page in cf.pagify(pings, delims=[" "], page_length=2000):
-                await msg.channel.send(page)
+                await msg.channel.send(page, reference=rep.to_reference(fail_if_not_exists=False))
 
         await self.cog.remove_timer(self)
-        self._tasks[self.message_id].cancel()
-        del self._tasks[self.message_id]
 
     @classmethod
     def from_json(cls, json: dict):
