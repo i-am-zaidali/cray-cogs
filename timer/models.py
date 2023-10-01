@@ -128,7 +128,7 @@ class TimerObj:
 
     @property
     def remaining_time(self):
-        return self.remaining_seconds
+        return self.remaining_seconds.total_seconds()
 
     @property
     def ended(self):
