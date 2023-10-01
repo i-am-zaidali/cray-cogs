@@ -1,10 +1,9 @@
-import asyncio
 import functools
 import logging
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Coroutine, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Coroutine, List, Optional
 
 import discord
 from discord.ui import Button, View
