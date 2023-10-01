@@ -2,7 +2,7 @@ import asyncio
 import itertools
 import logging
 import math
-from typing import Dict, List, Iterable, Callable, Any, Optional, TypeVar
+from typing import Any, Callable, Dict, Iterable, List, Optional, TypeVar
 
 import discord
 from discord.ext import tasks
