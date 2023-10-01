@@ -237,7 +237,7 @@ class TimerObj:
             "embed": embed,
         }
         if (await self.cog.get_guild_settings(self.guild_id)).notify_users:
-            kwargs.update({"view": TimerView()})
+            kwargs.update({"view": TimerView(self.cog, self.emoji, False)})
 
         msg: discord.Message = await self.channel.send(**kwargs)
 
