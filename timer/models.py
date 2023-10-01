@@ -127,6 +127,10 @@ class TimerObj:
         return self.ends_at - datetime.now(timezone.utc)
 
     @property
+    def remaining_time(self):
+        return self.remaining_seconds
+
+    @property
     def ended(self):
         return datetime.now(timezone.utc) > self.ends_at
 
