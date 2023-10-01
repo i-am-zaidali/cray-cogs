@@ -211,13 +211,13 @@ class TimerObj:
         return msg
 
     async def add_entrant(self, user_id: int):
-        if user_id == self._host:
+        if user_id == self._host or user_id in self._entrants:
             return False
         self._entrants.add(user_id)
         return True
 
     async def remove_entrant(self, user_id: int):
-        if user_id == self._host:
+        if user_id == self._host or user_id not in self._entrants:
             return False
         self._entrants.remove(user_id)
         return True

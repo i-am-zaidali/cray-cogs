@@ -1,6 +1,7 @@
 import asyncio
 import itertools
 import logging
+import math
 from typing import Dict, List, Iterable, Callable, Any, Optional, TypeVar
 
 import discord
@@ -127,7 +128,7 @@ class Timer(commands.Cog):
     @tasks.loop(seconds=1)
     async def end_timer(self):
         if self.end_timer._current_loop and self.end_timer._current_loop % 100 == 0:
-            await self.to_config()
+            await self._back_to_config()
 
         results = await asyncio.gather(
             *[timer.end() for timer in self.to_end], return_exceptions=True
@@ -139,12 +140,13 @@ class Timer(commands.Cog):
 
         self.to_end = all_min(
             itertools.chain.from_iterable(self.cache.values()),
-            key=lambda x: x.remaining_time,
-            sortkey=lambda x: x.remaining_time,
+            key=lambda x: math.ceil(x.remaining_time),
+            sortkey=lambda x: math.ceil(x.remaining_time),
         )
 
-        interval = getattr(next(iter(self.to_end), None), "remaining_time", 1)
+        interval = max(math.ceil(getattr(next(iter(self.to_end), None), "remaining_time", 1)), 1)
         self.end_timer.change_interval(seconds=interval)
+        log.debug(f"Changed interval to {interval} seconds")
 
     @commands.group(name="timer")
     @commands.mod_or_permissions(manage_messages=True)
@@ -213,7 +215,8 @@ class Timer(commands.Cog):
             title="Timers in **{}**".format(ctx.guild.name),
             description="\n".join(
                 "{} - {}".format(
-                    f"[{x.name}]({x.jump_url})", cf.humanize_timedelta(timedelta=x.remaining_time)
+                    f"[{x.name}]({x.jump_url})",
+                    cf.humanize_timedelta(timedelta=x.remaining_seconds),
                 )
                 for x in self.cache[ctx.guild.id]
             ),
