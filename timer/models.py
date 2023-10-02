@@ -49,7 +49,7 @@ class TimerView(View):
 
         log.debug("timer exists")
 
-        result = await timer.add_entrant(interaction.user)
+        result = await timer.add_entrant(interaction.user.id)
         kwargs = {}
 
         if result:
@@ -58,7 +58,7 @@ class TimerView(View):
             )
 
         else:
-            await timer.remove_entrant(interaction.user)
+            await timer.remove_entrant(interaction.user.id)
             kwargs.update(
                 {
                     "content": f"{interaction.user.mention} you will no longer be notified for the timer."
