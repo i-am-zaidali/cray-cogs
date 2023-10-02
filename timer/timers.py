@@ -10,7 +10,7 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
 
-from .models import TimerObj, TimerSettings
+from .models import TimerObj, TimerSettings, TimerView
 from .utils import EmojiConverter, TimeConverter
 
 guild_defaults = {"timers": [], "timer_settings": {"notify_users": True, "emoji": "\U0001f389"}}
@@ -67,6 +67,7 @@ class Timer(commands.Cog):
 
         self.task = self.end_timer.start()
         self.to_end: List[TimerObj] = []
+        slf.view = TimerView(self)
 
     async def red_delete_data_for_user(self, *, requester, user_id: int):
         for timers in self.cache.values():
@@ -95,6 +96,7 @@ class Timer(commands.Cog):
                 await self.add_timer(timer)
 
         self.max_duration: int = await self.config.max_duration()
+        self.bot.add_view(self.view)
 
     async def get_timer(self, guild_id: int, timer_id: int):
         if not (guild := self.cache.get(guild_id)):
@@ -123,6 +125,7 @@ class Timer(commands.Cog):
 
     async def cog_unload(self):
         self.task.cancel()
+        self.view.stop()
         await self._back_to_config()
 
     @tasks.loop(seconds=1)
