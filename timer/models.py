@@ -242,6 +242,7 @@ class TimerObj:
         msg: discord.Message = await self.channel.send(**kwargs)
 
         self.message_id = msg.id
+        kwargs["view"].stop()
 
         await self.cog.add_timer(self)
 
