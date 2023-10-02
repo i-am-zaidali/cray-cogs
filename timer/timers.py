@@ -67,7 +67,7 @@ class Timer(commands.Cog):
 
         self.task = self.end_timer.start()
         self.to_end: List[TimerObj] = []
-        slf.view = TimerView(self)
+        self.view = TimerView(self)
 
     async def red_delete_data_for_user(self, *, requester, user_id: int):
         for timers in self.cache.values():
