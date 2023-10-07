@@ -69,7 +69,9 @@ class TimerView(View):
 
 
 class JoinTimerButton(Button[TimerView]):
-    def __init__(self, emoji: Optional[str], callback, disabled=False, custom_id="JOIN_TIMER_BUTTON"):
+    def __init__(
+        self, emoji: Optional[str], callback, disabled=False, custom_id="JOIN_TIMER_BUTTON"
+    ):
         super().__init__(
             emoji=emoji,
             style=discord.ButtonStyle.green,
