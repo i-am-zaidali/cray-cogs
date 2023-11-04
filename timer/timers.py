@@ -188,6 +188,10 @@ class Timer(commands.Cog):
         await timer.start()
         await ctx.tick(message="Timer for `{}` started!".format(name))
 
+        self.to_end.clear()
+        self.end_timer.restart()
+        self.task = self.end_timer.get_task()
+    
     @timer.command(name="end")
     async def timer_end(self, ctx: commands.Context, timer_id: int):
         """
@@ -204,6 +208,10 @@ class Timer(commands.Cog):
 
         await timer.end()
         await ctx.tick(message="Timer ended!")
+        
+        self.to_end.clear()
+        self.end_timer.restart()
+        self.task = self.end_timer.get_task()
 
     @timer.command(name="list")
     @commands.bot_has_permissions(embed_links=True)
