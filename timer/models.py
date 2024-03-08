@@ -141,9 +141,7 @@ class TimerObj:
         return (
             15
             if (secs := self.remaining_time.total_seconds()) <= 120
-            else 60
-            if secs < 300
-            else 300
+            else 60 if secs < 300 else 300
         )
 
     @property

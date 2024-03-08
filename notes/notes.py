@@ -165,12 +165,10 @@ class Notes(commands.Cog):
         return groups
 
     @overload
-    def _get_notes(self, guild: discord.Guild) -> Dict[int, List[UserNote]]:
-        ...
+    def _get_notes(self, guild: discord.Guild) -> Dict[int, List[UserNote]]: ...
 
     @overload
-    def _get_notes(self, guild: discord.Guild, member: discord.Member) -> List[UserNote]:
-        ...
+    def _get_notes(self, guild: discord.Guild, member: discord.Member) -> List[UserNote]: ...
 
     def _get_notes(self, guild: discord.Guild, member: discord.Member = None):
         if member is None:
