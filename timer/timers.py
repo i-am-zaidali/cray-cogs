@@ -97,6 +97,8 @@ class Timer(commands.Cog):
 
         self.max_duration: int = await self.config.max_duration()
         self.bot.add_view(self.view)
+        if self.bot.get_cog("Dev"):
+            self.bot.add_dev_env_value("timer", lambda x: self)
 
     async def get_timer(self, guild_id: int, timer_id: int):
         if not (guild := self.cache.get(guild_id)):
@@ -126,6 +128,7 @@ class Timer(commands.Cog):
     async def cog_unload(self):
         self.task.cancel()
         self.view.stop()
+        self.bot.remove_dev_env_value("timer")
         await self._back_to_config()
 
     @tasks.loop(seconds=1)
@@ -146,6 +149,9 @@ class Timer(commands.Cog):
             key=lambda x: math.ceil(x.remaining_time),
             sortkey=lambda x: math.ceil(x.remaining_time),
         )
+        if not self.to_end:
+            log.debug("No timers to end, stopping task.")
+            return self.end_timer.stop()
 
         interval = max(math.ceil(getattr(next(iter(self.to_end), None), "remaining_time", 1)), 1)
         self.end_timer.change_interval(seconds=interval)
@@ -189,7 +195,10 @@ class Timer(commands.Cog):
         await ctx.tick(message="Timer for `{}` started!".format(name))
 
         self.to_end.clear()
-        self.end_timer.restart()
+        if self.end_timer.is_running():
+            self.end_timer.restart()
+        else:
+            self.end_timer.start()
         self.task = self.end_timer.get_task()
 
     @timer.command(name="end")
@@ -210,7 +219,10 @@ class Timer(commands.Cog):
         await ctx.tick(message="Timer ended!")
 
         self.to_end.clear()
-        self.end_timer.restart()
+        if self.end_timer.is_running():
+            self.end_timer.restart()
+        else:
+            self.end_timer.start()
         self.task = self.end_timer.get_task()
 
     @timer.command(name="list")
