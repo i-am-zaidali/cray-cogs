@@ -1,0 +1,20 @@
+{
+    "name": "SharedCooldowns",
+    "short": "Shared cooldowns for commands.",
+    "description": "Create shared cooldowns for commands across multiple cogs.",
+    "end_user_data_statement": "This cog does not store any user data.",
+    "install_msg": "Thanks for installing SharedCooldowns. Load the cog with `[p]load sharedcd` and see all its commands with `[p]help SharedCooldowns`",
+    "author": [
+        "crayyy_zee"
+    ],
+    "requirements": [],
+    "required_cogs": {},
+    "tags": [
+        "cooldown",
+        "custom",
+        "restrict",
+        "delay",
+        "block"
+    ],
+    "type": "COG"
+}
