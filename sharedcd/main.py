@@ -98,6 +98,7 @@ class SharedCooldowns(commands.Cog):
     """
 
     __author__ = ["crayyy_zee"]
+    __version__ = "1.0.0"
 
     def __init__(self, bot: Red):
         self.bot = bot
