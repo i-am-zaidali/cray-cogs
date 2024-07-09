@@ -295,7 +295,7 @@ class SharedCooldowns(commands.Cog):
                 lambda y: y[1] is not None,
                 map(
                     lambda x: (x, self.check_command_exists_as_scd(x)),
-                    itertools.chain.from_iterable(flags._commands),
+                    itertools.chain.from_iterable(flags._commands or []),
                 ),
             )
         )
@@ -306,7 +306,7 @@ class SharedCooldowns(commands.Cog):
                 f"{cf.humanize_list(list(map(lambda x: f'`{x[0].qualified_name} (ID: {x[1].id})`', existing)))}"
             )
 
-        if next(filter(lambda x: x.bot, itertools.chain.from_iterable(flags.bypass)), None):
+        if next(filter(lambda x: x.bot, itertools.chain.from_iterable(flags.bypass or [])), None):
             return await ctx.send(
                 "Bots can not bypass SharedCooldowns since they can't run any commands in the first place."
             )
