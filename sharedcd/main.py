@@ -2,18 +2,19 @@ import asyncio
 import datetime
 import functools
 import itertools
+import logging
 import random
 import string
-from redbot.core.bot import Red
-from redbot.core import commands, Config
-import discord
-from redbot.core.utils import chat_formatting as cf
-from dataclasses import dataclass, asdict
 import typing
-from .paginator import Paginator
+
+import discord
+from redbot.core import Config, commands
+from redbot.core.bot import Red
+from redbot.core.utils import chat_formatting as cf
 from redbot.vendored.discord.ext.menus import ListPageSource
-import logging
-from .utils import SharedCooldown, SCDFlags, SCDFlagsAllOPT
+
+from .paginator import Paginator
+from .utils import SCDFlags, SCDFlagsAllOPT, SharedCooldown
 
 log = logging.getLogger("red.cray.SharedCooldowns")
 
@@ -201,14 +202,12 @@ class SharedCooldowns(commands.Cog):
         """
         Manage SharedCooldowns settings
         """
-        pass
 
     @scd.group(name="group", aliases=["g", "groups"], invoke_without_command=True)
     async def scd_g(self, ctx: commands.Context):
         """
         Manage SharedCooldown groups
         """
-        pass
 
     @scd_g.command(name="create", aliases=["c", "createg"])
     async def scd_c(self, ctx: commands.Context, *, flags: SCDFlags):

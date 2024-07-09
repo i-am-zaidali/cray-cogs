@@ -1,9 +1,10 @@
+import datetime
 import itertools
 import typing
 from dataclasses import asdict, dataclass
-import datetime
-from redbot.core import commands
+
 import discord
+from redbot.core import commands
 from redbot.core.utils import chat_formatting as cf
 
 __all__ = ["SharedCooldown", "SCDFlags", "SCDFlagsAllOPT"]
