@@ -267,7 +267,8 @@ class TimerObj:
         notify = settings.notify_users
 
         rep = await msg.reply(
-            f"{self.host.mention} your timer for **{self.name}** has ended!\n" + self.jump_url
+            f"{getattr(self.host, 'mention', f'{self._host} (host user not found)')} your timer for **{self.name}** has ended!\n"
+            + self.jump_url
         )
 
         pings = (
