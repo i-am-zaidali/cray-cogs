@@ -13,19 +13,20 @@ from redbot.core.utils import chat_formatting as cf
 from .models import TimerObj, TimerSettings, TimerView
 from .utils import EmojiConverter, TimeConverter
 
-guild_defaults = {"timers": [], "timer_settings": {"notify_users": True, "emoji": "\U0001f389"}}
+guild_defaults = {
+    "timers": [],
+    "timer_settings": {"notify_users": True, "emoji": "\U0001f389"},
+}
 log = logging.getLogger("red.craycogs.Timer.timers")
 
 _T = TypeVar("_T")
-
-Missing = object()
 
 
 def all_min(
     iterable: Iterable[_T],
     key: Callable[[_T], Any] = lambda x: x,
     *,
-    sortkey: Optional[Callable[[_T], Any]] = Missing,
+    sortkey: Optional[Callable[[_T], Any]] = None,
 ):
     """A simple one liner function that returns all the least elements of an iterable instead of just one like the builtin `min()`.
 
@@ -39,7 +40,7 @@ def all_min(
     - min() returns the tuple with the minimum key value.
     - [1] gets the second element of the tuple, which is the list of all of the minimum elements in the iterable.
     """
-    if sortkey is not Missing:
+    if sortkey is not None:
         iterable = sorted(iterable, key=sortkey)
     try:
         return min(
@@ -55,13 +56,15 @@ class Timer(commands.Cog):
     """Start countdowns that help you keep track of the time passed"""
 
     __author__ = ["crayyy_zee"]
-    __version__ = "1.1.0"
+    __version__ = "1.1.1"
 
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, 1, True)
         self.config.register_guild(**guild_defaults)
-        self.config.register_global(max_duration=3600 * 12)  # a day long duration by default
+        self.config.register_global(
+            max_duration=3600 * 12
+        )  # a day long duration by default
 
         self.cache: Dict[int, List[TimerObj]] = {}
 
@@ -119,11 +122,15 @@ class Timer(commands.Cog):
         self.cache[timer.guild_id].remove(timer)
 
     async def get_guild_settings(self, guild_id: int):
-        return TimerSettings(**await self.config.guild_from_id(guild_id).timer_settings())
+        return TimerSettings(
+            **await self.config.guild_from_id(guild_id).timer_settings()
+        )
 
     async def _back_to_config(self):
         for guild_id, timers in self.cache.items():
-            await self.config.guild_from_id(guild_id).timers.set([x.json for x in timers])
+            await self.config.guild_from_id(guild_id).timers.set(
+                [x.json for x in timers]
+            )
 
     async def cog_unload(self):
         self.task.cancel()
@@ -153,18 +160,20 @@ class Timer(commands.Cog):
             log.debug("No timers to end, stopping task.")
             return self.end_timer.stop()
 
-        interval = max(math.ceil(getattr(next(iter(self.to_end), None), "remaining_time", 1)), 1)
+        interval = max(
+            math.ceil(getattr(next(iter(self.to_end), None), "remaining_time", 1)), 1
+        )
         self.end_timer.change_interval(seconds=interval)
         log.debug(f"Changed interval to {interval} seconds")
 
-    @commands.group(name="timer")
     @commands.mod_or_permissions(manage_messages=True)
+    @commands.group(name="timer")
     async def timer(self, ctx: commands.Context):
         """
         Manage Timers."""
 
-    @timer.command(name="start")
     @commands.bot_has_permissions(embed_links=True)
+    @timer.command(name="start")  # type: ignore
     async def timer_start(
         self, ctx: commands.Context, time: TimeConverter, *, name: str = "New Timer!"
     ):
@@ -285,7 +294,9 @@ class Timer(commands.Cog):
         `notify`: Whether or not to notify users. (`True`/`False`)
         """
 
-        await self.config.guild_from_id(ctx.guild.id).timer_settings.notify_users.set(notify)
+        await self.config.guild_from_id(ctx.guild.id).timer_settings.notify_users.set(
+            notify
+        )
         await ctx.tick()
 
     @tset.command(name="showsettings", aliases=["ss", "showsetting", "show"])
