@@ -62,9 +62,7 @@ class Timer(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, 1, True)
         self.config.register_guild(**guild_defaults)
-        self.config.register_global(
-            max_duration=3600 * 12
-        )  # a day long duration by default
+        self.config.register_global(max_duration=3600 * 12)  # a day long duration by default
 
         self.cache: Dict[int, List[TimerObj]] = {}
 
@@ -122,15 +120,11 @@ class Timer(commands.Cog):
         self.cache[timer.guild_id].remove(timer)
 
     async def get_guild_settings(self, guild_id: int):
-        return TimerSettings(
-            **await self.config.guild_from_id(guild_id).timer_settings()
-        )
+        return TimerSettings(**await self.config.guild_from_id(guild_id).timer_settings())
 
     async def _back_to_config(self):
         for guild_id, timers in self.cache.items():
-            await self.config.guild_from_id(guild_id).timers.set(
-                [x.json for x in timers]
-            )
+            await self.config.guild_from_id(guild_id).timers.set([x.json for x in timers])
 
     async def cog_unload(self):
         self.task.cancel()
@@ -160,9 +154,7 @@ class Timer(commands.Cog):
             log.debug("No timers to end, stopping task.")
             return self.end_timer.stop()
 
-        interval = max(
-            math.ceil(getattr(next(iter(self.to_end), None), "remaining_time", 1)), 1
-        )
+        interval = max(math.ceil(getattr(next(iter(self.to_end), None), "remaining_time", 1)), 1)
         self.end_timer.change_interval(seconds=interval)
         log.debug(f"Changed interval to {interval} seconds")
 
@@ -294,9 +286,7 @@ class Timer(commands.Cog):
         `notify`: Whether or not to notify users. (`True`/`False`)
         """
 
-        await self.config.guild_from_id(ctx.guild.id).timer_settings.notify_users.set(
-            notify
-        )
+        await self.config.guild_from_id(ctx.guild.id).timer_settings.notify_users.set(notify)
         await ctx.tick()
 
     @tset.command(name="showsettings", aliases=["ss", "showsetting", "show"])
