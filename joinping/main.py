@@ -19,7 +19,7 @@ class JoinPing(commands.Cog):
     """
     Ghost ping users when they join."""
 
-    __version__ = "1.1.1"
+    __version__ = "1.1.2"
     __author__ = ["crayyy_zee"]
 
     def __init__(self, bot: Red):
@@ -159,11 +159,11 @@ class JoinPing(commands.Cog):
 
     @jpset_channels.command(name="remove", aliases=["r"])
     @commands.bot_has_permissions(embed_links=True)
-    async def jpsetchan_remove(self, ctx, *channels: discord.TextChannel):
+    async def jpsetchan_remove(self, ctx, *channels: typing.Union[discord.TextChannel, int]):
         """
         Add the channels to the list of channels where the pings will be sent on member join."""
         cached_chans = self.cache.setdefault(ctx.guild.id, guild_defaults).get("ping_channels")
-        channels = {x.id for x in channels}
+        channels = {getattr(x, "id", x) for x in channels}
         not_present = []
         for i in channels:
             try:
