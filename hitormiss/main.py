@@ -199,7 +199,7 @@ class HitOrMiss(commands.Cog):
 
     @classmethod
     async def initialize(cls, bot):
-        #if not await bank.is_global():
+        # if not await bank.is_global():
         #    raise CogLoadError(
         #        "This cog requires the bank to be global. Please use `[p]bankset toggleglobal True` to do so before loading this cog."
         #    )
