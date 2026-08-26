@@ -284,7 +284,7 @@ class Timer(commands.Cog):
         )
 
     @tset.command(name="showmessageurl", aliases=["showmsgurl"])
-    async def tset_reply(self, ctx: commands.Context, append: bool = True):
+    async def tset_showmessageurl(self, ctx: commands.Context, append: bool = True):
         """
         Whether to append the original message url to the timer end message or not.
 
