@@ -2,7 +2,8 @@ import asyncio
 import itertools
 import logging
 import math
-from typing import Any, Callable, Dict, Iterable, List, Optional, TypeVar
+from collections.abc import Callable, Iterable
+from typing import Any, TypeVar
 
 import discord
 from discord.ext import tasks
@@ -15,7 +16,12 @@ from .utils import EmojiConverter, TimeConverter
 
 guild_defaults = {
     "timers": [],
-    "timer_settings": {"notify_users": True, "emoji": "\U0001f389"},
+    "timer_settings": {
+        "notify_users": True,
+        "emoji": "\U0001f389",
+        "show_message_url": True,
+        "reply_to_original_message": True,
+    },
 }
 log = logging.getLogger("red.craycogs.Timer.timers")
 
@@ -26,7 +32,7 @@ def all_min(
     iterable: Iterable[_T],
     key: Callable[[_T], Any] = lambda x: x,
     *,
-    sortkey: Optional[Callable[[_T], Any]] = None,
+    sortkey: Callable[[_T], Any] | None = None,
 ):
     """A simple one liner function that returns all the least elements of an iterable instead of just one like the builtin `min()`.
 
@@ -44,7 +50,7 @@ def all_min(
         iterable = sorted(iterable, key=sortkey)
     try:
         return min(
-            map(lambda x: (x[0], list(x[1])), itertools.groupby(iterable, key=key)),
+            ((x[0], list(x[1])) for x in itertools.groupby(iterable, key=key)),
             key=lambda x: x[0],
         )[1]
 
@@ -56,18 +62,20 @@ class Timer(commands.Cog):
     """Start countdowns that help you keep track of the time passed"""
 
     __author__ = ["crayyy_zee"]
-    __version__ = "1.1.1"
+    __version__ = "1.1.2"
 
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, 1, True)
         self.config.register_guild(**guild_defaults)
-        self.config.register_global(max_duration=3600 * 12)  # a day long duration by default
+        self.config.register_global(
+            max_duration=3600 * 12
+        )  # a day long duration by default
 
-        self.cache: Dict[int, List[TimerObj]] = {}
+        self.cache: dict[int, list[TimerObj]] = {}
 
         self.task = self.end_timer.start()
-        self.to_end: List[TimerObj] = []
+        self.to_end: list[TimerObj] = []
         self.view = TimerView(self)
 
     async def red_delete_data_for_user(self, *, requester, user_id: int):
@@ -120,11 +128,15 @@ class Timer(commands.Cog):
         self.cache[timer.guild_id].remove(timer)
 
     async def get_guild_settings(self, guild_id: int):
-        return TimerSettings(**await self.config.guild_from_id(guild_id).timer_settings())
+        return TimerSettings(
+            **await self.config.guild_from_id(guild_id).timer_settings()
+        )
 
     async def _back_to_config(self):
         for guild_id, timers in self.cache.items():
-            await self.config.guild_from_id(guild_id).timers.set([x.json for x in timers])
+            await self.config.guild_from_id(guild_id).timers.set(
+                [x.json for x in timers]
+            )
 
     async def cog_unload(self):
         self.task.cancel()
@@ -143,7 +155,7 @@ class Timer(commands.Cog):
 
         for result in results:
             if isinstance(result, Exception):
-                log.error(f"A timer ended with an error:", exc_info=result)
+                log.error("A timer ended with an error:", exc_info=result)
 
         self.to_end = all_min(
             itertools.chain.from_iterable(self.cache.values()),
@@ -154,7 +166,9 @@ class Timer(commands.Cog):
             log.debug("No timers to end, stopping task.")
             return self.end_timer.stop()
 
-        interval = max(math.ceil(getattr(next(iter(self.to_end), None), "remaining_time", 1)), 1)
+        interval = max(
+            math.ceil(getattr(next(iter(self.to_end), None), "remaining_time", 1)), 1
+        )
         self.end_timer.change_interval(seconds=interval)
         log.debug(f"Changed interval to {interval} seconds")
 
@@ -180,20 +194,18 @@ class Timer(commands.Cog):
         """
 
         timer = TimerObj(
-            **{
-                "message_id": None,
-                "channel_id": ctx.channel.id,
-                "guild_id": ctx.guild.id,
-                "bot": ctx.bot,
-                "name": name,
-                "emoji": (await self.get_guild_settings(ctx.guild.id)).emoji,
-                "host": ctx.author.id,
-                "ends_at": time,
-            }
+            message_id=None,
+            channel_id=ctx.channel.id,
+            guild_id=ctx.guild.id,
+            bot=ctx.bot,
+            name=name,
+            emoji=(await self.get_guild_settings(ctx.guild.id)).emoji,
+            host=ctx.author.id,
+            ends_at=time,
         )
 
         await timer.start()
-        await ctx.tick(message="Timer for `{}` started!".format(name))
+        await ctx.tick(message=f"Timer for `{name}` started!")
 
         self.to_end.clear()
         if self.end_timer.is_running():
@@ -236,7 +248,7 @@ class Timer(commands.Cog):
             return
 
         embed = discord.Embed(
-            title="Timers in **{}**".format(ctx.guild.name),
+            title=f"Timers in **{ctx.guild.name}**",
             description="\n".join(
                 "{} - {}".format(
                     f"[{x.name}]({x.jump_url})",
@@ -266,6 +278,32 @@ class Timer(commands.Cog):
         await self.config.guild_from_id(ctx.guild.id).timer_settings.emoji.set(emoji)
         await ctx.tick()
 
+    @tset.command(name="reply")
+    async def tset_reply(self, ctx: commands.Context, reply: bool = True):
+        """
+        Change whether the timer end message replies to the original timer message
+
+        `reply`: Whether to reply or not (`True`/`False`)"""
+        await self.config.guild_from_id(
+            ctx.guild.id
+        ).timer_settings.reply_to_original_message.set(reply)
+        await ctx.reply(
+            f"The timer end message will no{reply and 'w' or 't'} reply to the original timer message."
+        )
+
+    @tset.command(name="showmessageurl", aliases=["showmsgurl"])
+    async def tset_reply(self, ctx: commands.Context, append: bool = True):
+        """
+        Whether to append the original message url to the timer end message or not.
+
+        `append`: Whether to add the msg url or not (`True`/`False`)"""
+        await self.config.guild_from_id(
+            ctx.guild.id
+        ).timer_settings.show_message_url.set(append)
+        await ctx.reply(
+            f"The timer end message will no{append and 'w' or 't'} have the message url of the original timer message."
+        )
+
     @tset.command(name="maxduration", aliases=["duration", "md"])
     @commands.is_owner()
     async def tset_duration(self, ctx: commands.Context, duration: TimeConverter(True)):
@@ -286,7 +324,9 @@ class Timer(commands.Cog):
         `notify`: Whether or not to notify users. (`True`/`False`)
         """
 
-        await self.config.guild_from_id(ctx.guild.id).timer_settings.notify_users.set(notify)
+        await self.config.guild_from_id(ctx.guild.id).timer_settings.notify_users.set(
+            notify
+        )
         await ctx.tick()
 
     @tset.command(name="showsettings", aliases=["ss", "showsetting", "show"])
