@@ -34,9 +34,7 @@ class TimerView(View):
         self.JTB = JoinTimerButton(emoji, self._callback, disabled)
         self.add_item(self.JTB)
 
-    async def _callback(
-        self, button: "JoinTimerButton", interaction: discord.Interaction
-    ):
+    async def _callback(self, button: "JoinTimerButton", interaction: discord.Interaction):
         log.debug("callback called")
         cog: "Timer" = self.cog
 
@@ -58,9 +56,7 @@ class TimerView(View):
 
         if result:
             kwargs.update(
-                {
-                    "content": f"{interaction.user.mention} you will be notfied when the timer ends."
-                }
+                {"content": f"{interaction.user.mention} you will be notfied when the timer ends."}
             )
 
         else:
@@ -152,9 +148,7 @@ class TimerObj:
         return (
             15
             if (secs := self.remaining_time.total_seconds()) <= 120
-            else 60
-            if secs < 300
-            else 300
+            else 60 if secs < 300 else 300
         )
 
     @property
@@ -243,9 +237,7 @@ class TimerObj:
                 color=await self.get_embed_color(),
             )
             .set_thumbnail(url=getattr(self.guild.icon, "url", ""))
-            .set_footer(
-                text=f"Hosted by: {self.host}", icon_url=self.host.display_avatar.url
-            )
+            .set_footer(text=f"Hosted by: {self.host}", icon_url=self.host.display_avatar.url)
         )
 
         kwargs = {
@@ -281,9 +273,7 @@ class TimerObj:
 
         notify = settings.notify_users
 
-        rep = await (
-            msg.reply if settings.reply_to_original_message else msg.channel.send
-        )(
+        rep = await (msg.reply if settings.reply_to_original_message else msg.channel.send)(
             f"{getattr(self.host, 'mention', f'{self._host} (host user not found)')} your timer for **{self.name}** has ended!\n"
             + (self.jump_url if settings.show_message_url else "")
         )
@@ -298,9 +288,11 @@ class TimerObj:
             for page in cf.pagify(pings, delims=[" "], page_length=2000):
                 await msg.channel.send(
                     page,
-                    reference=rep.to_reference(fail_if_not_exists=False)
-                    if settings.reply_to_original_message
-                    else None,
+                    reference=(
+                        rep.to_reference(fail_if_not_exists=False)
+                        if settings.reply_to_original_message
+                        else None
+                    ),
                 )
 
         await self.cog.remove_timer(self)
