@@ -40,7 +40,6 @@ class SharedCooldownsDict(typing.TypedDict):
 
 
 class SCDFlags(commands.FlagConverter):
-
     _commands: list[tuple[commands.Command, ...]] = commands.flag(
         name="command",
         aliases=["c", "commands"],
@@ -77,7 +76,6 @@ class SCDFlags(commands.FlagConverter):
 
 
 class SCDFlagsAllOPT(commands.FlagConverter):
-
     _commands: typing.Optional[list[commands.Command]] = commands.flag(
         name="command",
         aliases=["c", "commands"],

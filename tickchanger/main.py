@@ -2,7 +2,7 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list
 
-from .util import EmojiConverter
+from .utils import EmojiConverter
 
 old_tick = commands.context.TICK
 
@@ -10,7 +10,8 @@ old_tick = commands.context.TICK
 class TickChanger(commands.Cog):
     """
     Change the emoji that gets reacted with when `await ctx.tick()`
-    is called anywhere in the bot"""
+    is called anywhere in the bot
+    """
 
     __author__ = ["crayyy_zee"]
     __version__ = "1.3.0"

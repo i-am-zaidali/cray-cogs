@@ -18,7 +18,8 @@ guild_defaults = {
 
 class JoinPing(commands.Cog):
     """
-    Ghost ping users when they join."""
+    Ghost ping users when they join.
+    """
 
     __version__ = "1.1.2"
     __author__ = ["crayyy_zee"]

@@ -117,7 +117,7 @@ class PageButton(PaginatorButton):
         super().__init__(style=discord.ButtonStyle.gray, disabled=True)
 
     def _change_label(self):
-        self.label = f"Page {self.view.current_page+1}/{self.view.source.get_max_pages()}"
+        self.label = f"Page {self.view.current_page + 1}/{self.view.source.get_max_pages()}"
 
 
 class PaginatorSelect(Select["Paginator"]):
@@ -130,7 +130,7 @@ class PaginatorSelect(Select["Paginator"]):
     ):
         pages: int
         pages: int = view.source.get_max_pages() or 0
-        indices = indices or [(f"Page #{i+1}", i) for i in range(pages)]
+        indices = indices or [(f"Page #{i + 1}", i) for i in range(pages)]
         if pages > 25:
             minus_diff = 0
             plus_diff = 25
@@ -142,7 +142,7 @@ class PaginatorSelect(Select["Paginator"]):
                 plus_diff = pages
             options = [
                 discord.SelectOption(
-                    label=indices[i][0], value=indices[i][1], description=f"Go to page {i+1}"
+                    label=indices[i][0], value=indices[i][1], description=f"Go to page {i + 1}"
                 )
                 for i in range(minus_diff, plus_diff)
             ]
@@ -196,7 +196,9 @@ class Paginator(ViewDisableOnTimeout):
         buttons_to_add: List[Button] = (
             [FirstItemButton(), BackwardButton(), PageButton(), ForwardButton(), LastItemButton()]
             if pages > 2
-            else [BackwardButton(), PageButton(), ForwardButton()] if pages > 1 else []
+            else [BackwardButton(), PageButton(), ForwardButton()]
+            if pages > 1
+            else []
         )
         if self._use_select and pages > 1:
             buttons_to_add.append(PaginatorSelect.with_pages(self, indices=self._select_indices))

@@ -312,7 +312,7 @@ class SharedCooldowns(commands.Cog):
             )
 
         if all([getattr(flags, flag.attribute) is None for flag in flags.get_flags().values()]):
-            return await ctx.send(f"Atelast one of the flag values must be used.")
+            return await ctx.send("Atelast one of the flag values must be used.")
 
         scd.update(
             bypass=flags.bypass,
@@ -374,15 +374,15 @@ class SharedCooldowns(commands.Cog):
         source = ListPageSource(list(self._cache.values()), per_page=1)
 
         def format_cooldown_cache(cache: dict[typing.Any, commands.Cooldown]):
-            mention = lambda x: (
-                getattr(
+            def mention(x):
+                return getattr(
                     self.bot.get_user(x)
                     or ctx.guild.get_channel_or_thread(x)
                     or ctx.guild.get_role(x),
                     "mention",
                     getattr(self.bot.get_guild(x), "name", "Anyone"),
                 )
-            )
+
             return "\n".join(
                 f"{mention(k)} can run the command after {cf.humanize_timedelta(seconds=v.get_retry_after())}"
                 for k, v in filter(lambda x: x[1].get_retry_after(), cache.items())
@@ -393,7 +393,7 @@ class SharedCooldowns(commands.Cog):
             embed = discord.Embed(
                 description=(
                     f"## Shared Cooldowns ID: *{scd.id}*\n"
-                    f"- **Commands**:\n  - {bnbtds.join(map(lambda x: f'`{x}`',scd.command_names))}\n"
+                    f"- **Commands**:\n  - {bnbtds.join(map(lambda x: f'`{x}`', scd.command_names))}\n"
                     f"- **Bypass** (following users bypass this cooldown): \n  - {bnbtds.join(list(map(lambda x: f'<@{x}>', scd.bypass)) or ['No users bypass this cooldown'])}\n"
                     f"- **Cooldown**: {cf.humanize_timedelta(seconds=scd.cooldown)}\n"
                     f"- **Uses before cooldown applies**: {scd.uses}\n"
@@ -411,6 +411,6 @@ class SharedCooldowns(commands.Cog):
             source,
             use_select=True,
             select_indices=[
-                (f"ID: {id} (Page {page+1})", page) for page, id in enumerate(self._cache)
+                (f"ID: {id} (Page {page + 1})", page) for page, id in enumerate(self._cache)
             ],
         ).start(ctx)

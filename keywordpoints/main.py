@@ -93,11 +93,12 @@ class KeyWordPoints(commands.Cog):
         Extra kwargs can be passed to create embeds off of.
         """
 
-        fix_kwargs = lambda kwargs: {
-            next(x): (fix_kwargs({next(x): v}) if "__" in k else v)
-            for k, v in kwargs.copy().items()
-            if (x := iter(k.split("__", 1)))
-        }
+        def fix_kwargs(kwargs):
+            return {
+                next(x): (fix_kwargs({next(x): v}) if "__" in k else v)
+                for k, v in kwargs.copy().items()
+                if (x := iter(k.split("__", 1)))
+            }
 
         kwargs = fix_kwargs(kwargs)
         # yea idk man.
@@ -160,7 +161,7 @@ class KeyWordPoints(commands.Cog):
         valid_keywords = filter(
             lambda x: message.channel.id in cache[x]["channels"]
             and x in message.content
-            and not message.author.id in cache[x]["blacklisted_members"],
+            and message.author.id not in cache[x]["blacklisted_members"],
             cache,
         )
 

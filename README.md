@@ -23,7 +23,7 @@
 ## Cogs
 | Name              | Version          | Functionality (Click to see full description)                                                                                                              |
 |-------------------|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Notes             | 1.1.0            | <details><summary>Moderation Notes</summary>Keep moderation notes on people.</details>                                                                     |
+| Notes             | 1.2.1            | <details><summary>Moderation Notes</summary>Keep moderation notes on people.</details>                                                                     |
 | HitOrMiss         | 1.3.5            | <details><summary>Throw stuff at others.</summary>Throw items at users and hope you kill them. Buy items from the shop.</details>                          |
 | TickChanger       | 1.2.0            | <details><summary>Change `ctx.tick`'s emoji.</summary>Monkeypatches the ctx.tick method to react with a given emoji of your choice.</details>              |
 | JoinPing          | 1.0.2            | <details><summary>Ping people on server join</summary>Ghost ping people in multiple channels to alert them about it.</details>                             |

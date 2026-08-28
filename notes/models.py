@@ -24,7 +24,9 @@ class UserNote:
         self.type: NoteType = (
             NoteType[type]
             if isinstance(type, str)
-            else type if isinstance(type, NoteType) else NoteType.RegularNote
+            else type
+            if isinstance(type, NoteType)
+            else NoteType.RegularNote
         )
 
     def __str__(self):

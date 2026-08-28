@@ -31,7 +31,8 @@ class HitOrMiss(commands.Cog):
     A snowball bot based (but hugely different) cog.
 
     And no it doesn't use slash commands.
-    *Yet*."""
+    *Yet*.
+    """
 
     __author__ = ["crayyy_zee"]
     __version__ = "1.3.5"
@@ -91,11 +92,12 @@ class HitOrMiss(commands.Cog):
         Extra kwargs can be passed to create embeds off of.
         """
 
-        fix_kwargs = lambda kwargs: {
-            next(x): (fix_kwargs({next(x): v}) if "__" in k else v)
-            for k, v in kwargs.copy().items()
-            if (x := iter(k.split("__", 1)))
-        }
+        def fix_kwargs(kwargs):
+            return {
+                next(x): (fix_kwargs({next(x): v}) if "__" in k else v)
+                for k, v in kwargs.copy().items()
+                if (x := iter(k.split("__", 1)))
+            }
 
         kwargs = fix_kwargs(kwargs)
         # yea idk man.
@@ -330,7 +332,7 @@ class HitOrMiss(commands.Cog):
 
         for item, amount in me.inv.items.items():
             item_cooldown = (
-                f"Can be used <t:{int(time.time()+cd)}:R>."
+                f"Can be used <t:{int(time.time() + cd)}:R>."
                 if (cd := item.on_cooldown(ctx.message))
                 else "Not on cooldown."
             )

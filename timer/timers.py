@@ -123,7 +123,7 @@ class Timer(commands.Cog):
     async def remove_timer(self, timer: TimerObj):
         if not (guild := self.cache.get(timer.guild_id)):
             return
-        self.cache[timer.guild_id].remove(timer)
+        guild.remove(timer)
 
     async def get_guild_settings(self, guild_id: int):
         return TimerSettings(**await self.config.guild_from_id(guild_id).timer_settings())
@@ -296,7 +296,7 @@ class Timer(commands.Cog):
 
     @tset.command(name="maxduration", aliases=["duration", "md"])
     @commands.is_owner()
-    async def tset_duration(self, ctx: commands.Context, duration: TimeConverter(True)):
+    async def tset_duration(self, ctx: commands.Context, duration: TimeConverter):
         """
         Change the max duration for timers.
 
